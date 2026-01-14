@@ -3,7 +3,6 @@ package com.cosign.backend.service;
 import com.cosign.backend.dto.SignupRequest;
 import com.cosign.backend.model.User;
 import com.cosign.backend.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -15,17 +14,20 @@ import java.util.UUID;
 @Service
 public class AuthService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
+    private final String frontendUrl;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private EmailService emailService;
-
-    @Value("${app.frontend.url}")
-    private String frontendUrl;
+    public AuthService(UserRepository userRepository,
+                       PasswordEncoder passwordEncoder,
+                       EmailService emailService,
+                       @Value("${app.frontend.url}") String frontendUrl) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
+        this.frontendUrl = frontendUrl;
+    }
 
     @Transactional
     public void signup(SignupRequest request) {
@@ -67,6 +69,5 @@ public class AuthService {
         user.setEmailVerificationToken(null);
         user.setEmailVerificationTokenExpiry(null);
         userRepository.save(user);
-
     }
 }

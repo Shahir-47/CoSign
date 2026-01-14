@@ -22,8 +22,9 @@ public class SecurityConfig {
             http
                     .csrf(AbstractHttpConfigurer::disable) // Disable CSRF
                     .authorizeHttpRequests(auth -> auth
-                            .requestMatchers("/auth/**").permitAll() // Allow access to auth endpoints
-                            .anyRequest().authenticated()
+                            .requestMatchers("/api/auth/**").permitAll() // Allow access to auth endpoints
+                            .requestMatchers("/api/**").authenticated()
+                            .anyRequest().permitAll()
                     );
             return http.build();
         } catch (Exception e) {
