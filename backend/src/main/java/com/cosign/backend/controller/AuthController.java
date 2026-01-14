@@ -5,6 +5,8 @@ import com.cosign.backend.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.cosign.backend.dto.LoginRequest;
+import com.cosign.backend.dto.LoginResponse;
 
 import java.util.Map;
 
@@ -39,5 +41,11 @@ public class AuthController {
 
         authService.resendVerificationEmail(email);
         return ResponseEntity.ok("Verification email sent.");
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+        LoginResponse response = authService.login(request);
+        return ResponseEntity.ok(response);
     }
 }

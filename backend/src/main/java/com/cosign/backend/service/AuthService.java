@@ -7,6 +7,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.cosign.backend.dto.LoginRequest;
+import com.cosign.backend.dto.LoginResponse;
+import com.cosign.backend.util.JwtUtils;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -18,15 +25,42 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final String frontendUrl;
+    private final AuthenticationManager authenticationManager;
+    private final JwtUtils jwtUtils;
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        EmailService emailService,
-                       @Value("${app.frontend.url}") String frontendUrl) {
+                       @Value("${app.frontend.url}") String frontendUrl,
+                       AuthenticationManager authenticationManager,
+                       JwtUtils jwtUtils) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
         this.frontendUrl = frontendUrl;
+        this.authenticationManager = authenticationManager;
+        this.jwtUtils = jwtUtils;
+    }
+
+    public LoginResponse login(LoginRequest request) {
+        // Authenticate email/password
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+        );
+
+        // Check if email is verified
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!user.isEmailVerified()) {
+            throw new RuntimeException("Email not verified. Please check your inbox.");
+        }
+
+        // Generate JWT
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        String jwt = jwtUtils.generateJwtToken(authentication);
+
+        return new LoginResponse(jwt, user.getEmail(), user.getFullName());
     }
 
     @Transactional

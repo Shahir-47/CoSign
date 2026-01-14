@@ -1,5 +1,6 @@
 package com.cosign.backend.dto;
 
+import com.cosign.backend.validation.ValidTimezone;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
@@ -17,5 +18,6 @@ public class SignupRequest {
     private String password;
 
     @NotBlank
+    @ValidTimezone
     private String timezone;
 }
