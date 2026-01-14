@@ -70,4 +70,25 @@ public class AuthService {
         user.setEmailVerificationTokenExpiry(null);
         userRepository.save(user);
     }
+
+    @Transactional
+    public void resendVerificationEmail(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (user.isEmailVerified()) {
+            throw new RuntimeException("Email is already verified. You can log in.");
+        }
+
+        //  Generate a new token
+        String token = UUID.randomUUID().toString();
+        user.setEmailVerificationToken(token);
+        user.setEmailVerificationTokenExpiry(LocalDateTime.now().plusHours(24));
+
+        userRepository.save(user);
+
+        //  Send the new email
+        String verificationLink = frontendUrl + "/verify-email?token=" + token;
+        emailService.sendVerificationEmail(user.getEmail(), verificationLink);
+    }
 }

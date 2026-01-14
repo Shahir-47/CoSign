@@ -6,6 +6,8 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -26,5 +28,16 @@ public class AuthController {
     public ResponseEntity<?> verifyEmail(@RequestParam String token) {
         authService.verifyEmail(token);
         return ResponseEntity.ok("Email verified successfully!");
+    }
+
+    @PostMapping("/resend-verification")
+    public ResponseEntity<?> resendVerification(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        if (email == null || email.isEmpty()) {
+            return ResponseEntity.badRequest().body("Email is required");
+        }
+
+        authService.resendVerificationEmail(email);
+        return ResponseEntity.ok("Verification email sent.");
     }
 }
