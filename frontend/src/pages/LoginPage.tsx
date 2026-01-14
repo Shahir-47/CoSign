@@ -16,6 +16,7 @@ interface LoginResponse {
 	token: string;
 	email: string;
 	fullName: string;
+	timezone: string;
 }
 
 export default function LoginPage() {
@@ -50,6 +51,7 @@ export default function LoginPage() {
 				JSON.stringify({
 					email: result.email,
 					fullName: result.fullName,
+					timezone: result.timezone,
 				})
 			);
 

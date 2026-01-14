@@ -1,0 +1,152 @@
+.card {
+	background: var(--bg-card);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-lg);
+	padding: 20px;
+	transition: all 0.2s ease;
+}
+
+.card:hover {
+	border-color: var(--border-secondary);
+	box-shadow: var(--shadow-md);
+}
+
+.card.starred {
+	border-color: rgba(245, 158, 11, 0.3);
+	background: linear-gradient(
+		135deg,
+		var(--bg-card) 0%,
+		rgba(245, 158, 11, 0.03) 100%
+	);
+}
+
+.header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 8px;
+}
+
+.titleRow {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex: 1;
+	min-width: 0;
+}
+
+.starIcon {
+	color: #f59e0b;
+	flex-shrink: 0;
+}
+
+.title {
+	font-size: 1.0625rem;
+	font-weight: 600;
+	color: var(--text-primary);
+	margin: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.priority {
+	font-size: 0.6875rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	padding: 4px 8px;
+	border-radius: var(--radius-sm);
+	flex-shrink: 0;
+}
+
+.description {
+	font-size: 0.875rem;
+	color: var(--text-secondary);
+	line-height: 1.5;
+	margin: 0 0 12px;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin-bottom: 16px;
+}
+
+.deadline,
+.location {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 0.8125rem;
+	color: var(--text-muted);
+}
+
+.deadline svg,
+.location svg {
+	flex-shrink: 0;
+}
+
+.deadline.urgent {
+	color: #f59e0b;
+}
+
+.deadline.overdue {
+	color: var(--accent-danger);
+}
+
+.category {
+	font-size: 0.75rem;
+	font-weight: 500;
+	color: var(--text-secondary);
+	background: var(--bg-tertiary);
+	padding: 4px 10px;
+	border-radius: var(--radius-sm);
+}
+
+.footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding-top: 12px;
+	border-top: 1px solid var(--border-primary);
+}
+
+.status {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 0.8125rem;
+	font-weight: 500;
+}
+
+.person {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 0.8125rem;
+	color: var(--text-muted);
+}
+
+.person strong {
+	color: var(--text-secondary);
+}
+
+@media (max-width: 480px) {
+	.card {
+		padding: 16px;
+	}
+
+	.footer {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 8px;
+	}
+}
