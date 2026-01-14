@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ClipboardList } from "lucide-react";
+import { useState, useMemo } from "react";
+import { ClipboardList, ChevronDown, Clock } from "lucide-react";
 import type { Task } from "../../types";
 import TaskCard from "./TaskCard";
 import TaskDetailModal from "./TaskDetailModal";
@@ -23,6 +23,37 @@ export default function TaskList({
 	onReassignTask,
 }: TaskListProps) {
 	const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+	const [showOverdue, setShowOverdue] = useState(false);
+
+	// Separate active and overdue tasks
+	const { activeTasks, overdueTasks } = useMemo(() => {
+		const now = new Date();
+		const active: Task[] = [];
+		const overdue: Task[] = [];
+
+		tasks.forEach((task) => {
+			const deadline = new Date(task.deadline);
+			// Only consider PENDING_PROOF or PENDING_VERIFICATION tasks as overdue
+			// Completed, Missed, and Paused tasks go to their natural position
+			const isOverdue =
+				deadline < now &&
+				(task.status === "PENDING_PROOF" ||
+					task.status === "PENDING_VERIFICATION");
+
+			if (isOverdue) {
+				overdue.push(task);
+			} else {
+				active.push(task);
+			}
+		});
+
+		// Sort overdue by how overdue they are (most overdue first)
+		overdue.sort(
+			(a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
+		);
+
+		return { activeTasks: active, overdueTasks: overdue };
+	}, [tasks]);
 
 	if (isLoading) {
 		return (
@@ -63,18 +94,72 @@ export default function TaskList({
 
 	return (
 		<>
-			<div className={styles.list}>
-				{tasks.map((task) => (
-					<TaskCard
-						key={task.id}
-						task={task}
-						viewMode={viewMode}
-						searchTerm={searchTerm}
-						onClick={() => setSelectedTask(task)}
-						onReassign={onReassignTask ? () => onReassignTask(task) : undefined}
-					/>
-				))}
-			</div>
+			{/* Active Tasks */}
+			{activeTasks.length > 0 && (
+				<div className={styles.list}>
+					{activeTasks.map((task) => (
+						<TaskCard
+							key={task.id}
+							task={task}
+							viewMode={viewMode}
+							searchTerm={searchTerm}
+							onClick={() => setSelectedTask(task)}
+							onReassign={
+								onReassignTask ? () => onReassignTask(task) : undefined
+							}
+						/>
+					))}
+				</div>
+			)}
+
+			{/* Empty state when no active tasks but there are overdue */}
+			{activeTasks.length === 0 && overdueTasks.length > 0 && (
+				<div className={styles.noActiveTasks}>
+					<p>
+						No active tasks. You have {overdueTasks.length} overdue task
+						{overdueTasks.length > 1 ? "s" : ""} below.
+					</p>
+				</div>
+			)}
+
+			{/* Overdue Tasks Section */}
+			{overdueTasks.length > 0 && (
+				<div className={styles.overdueSection}>
+					<button
+						className={styles.overdueHeader}
+						onClick={() => setShowOverdue(!showOverdue)}
+					>
+						<div className={styles.overdueTitle}>
+							<Clock size={18} />
+							<span>Overdue Tasks</span>
+							<span className={styles.overdueCount}>{overdueTasks.length}</span>
+						</div>
+						<ChevronDown
+							size={18}
+							className={`${styles.chevron} ${
+								showOverdue ? styles.expanded : ""
+							}`}
+						/>
+					</button>
+
+					{showOverdue && (
+						<div className={styles.overdueList}>
+							{overdueTasks.map((task) => (
+								<TaskCard
+									key={task.id}
+									task={task}
+									viewMode={viewMode}
+									searchTerm={searchTerm}
+									onClick={() => setSelectedTask(task)}
+									onReassign={
+										onReassignTask ? () => onReassignTask(task) : undefined
+									}
+								/>
+							))}
+						</div>
+					)}
+				</div>
+			)}
 
 			<TaskDetailModal
 				task={selectedTask}
