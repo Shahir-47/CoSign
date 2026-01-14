@@ -19,9 +19,6 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false, unique = true)
-    private String phoneNumber;
-
     @Column(nullable = false)
     private String passwordHash;
 
@@ -32,10 +29,9 @@ public class User {
 
     // Verification
     private boolean isEmailVerified = false;
-    private boolean isPhoneVerified = false;
 
     private String emailVerificationToken;
-    private String phoneVerificationCode;
+    private LocalDateTime emailVerificationTokenExpiry;
 
     private LocalDateTime createdAt = LocalDateTime.now();
 }
