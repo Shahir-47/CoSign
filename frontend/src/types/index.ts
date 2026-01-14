@@ -6,13 +6,21 @@ export type TaskStatus =
 	| "PENDING_PROOF"
 	| "PENDING_VERIFICATION"
 	| "COMPLETED"
-	| "MISSED";
+	| "MISSED"
+	| "PAUSED";
 
 export interface User {
 	id: number;
 	fullName: string;
 	email: string;
 	timezone: string;
+	profilePictureUrl?: string;
+}
+
+export interface Verifier {
+	id: number;
+	fullName: string;
+	email: string;
 	profilePictureUrl?: string;
 }
 

@@ -11,6 +11,7 @@ interface TaskListProps {
 	isLoading: boolean;
 	error?: string;
 	searchTerm?: string;
+	onReassignTask?: (task: Task) => void;
 }
 
 export default function TaskList({
@@ -19,6 +20,7 @@ export default function TaskList({
 	isLoading,
 	error,
 	searchTerm,
+	onReassignTask,
 }: TaskListProps) {
 	const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
@@ -69,6 +71,7 @@ export default function TaskList({
 						viewMode={viewMode}
 						searchTerm={searchTerm}
 						onClick={() => setSelectedTask(task)}
+						onReassign={onReassignTask ? () => onReassignTask(task) : undefined}
 					/>
 				))}
 			</div>
@@ -78,6 +81,7 @@ export default function TaskList({
 				isOpen={selectedTask !== null}
 				onClose={() => setSelectedTask(null)}
 				viewMode={viewMode}
+				onReassign={onReassignTask}
 			/>
 		</>
 	);

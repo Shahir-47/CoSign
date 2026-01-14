@@ -7,6 +7,8 @@ import {
 	CheckCircle2,
 	XCircle,
 	User,
+	Pause,
+	UserX,
 } from "lucide-react";
 import type { Task } from "../../types";
 import styles from "./TaskCard.module.css";
@@ -20,6 +22,7 @@ interface TaskCardProps {
 	viewMode: "my-tasks" | "verification-requests";
 	searchTerm?: string;
 	onClick?: () => void;
+	onReassign?: () => void;
 }
 
 // Highlight matching text
@@ -62,6 +65,7 @@ const statusConfig: Record<
 	},
 	COMPLETED: { label: "Completed", icon: CheckCircle2, color: "#10b981" },
 	MISSED: { label: "Missed", icon: XCircle, color: "#ef4444" },
+	PAUSED: { label: "Paused - Needs Verifier", icon: Pause, color: "#f97316" },
 };
 
 function formatDeadline(deadline: string): {
@@ -149,6 +153,7 @@ export default function TaskCard({
 	viewMode,
 	searchTerm,
 	onClick,
+	onReassign,
 }: TaskCardProps) {
 	const [, setTick] = useState(0);
 
@@ -235,6 +240,19 @@ export default function TaskCard({
 					<StatusIcon size={14} />
 					<span>{status.label}</span>
 				</div>
+
+				{task.status === "PAUSED" && viewMode === "my-tasks" && onReassign && (
+					<button
+						className={styles.reassignButton}
+						onClick={(e) => {
+							e.stopPropagation();
+							onReassign();
+						}}
+					>
+						<UserX size={14} />
+						Reassign
+					</button>
+				)}
 
 				<div className={styles.person}>
 					<User size={14} />

@@ -1,0 +1,272 @@
+.overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.7);
+	backdrop-filter: blur(4px);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 20px;
+	z-index: 1000;
+	animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+.modal {
+	background: var(--bg-card);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-xl);
+	width: 100%;
+	max-width: 520px;
+	max-height: 80vh;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	box-shadow: var(--shadow-lg), var(--shadow-glow);
+	animation: slideIn 0.2s ease;
+}
+
+@keyframes slideIn {
+	from {
+		opacity: 0;
+		transform: translateY(-20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.header {
+	position: relative;
+	padding: 24px 24px 16px;
+	border-bottom: 1px solid var(--border-primary);
+}
+
+.titleSection h2 {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	font-size: 1.375rem;
+	font-weight: 700;
+	color: var(--text-primary);
+	margin: 0 0 6px;
+}
+
+.titleSection h2 svg {
+	color: var(--accent-primary);
+}
+
+.titleSection p {
+	font-size: 0.875rem;
+	color: var(--text-muted);
+	margin: 0;
+	padding-right: 40px;
+}
+
+.closeButton {
+	position: absolute;
+	top: 20px;
+	right: 20px;
+	background: var(--bg-tertiary);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-sm);
+	padding: 8px;
+	color: var(--text-secondary);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: all 0.2s ease;
+}
+
+.closeButton:hover {
+	background: var(--bg-card-hover);
+	color: var(--text-primary);
+}
+
+.content {
+	padding: 20px 24px 24px;
+	overflow-y: auto;
+	flex: 1;
+}
+
+.error {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 12px 16px;
+	background: rgba(239, 68, 68, 0.1);
+	border: 1px solid rgba(239, 68, 68, 0.3);
+	border-radius: var(--radius-md);
+	color: #ef4444;
+	font-size: 0.875rem;
+	margin-bottom: 16px;
+}
+
+.addSection {
+	margin-bottom: 20px;
+}
+
+.addForm {
+	background: var(--bg-secondary);
+	padding: 20px;
+	border-radius: var(--radius-lg);
+	border: 1px solid var(--border-primary);
+}
+
+.addFormActions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 12px;
+	margin-top: 16px;
+}
+
+.loading {
+	text-align: center;
+	color: var(--text-muted);
+	padding: 32px;
+}
+
+.empty {
+	text-align: center;
+	padding: 40px 24px;
+	background: var(--bg-secondary);
+	border-radius: var(--radius-lg);
+	border: 1px dashed var(--border-primary);
+}
+
+.empty svg {
+	color: var(--text-muted);
+	margin-bottom: 12px;
+}
+
+.empty h3 {
+	font-size: 1.125rem;
+	font-weight: 600;
+	color: var(--text-primary);
+	margin: 0 0 6px 0;
+}
+
+.empty p {
+	color: var(--text-muted);
+	margin: 0;
+	font-size: 0.875rem;
+}
+
+.verifiersList {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.verifierCard {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 14px 16px;
+	background: var(--bg-secondary);
+	border-radius: var(--radius-lg);
+	border: 1px solid var(--border-primary);
+	transition: all 0.2s ease;
+}
+
+.verifierCard:hover {
+	border-color: var(--border-secondary);
+}
+
+.verifierInfo {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+}
+
+.avatar {
+	width: 42px;
+	height: 42px;
+	border-radius: 50%;
+	background: var(--accent-primary);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+	flex-shrink: 0;
+}
+
+.avatar img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.avatar span {
+	color: white;
+	font-weight: 600;
+	font-size: 0.875rem;
+}
+
+.verifierDetails {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.name {
+	font-weight: 600;
+	color: var(--text-primary);
+	font-size: 0.9375rem;
+}
+
+.email {
+	font-size: 0.8125rem;
+	color: var(--text-muted);
+}
+
+.removeButton {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	background: transparent;
+	border: none;
+	color: var(--text-muted);
+	border-radius: var(--radius-md);
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.removeButton:hover {
+	background: rgba(239, 68, 68, 0.1);
+	color: #ef4444;
+}
+
+@media (max-width: 500px) {
+	.modal {
+		max-height: 90vh;
+	}
+
+	.header {
+		padding: 20px 20px 14px;
+	}
+
+	.content {
+		padding: 16px 20px 20px;
+	}
+
+	.verifierCard {
+		padding: 12px 14px;
+	}
+
+	.avatar {
+		width: 38px;
+		height: 38px;
+	}
+}

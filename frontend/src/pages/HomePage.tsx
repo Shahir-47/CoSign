@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
-import TaskList from "../components/dashboard/TaskList";
+import TaskListComponent from "../components/dashboard/TaskList";
 import FilterBar from "../components/dashboard/FilterBar";
 import CreateTaskModal from "../components/dashboard/CreateTaskModal";
 import CreateListModal from "../components/dashboard/CreateListModal";
-import type { Task, TaskFilters } from "../types";
+import ReassignVerifierModal from "../components/dashboard/ReassignVerifierModal";
+import VerifiersModal from "../components/dashboard/VerifiersModal";
+import type { Task, TaskFilters, TaskList } from "../types";
 import { api } from "../utils/api";
 import styles from "./HomePage.module.css";
 
@@ -32,6 +34,18 @@ export default function HomePage() {
 	const [selectedListId, setSelectedListId] = useState<number | null>(null);
 	const [refreshListsKey, setRefreshListsKey] = useState(0);
 	const [filters, setFilters] = useState<TaskFilters>(defaultFilters);
+	const [reassignTask, setReassignTask] = useState<Task | null>(null);
+	const [isVerifiersModalOpen, setIsVerifiersModalOpen] = useState(false);
+	const [refreshVerifiersKey, setRefreshVerifiersKey] = useState(0);
+	const [newlyCreatedListId, setNewlyCreatedListId] = useState<number | null>(
+		null
+	);
+	const [newlyAddedVerifierEmail, setNewlyAddedVerifierEmail] = useState<
+		string | null
+	>(null);
+	const [removedVerifierEmail, setRemovedVerifierEmail] = useState<
+		string | null
+	>(null);
 
 	// Check if user is authenticated
 	useEffect(() => {
@@ -87,8 +101,9 @@ export default function HomePage() {
 		setRefreshListsKey((k) => k + 1);
 	};
 
-	const handleListCreated = () => {
+	const handleListCreated = (list: TaskList) => {
 		setRefreshListsKey((k) => k + 1);
+		setNewlyCreatedListId(list.id);
 	};
 
 	const handleSelectList = (listId: number | null) => {
@@ -189,6 +204,7 @@ export default function HomePage() {
 			onSelectList={handleSelectList}
 			onCreateList={() => setIsListModalOpen(true)}
 			refreshListsKey={refreshListsKey}
+			onOpenVerifiersModal={() => setIsVerifiersModalOpen(true)}
 		>
 			<div className={styles.container}>
 				<div className={styles.header}>
@@ -241,26 +257,73 @@ export default function HomePage() {
 					/>
 				)}
 
-				<TaskList
+				<TaskListComponent
 					tasks={filteredTasks}
 					viewMode={activeTab}
 					isLoading={isLoading}
 					error={error}
 					searchTerm={filters.search}
+					onReassignTask={(task) => setReassignTask(task)}
 				/>
 			</div>
 
 			<CreateTaskModal
 				isOpen={isModalOpen}
-				onClose={() => setIsModalOpen(false)}
+				onClose={() => {
+					setIsModalOpen(false);
+					setNewlyCreatedListId(null);
+					setNewlyAddedVerifierEmail(null);
+					setRemovedVerifierEmail(null);
+				}}
 				onSuccess={handleTaskCreated}
 				selectedListId={selectedListId}
+				onOpenVerifiersModal={() => setIsVerifiersModalOpen(true)}
+				onOpenCreateListModal={() => setIsListModalOpen(true)}
+				refreshVerifiersKey={refreshVerifiersKey}
+				newlyCreatedListId={newlyCreatedListId}
+				refreshListsKey={refreshListsKey}
+				newlyAddedVerifierEmail={newlyAddedVerifierEmail}
+				removedVerifierEmail={removedVerifierEmail}
 			/>
 
 			<CreateListModal
 				isOpen={isListModalOpen}
 				onClose={() => setIsListModalOpen(false)}
 				onSuccess={handleListCreated}
+			/>
+
+			<ReassignVerifierModal
+				task={reassignTask}
+				isOpen={reassignTask !== null}
+				onClose={() => {
+					setReassignTask(null);
+					setNewlyAddedVerifierEmail(null);
+					setRemovedVerifierEmail(null);
+				}}
+				onSuccess={() => {
+					setReassignTask(null);
+					fetchTasks();
+				}}
+				onOpenVerifiersModal={() => setIsVerifiersModalOpen(true)}
+				refreshVerifiersKey={refreshVerifiersKey}
+				newlyAddedVerifierEmail={newlyAddedVerifierEmail}
+				removedVerifierEmail={removedVerifierEmail}
+			/>
+
+			<VerifiersModal
+				isOpen={isVerifiersModalOpen}
+				onClose={() => setIsVerifiersModalOpen(false)}
+				onVerifierAdded={(verifier) => {
+					setRefreshVerifiersKey((k) => k + 1);
+					setNewlyAddedVerifierEmail(verifier.email);
+					setRemovedVerifierEmail(null);
+				}}
+				onVerifierRemoved={(_id, email) => {
+					setRefreshVerifiersKey((k) => k + 1);
+					setRemovedVerifierEmail(email);
+					setNewlyAddedVerifierEmail(null);
+					fetchTasks(); // Refresh tasks when verifier is removed
+				}}
 			/>
 		</DashboardLayout>
 	);

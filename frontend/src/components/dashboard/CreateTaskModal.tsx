@@ -5,17 +5,25 @@ import {
 	FileText,
 	AlignLeft,
 	Calendar,
-	Mail,
 	Tag,
 	MapPin,
 	Star,
 	Flag,
 	List,
+	UserPlus,
+	ChevronDown,
+	User,
+	Plus,
 } from "lucide-react";
 import Input from "../shared/Input";
 import Select from "../shared/Select";
 import Button from "../shared/Button";
-import type { TaskRequest, TaskPriority, TaskList } from "../../types";
+import type {
+	TaskRequest,
+	TaskPriority,
+	TaskList,
+	Verifier,
+} from "../../types";
 import { api } from "../../utils/api";
 import {
 	getUserTimezone,
@@ -29,6 +37,13 @@ interface CreateTaskModalProps {
 	onClose: () => void;
 	onSuccess: () => void;
 	selectedListId?: number | null;
+	onOpenVerifiersModal?: () => void;
+	onOpenCreateListModal?: () => void;
+	refreshVerifiersKey?: number;
+	newlyCreatedListId?: number | null;
+	refreshListsKey?: number;
+	newlyAddedVerifierEmail?: string | null;
+	removedVerifierEmail?: string | null;
 }
 
 interface FormErrors {
@@ -49,6 +64,13 @@ export default function CreateTaskModal({
 	onClose,
 	onSuccess,
 	selectedListId,
+	onOpenVerifiersModal,
+	onOpenCreateListModal,
+	refreshVerifiersKey,
+	newlyCreatedListId,
+	refreshListsKey,
+	newlyAddedVerifierEmail,
+	removedVerifierEmail,
 }: CreateTaskModalProps) {
 	const [formData, setFormData] = useState<TaskRequest>({
 		title: "",
@@ -67,6 +89,9 @@ export default function CreateTaskModal({
 	const [isLoading, setIsLoading] = useState(false);
 	const [serverError, setServerError] = useState<string | undefined>();
 	const [lists, setLists] = useState<TaskList[]>([]);
+	const [savedVerifiers, setSavedVerifiers] = useState<Verifier[]>([]);
+	const [showVerifierDropdown, setShowVerifierDropdown] = useState(false);
+	const [showListDropdown, setShowListDropdown] = useState(false);
 
 	useEffect(() => {
 		if (isOpen) {
@@ -75,8 +100,20 @@ export default function CreateTaskModal({
 				.get<TaskList[]>("/lists")
 				.then((data) => {
 					setLists(data);
-					// Set default list if no list is selected
-					if (selectedListId === undefined || selectedListId === null) {
+					// If a newly created list ID is provided, select it
+					if (newlyCreatedListId) {
+						setFormData((prev) => ({
+							...prev,
+							listId: newlyCreatedListId,
+						}));
+					} else if (selectedListId !== undefined && selectedListId !== null) {
+						// Set selected list ID if provided
+						setFormData((prev) => ({
+							...prev,
+							listId: selectedListId,
+						}));
+					} else {
+						// Set default list if no list is selected
 						const defaultList = data.find((l) => l.isDefault);
 						if (defaultList) {
 							setFormData((prev) => ({
@@ -88,15 +125,43 @@ export default function CreateTaskModal({
 				})
 				.catch(() => {});
 
-			// Set selected list ID if provided
-			if (selectedListId !== undefined && selectedListId !== null) {
-				setFormData((prev) => ({
-					...prev,
-					listId: selectedListId,
-				}));
-			}
+			// Load saved verifiers
+			api
+				.get<Verifier[]>("/verifiers")
+				.then((data) => {
+					setSavedVerifiers(data);
+				})
+				.catch(() => {});
 		}
-	}, [isOpen, selectedListId]);
+	}, [
+		isOpen,
+		selectedListId,
+		refreshVerifiersKey,
+		newlyCreatedListId,
+		refreshListsKey,
+	]);
+
+	// Handle newly added verifier - auto-select it
+	useEffect(() => {
+		if (newlyAddedVerifierEmail && isOpen) {
+			setFormData((prev) => ({
+				...prev,
+				verifierEmail: newlyAddedVerifierEmail,
+			}));
+		}
+	}, [newlyAddedVerifierEmail, isOpen]);
+
+	// Handle removed verifier - clear selection if it was selected
+	useEffect(() => {
+		if (removedVerifierEmail && isOpen) {
+			setFormData((prev) => {
+				if (prev.verifierEmail === removedVerifierEmail) {
+					return { ...prev, verifierEmail: "" };
+				}
+				return prev;
+			});
+		}
+	}, [removedVerifierEmail, isOpen]);
 
 	const validateField = (name: string, value: string): string | undefined => {
 		switch (name) {
@@ -200,7 +265,14 @@ export default function CreateTaskModal({
 		setErrors({});
 		setTouched({});
 		setServerError(undefined);
+		setShowVerifierDropdown(false);
+		setShowListDropdown(false);
 		onClose();
+	};
+
+	const selectVerifier = (verifier: Verifier) => {
+		handleChange("verifierEmail", verifier.email);
+		setShowVerifierDropdown(false);
 	};
 
 	if (!isOpen) return null;
@@ -289,18 +361,92 @@ export default function CreateTaskModal({
 						/>
 					</div>
 
-					<Input
-						label="Verifier Email *"
-						type="email"
-						placeholder="Who will verify your completion?"
-						icon={Mail}
-						value={formData.verifierEmail}
-						onChange={(e) => handleChange("verifierEmail", e.target.value)}
-						onBlur={() => handleBlur("verifierEmail")}
-						error={touched.verifierEmail ? errors.verifierEmail : undefined}
-						helperText="This person must have a CoSign account"
-						disabled={isLoading}
-					/>
+					{/* Verifier Selection */}
+					<div className={styles.verifierSection}>
+						<label className={styles.label}>
+							<User size={18} />
+							Verifier *
+						</label>
+
+						<div className={styles.verifierDropdownWrapper}>
+							<button
+								type="button"
+								className={`${styles.verifierDropdownTrigger} ${
+									touched.verifierEmail && errors.verifierEmail
+										? styles.hasError
+										: ""
+								}`}
+								onClick={() => setShowVerifierDropdown(!showVerifierDropdown)}
+								disabled={isLoading}
+							>
+								{formData.verifierEmail ? (
+									<span className={styles.selectedVerifier}>
+										{savedVerifiers.find(
+											(v) => v.email === formData.verifierEmail
+										)?.fullName || formData.verifierEmail}
+									</span>
+								) : (
+									<span className={styles.placeholderText}>
+										Select a verifier...
+									</span>
+								)}
+								<ChevronDown
+									size={18}
+									className={showVerifierDropdown ? styles.rotated : ""}
+								/>
+							</button>
+
+							{showVerifierDropdown && (
+								<div className={styles.verifierDropdown}>
+									{savedVerifiers.map((verifier) => (
+										<button
+											key={verifier.id}
+											type="button"
+											className={`${styles.verifierOption} ${
+												formData.verifierEmail === verifier.email
+													? styles.selected
+													: ""
+											}`}
+											onClick={() => selectVerifier(verifier)}
+										>
+											<div className={styles.verifierAvatar}>
+												{verifier.fullName
+													.split(" ")
+													.map((n) => n[0])
+													.join("")
+													.toUpperCase()}
+											</div>
+											<div className={styles.verifierInfo}>
+												<span className={styles.verifierName}>
+													{verifier.fullName}
+												</span>
+												<span className={styles.verifierEmail}>
+													{verifier.email}
+												</span>
+											</div>
+										</button>
+									))}
+									{savedVerifiers.length > 0 && (
+										<div className={styles.verifierDropdownDivider} />
+									)}
+									<button
+										type="button"
+										className={styles.addVerifierOption}
+										onClick={() => {
+											setShowVerifierDropdown(false);
+											onOpenVerifiersModal?.();
+										}}
+									>
+										<UserPlus size={16} />
+										Add New Verifier
+									</button>
+								</div>
+							)}
+							{touched.verifierEmail && errors.verifierEmail && (
+								<span className={styles.error}>{errors.verifierEmail}</span>
+							)}
+						</div>
+					</div>
 
 					<div className={styles.row}>
 						<div className={styles.inputWrapper}>
@@ -321,23 +467,70 @@ export default function CreateTaskModal({
 							</span>
 						</div>
 
-						<Select
-							label="List"
-							icon={List}
-							options={lists.map((l) => ({
-								value: String(l.id),
-								label: l.name,
-							}))}
-							value={
-								formData.listId
-									? String(formData.listId)
-									: lists.find((l) => l.isDefault)?.id?.toString() || ""
-							}
-							onChange={(e) =>
-								handleChange("listId", e.target.value ? e.target.value : "")
-							}
-							disabled={isLoading}
-						/>
+						<div className={styles.inputWrapper}>
+							<label className={styles.label}>
+								<List size={18} />
+								List
+							</label>
+							<div className={styles.listDropdownWrapper}>
+								<button
+									type="button"
+									className={styles.listDropdownTrigger}
+									onClick={() => setShowListDropdown(!showListDropdown)}
+									disabled={isLoading}
+								>
+									<span>
+										{formData.listId
+											? lists.find((l) => l.id === formData.listId)?.name ||
+											  "Select list..."
+											: lists.find((l) => l.isDefault)?.name ||
+											  "Select list..."}
+									</span>
+									<ChevronDown
+										size={18}
+										className={showListDropdown ? styles.rotated : ""}
+									/>
+								</button>
+
+								{showListDropdown && (
+									<div className={styles.listDropdown}>
+										{lists.map((list) => (
+											<button
+												key={list.id}
+												type="button"
+												className={`${styles.listOption} ${
+													formData.listId === list.id ||
+													(!formData.listId && list.isDefault)
+														? styles.selected
+														: ""
+												}`}
+												onClick={() => {
+													handleChange("listId", String(list.id));
+													setShowListDropdown(false);
+												}}
+											>
+												{list.name}
+												{list.isDefault && (
+													<span className={styles.defaultBadge}>Default</span>
+												)}
+											</button>
+										))}
+										<div className={styles.listDropdownDivider} />
+										<button
+											type="button"
+											className={styles.createListOption}
+											onClick={() => {
+												setShowListDropdown(false);
+												onOpenCreateListModal?.();
+											}}
+										>
+											<Plus size={16} />
+											Create New List
+										</button>
+									</div>
+								)}
+							</div>
+						</div>
 					</div>
 
 					<div className={styles.row}>

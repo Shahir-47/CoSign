@@ -1,0 +1,391 @@
+.overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.7);
+	backdrop-filter: blur(4px);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 20px;
+	z-index: 1000;
+	animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+.modal {
+	background: var(--bg-card);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-xl);
+	width: 100%;
+	max-width: 480px;
+	box-shadow: var(--shadow-lg), var(--shadow-glow);
+	animation: slideIn 0.2s ease;
+}
+
+@keyframes slideIn {
+	from {
+		opacity: 0;
+		transform: translateY(-20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.header {
+	position: relative;
+	padding: 24px 24px 16px;
+	border-bottom: 1px solid var(--border-primary);
+	text-align: center;
+}
+
+.warningIcon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 48px;
+	height: 48px;
+	background: rgba(245, 158, 11, 0.15);
+	border-radius: 50%;
+	color: #f59e0b;
+	margin-bottom: 12px;
+}
+
+.header h2 {
+	font-size: 1.25rem;
+	font-weight: 700;
+	color: var(--text-primary);
+	margin: 0 0 8px 0;
+}
+
+.header p {
+	font-size: 0.9375rem;
+	color: var(--text-muted);
+	margin: 0;
+	padding: 0 24px;
+}
+
+.closeButton {
+	position: absolute;
+	top: 16px;
+	right: 16px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	background: transparent;
+	border: none;
+	color: var(--text-muted);
+	border-radius: var(--radius-md);
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.closeButton:hover {
+	background: var(--bg-tertiary);
+	color: var(--text-primary);
+}
+
+.content {
+	padding: 24px;
+}
+
+.taskInfo {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 16px;
+	background: var(--bg-tertiary);
+	border-radius: var(--radius-md);
+	margin-bottom: 20px;
+}
+
+.taskLabel {
+	font-size: 0.75rem;
+	font-weight: 500;
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+}
+
+.taskTitle {
+	font-weight: 600;
+	color: var(--text-primary);
+}
+
+.error {
+	padding: 12px 16px;
+	background: rgba(239, 68, 68, 0.1);
+	border: 1px solid rgba(239, 68, 68, 0.3);
+	border-radius: var(--radius-md);
+	color: #ef4444;
+	font-size: 0.875rem;
+	margin-bottom: 20px;
+}
+
+.verifierSection {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-bottom: 24px;
+}
+
+.label {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--text-primary);
+}
+
+.verifierTabs {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 4px;
+}
+
+.verifierTab {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 8px 16px;
+	background: var(--bg-tertiary);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-md);
+	color: var(--text-muted);
+	font-size: 0.875rem;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.verifierTab:hover {
+	border-color: var(--border-secondary);
+	color: var(--text-primary);
+}
+
+.verifierTab.active {
+	background: var(--accent-primary);
+	border-color: var(--accent-primary);
+	color: white;
+}
+
+.verifierDropdownWrapper {
+	position: relative;
+}
+
+.verifierDropdownTrigger {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 12px 16px;
+	background: var(--bg-tertiary);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-md);
+	color: var(--text-primary);
+	font-size: 1rem;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	text-align: left;
+}
+
+.verifierDropdownTrigger:hover {
+	border-color: var(--border-secondary);
+}
+
+.verifierDropdownTrigger:focus {
+	outline: none;
+	border-color: var(--accent-primary);
+	box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.verifierDropdownTrigger svg {
+	color: var(--text-muted);
+	transition: transform 0.2s ease;
+}
+
+.verifierDropdownTrigger svg.rotated {
+	transform: rotate(180deg);
+}
+
+.placeholderText {
+	color: var(--text-muted);
+}
+
+.selectedVerifier {
+	font-weight: 500;
+}
+
+.verifierDropdown {
+	position: absolute;
+	top: calc(100% + 4px);
+	left: 0;
+	right: 0;
+	background: var(--bg-card);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-md);
+	box-shadow: var(--shadow-lg);
+	max-height: 240px;
+	overflow-y: auto;
+	z-index: 10;
+}
+
+.verifierDropdownDivider {
+	height: 1px;
+	background: var(--border-primary);
+	margin: 4px 0;
+}
+
+.addVerifierOption {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 12px 16px;
+	background: transparent;
+	border: none;
+	cursor: pointer;
+	transition: all 0.15s ease;
+	text-align: left;
+	color: var(--accent-primary);
+	font-size: 0.9375rem;
+	font-weight: 500;
+}
+
+.addVerifierOption:hover {
+	background: rgba(99, 102, 241, 0.1);
+}
+
+.addVerifierOption svg {
+	flex-shrink: 0;
+}
+
+.verifierOption {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 12px 16px;
+	background: transparent;
+	border: none;
+	cursor: pointer;
+	transition: background 0.15s ease;
+	text-align: left;
+}
+
+.verifierOption:hover {
+	background: var(--bg-tertiary);
+}
+
+.verifierOption.selected {
+	background: rgba(99, 102, 241, 0.1);
+}
+
+.verifierAvatar {
+	width: 36px;
+	height: 36px;
+	border-radius: 50%;
+	background: var(--accent-primary);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: white;
+	font-weight: 600;
+	font-size: 0.75rem;
+	flex-shrink: 0;
+}
+
+.verifierInfo {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.verifierName {
+	font-weight: 500;
+	color: var(--text-primary);
+	font-size: 0.9375rem;
+}
+
+.verifierEmail {
+	font-size: 0.8125rem;
+	color: var(--text-muted);
+}
+
+.newVerifierInput {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.inputWithIcon {
+	position: relative;
+	display: flex;
+	align-items: center;
+}
+
+.inputIcon {
+	position: absolute;
+	left: 16px;
+	color: var(--text-muted);
+	pointer-events: none;
+}
+
+.verifierEmailInput {
+	width: 100%;
+	padding: 12px 16px 12px 48px;
+	background: var(--bg-tertiary);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-md);
+	color: var(--text-primary);
+	font-size: 1rem;
+	font-family: inherit;
+	transition: all 0.2s ease;
+}
+
+.verifierEmailInput:focus {
+	outline: none;
+	border-color: var(--accent-primary);
+	box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.verifierEmailInput::placeholder {
+	color: var(--text-muted);
+}
+
+.saveVerifierBtn {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 8px 12px;
+	background: rgba(99, 102, 241, 0.1);
+	border: 1px solid rgba(99, 102, 241, 0.3);
+	border-radius: var(--radius-md);
+	color: var(--accent-primary);
+	font-size: 0.8125rem;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	width: fit-content;
+}
+
+.saveVerifierBtn:hover {
+	background: rgba(99, 102, 241, 0.2);
+}
+
+.actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 12px;
+}

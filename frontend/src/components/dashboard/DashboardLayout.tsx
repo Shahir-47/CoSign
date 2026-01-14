@@ -1,5 +1,11 @@
 import { useNavigate } from "react-router-dom";
-import { LogOut, Plus, ClipboardList, ClipboardCheck } from "lucide-react";
+import {
+	LogOut,
+	Plus,
+	ClipboardList,
+	ClipboardCheck,
+	Users,
+} from "lucide-react";
 import Logo from "../shared/Logo";
 import ListsSidebar from "./ListsSidebar";
 import styles from "./DashboardLayout.module.css";
@@ -13,6 +19,7 @@ interface DashboardLayoutProps {
 	onSelectList: (listId: number | null) => void;
 	onCreateList: () => void;
 	refreshListsKey?: number;
+	onOpenVerifiersModal: () => void;
 }
 
 function getUser(): {
@@ -40,6 +47,7 @@ export default function DashboardLayout({
 	onSelectList,
 	onCreateList,
 	refreshListsKey,
+	onOpenVerifiersModal,
 }: DashboardLayoutProps) {
 	const navigate = useNavigate();
 	const user = getUser();
@@ -82,6 +90,15 @@ export default function DashboardLayout({
 					<button className={styles.createButton} onClick={onCreateTask}>
 						<Plus size={18} />
 						<span>New Task</span>
+					</button>
+
+					<button
+						className={styles.verifiersButton}
+						onClick={onOpenVerifiersModal}
+						title="Manage Verifiers"
+					>
+						<Users size={18} />
+						<span>Verifiers</span>
 					</button>
 
 					<div className={styles.userSection}>

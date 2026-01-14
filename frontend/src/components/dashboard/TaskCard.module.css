@@ -137,9 +137,11 @@
 .footer {
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
+	justify-content: flex-start;
+	gap: 12px;
 	padding-top: 12px;
 	border-top: 1px solid var(--border-primary);
+	flex-wrap: wrap;
 }
 
 .status {
@@ -156,10 +158,31 @@
 	gap: 6px;
 	font-size: 0.8125rem;
 	color: var(--text-muted);
+	margin-left: auto;
 }
 
 .person strong {
 	color: var(--text-secondary);
+}
+
+.reassignButton {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 12px;
+	background: rgba(249, 115, 22, 0.1);
+	border: 1px solid rgba(249, 115, 22, 0.3);
+	border-radius: var(--radius-md);
+	color: #f97316;
+	font-size: 0.75rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.reassignButton:hover {
+	background: rgba(249, 115, 22, 0.2);
+	border-color: rgba(249, 115, 22, 0.5);
 }
 
 @media (max-width: 480px) {

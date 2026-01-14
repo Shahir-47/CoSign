@@ -25,6 +25,8 @@ import {
 	Heart,
 	Dumbbell,
 	BookOpen,
+	Pause,
+	UserX,
 } from "lucide-react";
 import type { Task } from "../../types";
 import { getUserTimezone, getTimeUntilDeadline } from "../../utils/timezone";
@@ -35,6 +37,7 @@ interface TaskDetailModalProps {
 	isOpen: boolean;
 	onClose: () => void;
 	viewMode: "my-tasks" | "verification-requests";
+	onReassign?: (task: Task) => void;
 }
 
 const LIST_ICON_MAP: Record<string, React.ComponentType<{ size?: number }>> = {
@@ -103,6 +106,12 @@ const statusConfig: Record<
 		icon: XCircle,
 		color: "#ef4444",
 		bgColor: "rgba(239, 68, 68, 0.15)",
+	},
+	PAUSED: {
+		label: "Paused - Needs Verifier",
+		icon: Pause,
+		color: "#f97316",
+		bgColor: "rgba(249, 115, 22, 0.15)",
 	},
 };
 
@@ -195,6 +204,7 @@ export default function TaskDetailModal({
 	isOpen,
 	onClose,
 	viewMode,
+	onReassign,
 }: TaskDetailModalProps) {
 	const [, setTick] = useState(0);
 
@@ -267,6 +277,22 @@ export default function TaskDetailModal({
 						<Clock size={18} />
 						<span>{timeRemaining.text}</span>
 					</div>
+
+					{/* Reassign Button for PAUSED tasks */}
+					{task.status === "PAUSED" &&
+						viewMode === "my-tasks" &&
+						onReassign && (
+							<button
+								className={styles.reassignButton}
+								onClick={() => {
+									onReassign(task);
+									onClose();
+								}}
+							>
+								<UserX size={16} />
+								Reassign Verifier
+							</button>
+						)}
 
 					{/* Description */}
 					{task.description && (

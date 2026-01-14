@@ -267,3 +267,25 @@
 	padding-top: 8px;
 	border-top: 1px solid var(--border-primary);
 }
+
+.reassignButton {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	width: 100%;
+	padding: 14px 20px;
+	background: rgba(249, 115, 22, 0.1);
+	border: 1px solid rgba(249, 115, 22, 0.3);
+	border-radius: var(--radius-md);
+	color: #f97316;
+	font-size: 0.9375rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.reassignButton:hover {
+	background: rgba(249, 115, 22, 0.2);
+	border-color: rgba(249, 115, 22, 0.5);
+}

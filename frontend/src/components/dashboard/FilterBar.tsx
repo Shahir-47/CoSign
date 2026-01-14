@@ -35,6 +35,7 @@ const STATUSES: { value: TaskStatus; label: string; color: string }[] = [
 	},
 	{ value: "COMPLETED", label: "Completed", color: "#10b981" },
 	{ value: "MISSED", label: "Missed", color: "#ef4444" },
+	{ value: "PAUSED", label: "Paused", color: "#f97316" },
 ];
 
 export default function FilterBar({

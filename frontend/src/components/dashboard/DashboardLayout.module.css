@@ -81,6 +81,35 @@
 	box-shadow: var(--shadow-lg), 0 0 20px rgba(99, 102, 241, 0.3);
 }
 
+.verifiersButton {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 16px;
+	background: var(--bg-tertiary);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-md);
+	color: var(--text-secondary);
+	font-size: 0.9375rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.verifiersButton:hover {
+	background: var(--bg-secondary);
+	border-color: var(--border-secondary);
+	color: var(--text-primary);
+}
+
+.verifiersButton svg {
+	color: var(--text-muted);
+}
+
+.verifiersButton:hover svg {
+	color: var(--accent-primary);
+}
+
 .userSection {
 	display: flex;
 	align-items: center;
@@ -156,6 +185,14 @@
 
 	.createButton span {
 		display: none;
+	}
+
+	.verifiersButton span {
+		display: none;
+	}
+
+	.verifiersButton {
+		padding: 10px;
 	}
 
 	.userInfo {
