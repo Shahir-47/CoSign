@@ -1,0 +1,51 @@
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.iconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gradient-primary);
+  border-radius: var(--radius-md);
+  padding: 8px;
+  color: white;
+  box-shadow: var(--shadow-md);
+}
+
+.text {
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.sm .iconWrapper {
+  padding: 6px;
+  border-radius: var(--radius-sm);
+}
+
+.sm .text {
+  font-size: 1.25rem;
+}
+
+.md .iconWrapper {
+  padding: 8px;
+}
+
+.md .text {
+  font-size: 1.5rem;
+}
+
+.lg .iconWrapper {
+  padding: 12px;
+  border-radius: var(--radius-lg);
+}
+
+.lg .text {
+  font-size: 2rem;
+}
