@@ -60,7 +60,7 @@ public class AuthService {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = jwtUtils.generateJwtToken(authentication);
 
-        return new LoginResponse(jwt, user.getEmail(), user.getFullName());
+        return new LoginResponse(jwt, user.getEmail(), user.getFullName(), user.getTimezone());
     }
 
     @Transactional
