@@ -41,9 +41,8 @@ public class Task {
     @JoinColumn(name = "verifier_id", nullable = false)
     private User verifier;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id")
-    private Category category;
+    @Column(length = 500)
+    private String tags;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "list_id")

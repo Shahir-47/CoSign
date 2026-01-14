@@ -21,7 +21,7 @@ public class TaskRequest {
     @NotBlank
     private String verifierEmail;
 
-    private String categoryName;
+    private String tags;
     private Long listId;
 
     private TaskPriority priority;

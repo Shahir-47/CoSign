@@ -2,7 +2,6 @@ package com.cosign.backend.service;
 
 import com.cosign.backend.dto.TaskRequest;
 import com.cosign.backend.model.*;
-import com.cosign.backend.repository.CategoryRepository;
 import com.cosign.backend.repository.TaskListRepository;
 import com.cosign.backend.repository.TaskRepository;
 import com.cosign.backend.repository.UserRepository;
@@ -17,18 +16,15 @@ import java.util.Objects;
 public class TaskService {
 
     private final TaskRepository taskRepository;
-    private final CategoryRepository categoryRepository;
     private final TaskListRepository taskListRepository;
     private final UserRepository userRepository;
     private final TaskListService taskListService;
 
     public TaskService(TaskRepository taskRepository, 
-                       CategoryRepository categoryRepository, 
                        TaskListRepository taskListRepository,
                        UserRepository userRepository,
                        TaskListService taskListService) {
         this.taskRepository = taskRepository;
-        this.categoryRepository = categoryRepository;
         this.taskListRepository = taskListRepository;
         this.userRepository = userRepository;
         this.taskListService = taskListService;
@@ -45,23 +41,6 @@ public class TaskService {
         if (verifier.getId().equals(creator.getId())) {
             throw new RuntimeException("You cannot verify your own tasks. That defeats the purpose of CoSign!");
         }
-
-        // Handle Category
-        Category category;
-        String catName = request.getCategoryName();
-        if (catName == null || catName.isBlank()) {
-            catName = "General"; // Default
-        }
-
-        String finalCatName = catName;
-        category = categoryRepository.findByNameAndUser(finalCatName, creator)
-                .orElseGet(() -> {
-                    Category newCat = new Category();
-                    newCat.setName(finalCatName);
-                    newCat.setUser(creator);
-                    newCat.setColorHex("#808080"); // Default gray
-                    return categoryRepository.save(newCat);
-                });
 
         // Handle List
         TaskList list;
@@ -81,10 +60,10 @@ public class TaskService {
         task.setLocation(request.getLocation());
         task.setRepeatPattern(request.getRepeatPattern());
         task.setStarred(request.isStarred());
+        task.setTags(request.getTags());
 
         task.setCreator(creator);
         task.setVerifier(verifier);
-        task.setCategory(category);
         task.setList(list);
 
         // Default status
@@ -106,10 +85,6 @@ public class TaskService {
 
     public List<Task> getTasksToVerify() {
         return taskRepository.findByVerifier(getCurrentUser());
-    }
-
-    public List<Category> getMyCategories() {
-        return categoryRepository.findByUser(getCurrentUser());
     }
 
     private User getCurrentUser() {

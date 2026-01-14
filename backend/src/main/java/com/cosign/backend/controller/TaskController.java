@@ -1,7 +1,6 @@
 package com.cosign.backend.controller;
 
 import com.cosign.backend.dto.TaskRequest;
-import com.cosign.backend.model.Category;
 import com.cosign.backend.model.Task;
 import com.cosign.backend.service.TaskService;
 import jakarta.validation.Valid;
@@ -37,10 +36,5 @@ public class TaskController {
     @GetMapping("/verification-requests")
     public ResponseEntity<List<Task>> getTasksToVerify() {
         return ResponseEntity.ok(taskService.getTasksToVerify());
-    }
-
-    @GetMapping("/categories")
-    public ResponseEntity<List<Category>> getCategories() {
-        return ResponseEntity.ok(taskService.getMyCategories());
     }
 }
