@@ -2,7 +2,12 @@ package com.cosign.backend.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "users")
@@ -32,6 +37,16 @@ public class User {
 
     private String emailVerificationToken;
     private LocalDateTime emailVerificationTokenExpiry;
+
+    @ManyToMany
+    @JoinTable(
+            name = "user_saved_verifiers",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "verifier_id")
+    )
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private Set<User> savedVerifiers = new HashSet<>();
 
     private LocalDateTime createdAt = LocalDateTime.now();
 }

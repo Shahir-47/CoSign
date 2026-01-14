@@ -92,4 +92,43 @@ public class TaskService {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
     }
+
+    @Transactional
+    public Task reassignVerifier(Long taskId, String newVerifierEmail) {
+        User user = getCurrentUser();
+
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+
+        if (!task.getCreator().getId().equals(user.getId())) {
+            throw new RuntimeException("Not authorized to modify this task");
+        }
+
+        // Validate Status
+        if (task.getStatus() == TaskStatus.COMPLETED || task.getStatus() == TaskStatus.MISSED) {
+            throw new RuntimeException("Cannot reassign a task that is already completed or missed.");
+        }
+
+        // Find new Verifier
+        User newVerifier = userRepository.findByEmail(newVerifierEmail)
+                .orElseThrow(() -> new RuntimeException("Verifier not found"));
+
+        if (newVerifier.getId().equals(user.getId())) {
+            throw new RuntimeException("Cannot assign yourself as verifier");
+        }
+
+        // Update Task
+        task.setVerifier(newVerifier);
+
+        // Resume Status
+        // If they had already uploaded proof, go back to PENDING_VERIFICATION
+        // Otherwise, go back to PENDING_PROOF
+        if (task.getProofUrl() != null && !task.getProofUrl().isEmpty()) {
+            task.setStatus(TaskStatus.PENDING_VERIFICATION);
+        } else {
+            task.setStatus(TaskStatus.PENDING_PROOF);
+        }
+
+        return taskRepository.save(task);
+    }
 }

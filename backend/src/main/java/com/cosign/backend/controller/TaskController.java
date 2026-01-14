@@ -37,4 +37,17 @@ public class TaskController {
     public ResponseEntity<List<Task>> getTasksToVerify() {
         return ResponseEntity.ok(taskService.getTasksToVerify());
     }
+
+    @PutMapping("/{taskId}/reassign")
+    public ResponseEntity<Task> reassignVerifier(
+            @PathVariable Long taskId,
+            @RequestBody java.util.Map<String, String> body) {
+
+        String email = body.get("email");
+        if (email == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        return ResponseEntity.ok(taskService.reassignVerifier(taskId, email));
+    }
 }
