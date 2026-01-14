@@ -73,14 +73,26 @@ export default function CreateTaskModal({
 			// Load lists
 			api
 				.get<TaskList[]>("/lists")
-				.then(setLists)
+				.then((data) => {
+					setLists(data);
+					// Set default list if no list is selected
+					if (selectedListId === undefined || selectedListId === null) {
+						const defaultList = data.find((l) => l.isDefault);
+						if (defaultList) {
+							setFormData((prev) => ({
+								...prev,
+								listId: defaultList.id,
+							}));
+						}
+					}
+				})
 				.catch(() => {});
 
-			// Set selected list ID
-			if (selectedListId !== undefined) {
+			// Set selected list ID if provided
+			if (selectedListId !== undefined && selectedListId !== null) {
 				setFormData((prev) => ({
 					...prev,
-					listId: selectedListId ?? undefined,
+					listId: selectedListId,
 				}));
 			}
 		}
@@ -312,16 +324,15 @@ export default function CreateTaskModal({
 						<Select
 							label="List"
 							icon={List}
-							options={[
-								{
-									value: "",
-									label: lists.find((l) => l.isDefault)?.name || "My Tasks",
-								},
-								...lists
-									.filter((l) => !l.isDefault)
-									.map((l) => ({ value: String(l.id), label: l.name })),
-							]}
-							value={formData.listId ? String(formData.listId) : ""}
+							options={lists.map((l) => ({
+								value: String(l.id),
+								label: l.name,
+							}))}
+							value={
+								formData.listId
+									? String(formData.listId)
+									: lists.find((l) => l.isDefault)?.id?.toString() || ""
+							}
 							onChange={(e) =>
 								handleChange("listId", e.target.value ? e.target.value : "")
 							}

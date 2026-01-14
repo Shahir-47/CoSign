@@ -17,6 +17,14 @@ import {
 	Repeat,
 	CalendarPlus,
 	CalendarCheck,
+	Inbox,
+	FolderKanban,
+	Briefcase,
+	Rocket,
+	Home,
+	Heart,
+	Dumbbell,
+	BookOpen,
 } from "lucide-react";
 import type { Task } from "../../types";
 import { getUserTimezone, getTimeUntilDeadline } from "../../utils/timezone";
@@ -27,6 +35,23 @@ interface TaskDetailModalProps {
 	isOpen: boolean;
 	onClose: () => void;
 	viewMode: "my-tasks" | "verification-requests";
+}
+
+const LIST_ICON_MAP: Record<string, React.ComponentType<{ size?: number }>> = {
+	inbox: Inbox,
+	folder: FolderKanban,
+	briefcase: Briefcase,
+	rocket: Rocket,
+	home: Home,
+	heart: Heart,
+	dumbbell: Dumbbell,
+	book: BookOpen,
+	list: List,
+};
+
+function getListIconComponent(iconName?: string) {
+	if (!iconName) return List;
+	return LIST_ICON_MAP[iconName.toLowerCase()] || List;
 }
 
 const priorityConfig: Record<
@@ -316,20 +341,23 @@ export default function TaskDetailModal({
 						)}
 
 						{/* List */}
-						{task.list && (
-							<div className={styles.detailItem}>
-								<div className={styles.detailIcon}>
-									<List size={18} />
-								</div>
-								<div className={styles.detailContent}>
-									<span className={styles.detailLabel}>List</span>
-									<span className={styles.detailValue}>
-										{task.list.icon && <span>{task.list.icon}</span>}
-										{task.list.name}
-									</span>
-								</div>
-							</div>
-						)}
+						{task.list &&
+							(() => {
+								const ListIconComponent = getListIconComponent(task.list.icon);
+								return (
+									<div className={styles.detailItem}>
+										<div className={styles.detailIcon}>
+											<ListIconComponent size={18} />
+										</div>
+										<div className={styles.detailContent}>
+											<span className={styles.detailLabel}>List</span>
+											<span className={styles.detailValue}>
+												{task.list.name}
+											</span>
+										</div>
+									</div>
+								);
+							})()}
 
 						{/* Repeat Pattern */}
 						{task.repeatPattern && (
