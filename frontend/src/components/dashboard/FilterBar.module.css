@@ -1,0 +1,235 @@
+.filterBar {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	margin-bottom: 1.5rem;
+}
+
+.searchRow {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.searchWrapper {
+	flex: 1;
+	position: relative;
+	max-width: 400px;
+}
+
+.searchIcon {
+	position: absolute;
+	left: 0.75rem;
+	top: 50%;
+	transform: translateY(-50%);
+	color: var(--text-muted);
+	pointer-events: none;
+}
+
+.searchInput {
+	width: 100%;
+	padding: 0.625rem 2.25rem 0.625rem 2.5rem;
+	background: var(--bg-secondary);
+	border: 1px solid var(--border-color);
+	border-radius: 8px;
+	color: var(--text-primary);
+	font-size: 0.875rem;
+	transition: all 0.15s ease;
+}
+
+.searchInput:focus {
+	outline: none;
+	border-color: var(--accent-primary);
+	background: var(--bg-tertiary);
+}
+
+.searchInput::placeholder {
+	color: var(--text-muted);
+}
+
+.clearSearch {
+	position: absolute;
+	right: 0.5rem;
+	top: 50%;
+	transform: translateY(-50%);
+	background: transparent;
+	border: none;
+	color: var(--text-muted);
+	cursor: pointer;
+	padding: 0.25rem;
+	border-radius: 4px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.clearSearch:hover {
+	color: var(--text-primary);
+	background: var(--bg-tertiary);
+}
+
+.filterToggle {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.625rem 1rem;
+	background: var(--bg-secondary);
+	border: 1px solid var(--border-color);
+	border-radius: 8px;
+	color: var(--text-secondary);
+	font-size: 0.875rem;
+	cursor: pointer;
+	transition: all 0.15s ease;
+}
+
+.filterToggle:hover {
+	background: var(--bg-tertiary);
+	color: var(--text-primary);
+}
+
+.filterToggle.active {
+	border-color: var(--accent-primary);
+	color: var(--accent-primary);
+}
+
+.filterBadge {
+	background: var(--accent-primary);
+	color: white;
+	font-size: 0.75rem;
+	font-weight: 600;
+	padding: 0.125rem 0.5rem;
+	border-radius: 10px;
+	min-width: 1.25rem;
+	text-align: center;
+}
+
+.clearAll {
+	background: transparent;
+	border: none;
+	color: var(--accent-danger);
+	font-size: 0.8125rem;
+	cursor: pointer;
+	padding: 0.5rem;
+	transition: opacity 0.15s ease;
+}
+
+.clearAll:hover {
+	opacity: 0.8;
+	text-decoration: underline;
+}
+
+.filtersPanel {
+	background: var(--bg-secondary);
+	border: 1px solid var(--border-color);
+	border-radius: 12px;
+	padding: 1rem;
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+.filterGroup {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.filterLabel {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-size: 0.8125rem;
+	font-weight: 500;
+	color: var(--text-secondary);
+}
+
+.filterOptions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.filterChip {
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+	padding: 0.375rem 0.75rem;
+	background: var(--bg-tertiary);
+	border: 1px solid var(--border-color);
+	border-radius: 16px;
+	color: var(--text-secondary);
+	font-size: 0.8125rem;
+	cursor: pointer;
+	transition: all 0.15s ease;
+}
+
+.filterChip:hover {
+	background: var(--bg-primary);
+	color: var(--text-primary);
+}
+
+.filterChip.selected {
+	background: var(--accent-primary-alpha);
+	border-color: var(--accent-primary);
+	color: var(--accent-primary);
+}
+
+.priorityDot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+}
+
+.dateRange {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.dateInput {
+	padding: 0.5rem 0.75rem;
+	background: var(--bg-tertiary);
+	border: 1px solid var(--border-color);
+	border-radius: 6px;
+	color: var(--text-primary);
+	font-size: 0.8125rem;
+}
+
+.dateInput:focus {
+	outline: none;
+	border-color: var(--accent-primary);
+}
+
+.dateSeparator {
+	color: var(--text-muted);
+	font-size: 0.8125rem;
+}
+
+@media (max-width: 640px) {
+	.searchRow {
+		flex-wrap: wrap;
+	}
+
+	.searchWrapper {
+		max-width: 100%;
+		width: 100%;
+	}
+
+	.filterOptions {
+		gap: 0.375rem;
+	}
+
+	.filterChip {
+		font-size: 0.75rem;
+		padding: 0.25rem 0.5rem;
+	}
+
+	.dateRange {
+		flex-wrap: wrap;
+	}
+
+	.dateInput {
+		flex: 1;
+		min-width: 120px;
+	}
+}

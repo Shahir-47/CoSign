@@ -1,14 +1,25 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import TaskList from "../components/dashboard/TaskList";
+import FilterBar from "../components/dashboard/FilterBar";
 import CreateTaskModal from "../components/dashboard/CreateTaskModal";
 import CreateListModal from "../components/dashboard/CreateListModal";
-import type { Task } from "../types";
+import type { Task, TaskFilters } from "../types";
 import { api } from "../utils/api";
 import styles from "./HomePage.module.css";
 
 type TabType = "my-tasks" | "verification-requests";
+
+const defaultFilters: TaskFilters = {
+	search: "",
+	tags: [],
+	priorities: [],
+	statuses: [],
+	starred: null,
+	deadlineFrom: undefined,
+	deadlineTo: undefined,
+};
 
 export default function HomePage() {
 	const navigate = useNavigate();
@@ -20,6 +31,7 @@ export default function HomePage() {
 	const [isListModalOpen, setIsListModalOpen] = useState(false);
 	const [selectedListId, setSelectedListId] = useState<number | null>(null);
 	const [refreshListsKey, setRefreshListsKey] = useState(0);
+	const [filters, setFilters] = useState<TaskFilters>(defaultFilters);
 
 	// Check if user is authenticated
 	useEffect(() => {
@@ -83,11 +95,88 @@ export default function HomePage() {
 		setSelectedListId(listId);
 	};
 
-	// Calculate stats
-	const pendingProofCount = tasks.filter(
+	// Filter tasks based on current filters
+	const filteredTasks = useMemo(() => {
+		return tasks.filter((task) => {
+			// Search filter - check title and description
+			if (filters.search) {
+				const search = filters.search.toLowerCase();
+				const matchesTitle = task.title.toLowerCase().includes(search);
+				const matchesDescription = task.description
+					?.toLowerCase()
+					.includes(search);
+				const matchesVerifier = task.verifier.fullName
+					.toLowerCase()
+					.includes(search);
+				const matchesCreator = task.creator.fullName
+					.toLowerCase()
+					.includes(search);
+				if (
+					!matchesTitle &&
+					!matchesDescription &&
+					!matchesVerifier &&
+					!matchesCreator
+				) {
+					return false;
+				}
+			}
+
+			// Tags filter
+			if (filters.tags.length > 0) {
+				const taskTags =
+					task.tags?.split(",").map((t) => t.trim().toLowerCase()) || [];
+				const hasMatchingTag = filters.tags.some((filterTag) => {
+					const lowerTag = filterTag.toLowerCase();
+					return taskTags.includes(lowerTag);
+				});
+				if (!hasMatchingTag) return false;
+			}
+
+			// Priority filter
+			if (
+				filters.priorities.length > 0 &&
+				!filters.priorities.includes(task.priority)
+			) {
+				return false;
+			}
+
+			// Status filter
+			if (
+				filters.statuses.length > 0 &&
+				!filters.statuses.includes(task.status)
+			) {
+				return false;
+			}
+
+			// Starred filter
+			if (filters.starred === true && !task.starred) {
+				return false;
+			}
+
+			// Date range filter
+			if (filters.deadlineFrom || filters.deadlineTo) {
+				const taskDeadline = new Date(task.deadline);
+				if (filters.deadlineFrom) {
+					const from = new Date(filters.deadlineFrom);
+					from.setHours(0, 0, 0, 0);
+					if (taskDeadline < from) return false;
+				}
+				if (filters.deadlineTo) {
+					const to = new Date(filters.deadlineTo);
+					to.setHours(23, 59, 59, 999);
+					if (taskDeadline > to) return false;
+				}
+			}
+
+			return true;
+		});
+	}, [tasks, filters]);
+
+	// Calculate stats from filtered tasks
+	const pendingProofCount = filteredTasks.filter(
 		(t) => t.status === "PENDING_PROOF"
 	).length;
-	const pendingVerificationCount = tasks.filter(
+	const pendingVerificationCount = filteredTasks.filter(
 		(t) => t.status === "PENDING_VERIFICATION"
 	).length;
 
@@ -135,18 +224,29 @@ export default function HomePage() {
 								</>
 							)}
 							<div className={styles.stat}>
-								<span className={styles.statValue}>{tasks.length}</span>
-								<span className={styles.statLabel}>Total</span>
+								<span className={styles.statValue}>{filteredTasks.length}</span>
+								<span className={styles.statLabel}>
+									{filteredTasks.length !== tasks.length ? "Filtered" : "Total"}
+								</span>
 							</div>
 						</div>
 					)}
 				</div>
 
+				{!isLoading && tasks.length > 0 && (
+					<FilterBar
+						tasks={tasks}
+						filters={filters}
+						onFiltersChange={setFilters}
+					/>
+				)}
+
 				<TaskList
-					tasks={tasks}
+					tasks={filteredTasks}
 					viewMode={activeTab}
 					isLoading={isLoading}
 					error={error}
+					searchTerm={filters.search}
 				/>
 			</div>
 

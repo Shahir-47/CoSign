@@ -16,12 +16,6 @@ export interface User {
 	profilePictureUrl?: string;
 }
 
-export interface Category {
-	id: number;
-	name: string;
-	colorHex?: string;
-}
-
 export interface TaskList {
 	id: number;
 	name: string;
@@ -43,7 +37,7 @@ export interface Task {
 	status: TaskStatus;
 	creator: User;
 	verifier: User;
-	category?: Category;
+	tags?: string; // Comma-separated tags
 	list?: TaskList;
 	proofUrl?: string;
 	completedAt?: string;
@@ -55,12 +49,22 @@ export interface TaskRequest {
 	description?: string;
 	deadline: string; // ISO date string
 	verifierEmail: string;
-	categoryName?: string;
+	tags?: string; // Comma-separated tags
 	listId?: number;
 	priority?: TaskPriority;
 	location?: string;
 	repeatPattern?: string;
 	starred?: boolean;
+}
+
+export interface TaskFilters {
+	search: string;
+	tags: string[];
+	priorities: TaskPriority[];
+	statuses: TaskStatus[];
+	starred: boolean | null;
+	deadlineFrom?: string;
+	deadlineTo?: string;
 }
 
 export interface TaskListRequest {

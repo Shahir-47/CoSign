@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { ClipboardList } from "lucide-react";
 import type { Task } from "../../types";
 import TaskCard from "./TaskCard";
+import TaskDetailModal from "./TaskDetailModal";
 import styles from "./TaskList.module.css";
 
 interface TaskListProps {
@@ -8,6 +10,7 @@ interface TaskListProps {
 	viewMode: "my-tasks" | "verification-requests";
 	isLoading: boolean;
 	error?: string;
+	searchTerm?: string;
 }
 
 export default function TaskList({
@@ -15,7 +18,10 @@ export default function TaskList({
 	viewMode,
 	isLoading,
 	error,
+	searchTerm,
 }: TaskListProps) {
+	const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
 	if (isLoading) {
 		return (
 			<div className={styles.loading}>
@@ -54,10 +60,25 @@ export default function TaskList({
 	}
 
 	return (
-		<div className={styles.list}>
-			{tasks.map((task) => (
-				<TaskCard key={task.id} task={task} viewMode={viewMode} />
-			))}
-		</div>
+		<>
+			<div className={styles.list}>
+				{tasks.map((task) => (
+					<TaskCard
+						key={task.id}
+						task={task}
+						viewMode={viewMode}
+						searchTerm={searchTerm}
+						onClick={() => setSelectedTask(task)}
+					/>
+				))}
+			</div>
+
+			<TaskDetailModal
+				task={selectedTask}
+				isOpen={selectedTask !== null}
+				onClose={() => setSelectedTask(null)}
+				viewMode={viewMode}
+			/>
+		</>
 	);
 }

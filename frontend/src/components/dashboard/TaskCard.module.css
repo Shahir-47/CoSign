@@ -4,11 +4,26 @@
 	border-radius: var(--radius-lg);
 	padding: 20px;
 	transition: all 0.2s ease;
+	cursor: pointer;
 }
 
 .card:hover {
 	border-color: var(--border-secondary);
 	box-shadow: var(--shadow-md);
+	transform: translateY(-1px);
+}
+
+.card:focus {
+	outline: 2px solid var(--accent-primary);
+	outline-offset: 2px;
+}
+
+/* Search highlight */
+.highlight {
+	background: rgba(250, 204, 21, 0.4);
+	color: inherit;
+	padding: 1px 2px;
+	border-radius: 2px;
 }
 
 .card.starred {
@@ -102,13 +117,21 @@
 	color: var(--accent-danger);
 }
 
-.category {
+.tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-bottom: 16px;
+}
+
+.tag {
 	font-size: 0.75rem;
 	font-weight: 500;
-	color: var(--text-secondary);
-	background: var(--bg-tertiary);
-	padding: 4px 10px;
-	border-radius: var(--radius-sm);
+	color: var(--accent-primary);
+	background: var(--accent-primary-alpha);
+	border: 1px solid var(--accent-primary);
+	padding: 2px 10px;
+	border-radius: 12px;
 }
 
 .footer {

@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
 	Clock,
 	MapPin,
@@ -9,10 +10,37 @@ import {
 } from "lucide-react";
 import type { Task } from "../../types";
 import styles from "./TaskCard.module.css";
+import {
+	getTimeUntilDeadline,
+	formatDeadlineDisplay,
+} from "../../utils/timezone";
 
 interface TaskCardProps {
 	task: Task;
 	viewMode: "my-tasks" | "verification-requests";
+	searchTerm?: string;
+	onClick?: () => void;
+}
+
+// Highlight matching text
+function highlightText(text: string, searchTerm?: string): React.ReactNode {
+	if (!searchTerm || !text) return text;
+
+	const regex = new RegExp(
+		`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`,
+		"gi"
+	);
+	const parts = text.split(regex);
+
+	return parts.map((part, i) =>
+		regex.test(part) ? (
+			<mark key={i} className={styles.highlight}>
+				{part}
+			</mark>
+		) : (
+			part
+		)
+	);
 }
 
 const priorityColors: Record<string, string> = {
@@ -41,75 +69,117 @@ function formatDeadline(deadline: string): {
 	isUrgent: boolean;
 	isPast: boolean;
 } {
-	const deadlineDate = new Date(deadline);
-	const now = new Date();
-	const diffMs = deadlineDate.getTime() - now.getTime();
-	const diffHours = diffMs / (1000 * 60 * 60);
-	const diffDays = diffMs / (1000 * 60 * 60 * 24);
+	// Use timezone-aware calculation
+	const diffMs = getTimeUntilDeadline(deadline);
+	const totalSeconds = Math.floor(Math.abs(diffMs) / 1000);
+	const totalMinutes = Math.floor(totalSeconds / 60);
+	const totalHours = Math.floor(totalMinutes / 60);
+	const totalDays = Math.floor(totalHours / 24);
+
+	const seconds = totalSeconds % 60;
+	const minutes = totalMinutes % 60;
+	const hours = totalHours % 24;
 
 	const isPast = diffMs < 0;
 
 	if (isPast) {
-		const absDays = Math.abs(Math.floor(diffDays));
-		if (absDays === 0) {
-			return { text: "Overdue today", isUrgent: false, isPast: true };
+		if (totalDays > 0) {
+			return {
+				text: `${totalDays}d ${hours}h overdue`,
+				isUrgent: false,
+				isPast: true,
+			};
+		}
+		if (totalHours > 0) {
+			return {
+				text: `${totalHours}h ${minutes}m overdue`,
+				isUrgent: false,
+				isPast: true,
+			};
 		}
 		return {
-			text: `${absDays} day${absDays > 1 ? "s" : ""} overdue`,
+			text: `${totalMinutes}m ${seconds}s overdue`,
 			isUrgent: false,
 			isPast: true,
 		};
 	}
 
-	if (diffHours < 1) {
-		return { text: "Less than 1 hour left", isUrgent: true, isPast: false };
-	}
-
-	if (diffHours < 24) {
-		const hours = Math.floor(diffHours);
+	// Not past - show time remaining
+	if (totalDays > 7) {
 		return {
-			text: `${hours} hour${hours > 1 ? "s" : ""} left`,
-			isUrgent: true,
-			isPast: false,
-		};
-	}
-
-	if (diffDays < 7) {
-		const days = Math.floor(diffDays);
-		return {
-			text: `${days} day${days > 1 ? "s" : ""} left`,
+			text: formatDeadlineDisplay(deadline, {
+				month: "short",
+				day: "numeric",
+				year:
+					new Date(deadline).getFullYear() !== new Date().getFullYear()
+						? "numeric"
+						: undefined,
+			}),
 			isUrgent: false,
 			isPast: false,
 		};
 	}
 
+	if (totalDays > 0) {
+		return {
+			text: `${totalDays}d ${hours}h left`,
+			isUrgent: false,
+			isPast: false,
+		};
+	}
+
+	if (totalHours > 0) {
+		return {
+			text: `${totalHours}h ${minutes}m left`,
+			isUrgent: true,
+			isPast: false,
+		};
+	}
+
+	// Less than an hour - show minutes and seconds
 	return {
-		text: deadlineDate.toLocaleDateString("en-US", {
-			month: "short",
-			day: "numeric",
-			year:
-				deadlineDate.getFullYear() !== now.getFullYear()
-					? "numeric"
-					: undefined,
-		}),
-		isUrgent: false,
+		text: `${totalMinutes}m ${seconds}s left`,
+		isUrgent: true,
 		isPast: false,
 	};
 }
 
-export default function TaskCard({ task, viewMode }: TaskCardProps) {
+export default function TaskCard({
+	task,
+	viewMode,
+	searchTerm,
+	onClick,
+}: TaskCardProps) {
+	const [, setTick] = useState(0);
+
+	// Update every second for live countdown
+	useEffect(() => {
+		const interval = setInterval(() => {
+			setTick((t) => t + 1);
+		}, 1000);
+		return () => clearInterval(interval);
+	}, []);
+
 	const status = statusConfig[task.status];
 	const StatusIcon = status.icon;
 	const deadline = formatDeadline(task.deadline);
 
 	return (
-		<div className={`${styles.card} ${task.starred ? styles.starred : ""}`}>
+		<div
+			className={`${styles.card} ${task.starred ? styles.starred : ""}`}
+			onClick={onClick}
+			role={onClick ? "button" : undefined}
+			tabIndex={onClick ? 0 : undefined}
+			onKeyDown={onClick ? (e) => e.key === "Enter" && onClick() : undefined}
+		>
 			<div className={styles.header}>
 				<div className={styles.titleRow}>
 					{task.starred && (
 						<Star size={16} className={styles.starIcon} fill="currentColor" />
 					)}
-					<h3 className={styles.title}>{task.title}</h3>
+					<h3 className={styles.title}>
+						{highlightText(task.title, searchTerm)}
+					</h3>
 				</div>
 				<div
 					className={styles.priority}
@@ -123,7 +193,9 @@ export default function TaskCard({ task, viewMode }: TaskCardProps) {
 			</div>
 
 			{task.description && (
-				<p className={styles.description}>{task.description}</p>
+				<p className={styles.description}>
+					{highlightText(task.description, searchTerm)}
+				</p>
 			)}
 
 			<div className={styles.meta}>
@@ -142,20 +214,21 @@ export default function TaskCard({ task, viewMode }: TaskCardProps) {
 						<span>{task.location}</span>
 					</div>
 				)}
-
-				{task.category && (
-					<div
-						className={styles.category}
-						style={{
-							backgroundColor: task.category.colorHex
-								? `${task.category.colorHex}20`
-								: undefined,
-						}}
-					>
-						{task.category.name}
-					</div>
-				)}
 			</div>
+
+			{/* Tags */}
+			{task.tags && (
+				<div className={styles.tags}>
+					{task.tags.split(",").map((tag) => {
+						const trimmed = tag.trim();
+						return trimmed ? (
+							<span key={trimmed} className={styles.tag}>
+								{trimmed}
+							</span>
+						) : null;
+					})}
+				</div>
+			)}
 
 			<div className={styles.footer}>
 				<div className={styles.status} style={{ color: status.color }}>
@@ -168,11 +241,17 @@ export default function TaskCard({ task, viewMode }: TaskCardProps) {
 					<span>
 						{viewMode === "my-tasks" ? (
 							<>
-								Verifier: <strong>{task.verifier.fullName}</strong>
+								Verifier:{" "}
+								<strong>
+									{highlightText(task.verifier.fullName, searchTerm)}
+								</strong>
 							</>
 						) : (
 							<>
-								From: <strong>{task.creator.fullName}</strong>
+								From:{" "}
+								<strong>
+									{highlightText(task.creator.fullName, searchTerm)}
+								</strong>
 							</>
 						)}
 					</span>

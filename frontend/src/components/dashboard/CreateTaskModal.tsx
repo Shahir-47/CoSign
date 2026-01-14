@@ -15,13 +15,13 @@ import {
 import Input from "../shared/Input";
 import Select from "../shared/Select";
 import Button from "../shared/Button";
-import type {
-	TaskRequest,
-	Category,
-	TaskPriority,
-	TaskList,
-} from "../../types";
+import type { TaskRequest, TaskPriority, TaskList } from "../../types";
 import { api } from "../../utils/api";
+import {
+	getUserTimezone,
+	getMinDateTime,
+	formatForBackend,
+} from "../../utils/timezone";
 import styles from "./CreateTaskModal.module.css";
 
 interface CreateTaskModalProps {
@@ -55,7 +55,7 @@ export default function CreateTaskModal({
 		description: "",
 		deadline: "",
 		verifierEmail: "",
-		categoryName: "",
+		tags: "",
 		listId: selectedListId ?? undefined,
 		priority: "MEDIUM",
 		location: "",
@@ -66,17 +66,10 @@ export default function CreateTaskModal({
 	const [touched, setTouched] = useState<Record<string, boolean>>({});
 	const [isLoading, setIsLoading] = useState(false);
 	const [serverError, setServerError] = useState<string | undefined>();
-	const [categories, setCategories] = useState<Category[]>([]);
 	const [lists, setLists] = useState<TaskList[]>([]);
 
 	useEffect(() => {
 		if (isOpen) {
-			// Load categories when modal opens
-			api
-				.get<Category[]>("/tasks/categories")
-				.then(setCategories)
-				.catch(() => {}); // Silently fail if no categories
-
 			// Load lists
 			api
 				.get<TaskList[]>("/lists")
@@ -162,10 +155,10 @@ export default function CreateTaskModal({
 		setServerError(undefined);
 
 		try {
-			// Format deadline to ISO string
+			// Format deadline for backend (user's timezone is preserved in the datetime string)
 			const payload: TaskRequest = {
 				...formData,
-				deadline: new Date(formData.deadline).toISOString(),
+				deadline: formatForBackend(formData.deadline),
 			};
 
 			await api.post("/tasks", payload);
@@ -186,7 +179,7 @@ export default function CreateTaskModal({
 			description: "",
 			deadline: "",
 			verifierEmail: "",
-			categoryName: "",
+			tags: "",
 			listId: selectedListId ?? undefined,
 			priority: "MEDIUM",
 			location: "",
@@ -200,40 +193,9 @@ export default function CreateTaskModal({
 
 	if (!isOpen) return null;
 
-	// Get user's timezone from localStorage
-	const getUserTimezone = (): string => {
-		try {
-			const userData = localStorage.getItem("user");
-			if (userData) {
-				const user = JSON.parse(userData);
-				return (
-					user.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone
-				);
-			}
-		} catch {
-			// Fall back to browser timezone
-		}
-		return Intl.DateTimeFormat().resolvedOptions().timeZone;
-	};
-
 	// Get minimum datetime (now + 1 minute) in user's timezone
 	const userTimezone = getUserTimezone();
-	const now = new Date(Date.now() + 60000);
-	const formatter = new Intl.DateTimeFormat("sv-SE", {
-		timeZone: userTimezone,
-		year: "numeric",
-		month: "2-digit",
-		day: "2-digit",
-		hour: "2-digit",
-		minute: "2-digit",
-		hour12: false,
-	});
-	const parts = formatter.formatToParts(now);
-	const getPart = (type: string) =>
-		parts.find((p) => p.type === type)?.value || "";
-	const minDateTime = `${getPart("year")}-${getPart("month")}-${getPart(
-		"day"
-	)}T${getPart("hour")}:${getPart("minute")}`;
+	const minDateTime = getMinDateTime(1);
 
 	return (
 		<div className={styles.overlay} onClick={handleClose}>
@@ -283,6 +245,9 @@ export default function CreateTaskModal({
 							<label className={styles.label}>
 								<Calendar size={18} />
 								Deadline *
+								<span className={styles.timezoneHint}>
+									({userTimezone.replace(/_/g, " ")})
+								</span>
 							</label>
 							<input
 								type="datetime-local"
@@ -329,22 +294,19 @@ export default function CreateTaskModal({
 						<div className={styles.inputWrapper}>
 							<label className={styles.label}>
 								<Tag size={18} />
-								Category
+								Tags
 							</label>
 							<input
 								type="text"
-								className={styles.categoryInput}
-								placeholder="e.g., Gym, Coding, Reading"
-								value={formData.categoryName}
-								onChange={(e) => handleChange("categoryName", e.target.value)}
+								className={styles.tagsInput}
+								placeholder="e.g., gym, health, daily (comma separated)"
+								value={formData.tags}
+								onChange={(e) => handleChange("tags", e.target.value)}
 								disabled={isLoading}
-								list="category-suggestions"
 							/>
-							<datalist id="category-suggestions">
-								{categories.map((c) => (
-									<option key={c.id} value={c.name} />
-								))}
-							</datalist>
+							<span className={styles.helperText}>
+								Separate multiple tags with commas
+							</span>
 						</div>
 
 						<Select
