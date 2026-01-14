@@ -39,6 +39,11 @@ public class VerifierService {
         User verifier = userRepository.findByEmail(verifierEmail)
                 .orElseThrow(() -> new RuntimeException("User with email " + verifierEmail + " not found. They must have a CoSign account."));
 
+        // Ensure they have a verified email
+        if (!verifier.isEmailVerified()) {
+            throw new RuntimeException("This user has not verified their email address yet and cannot accept tasks.");
+        }
+
         // Prevent adding self
         if (verifier.getId().equals(currentUser.getId())) {
             throw new RuntimeException("You cannot add yourself as a verifier.");
