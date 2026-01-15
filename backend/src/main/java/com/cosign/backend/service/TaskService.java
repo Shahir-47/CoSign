@@ -8,9 +8,15 @@ import com.cosign.backend.repository.UserRepository;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.cosign.backend.dto.ProofSubmissionRequest;
+import com.cosign.backend.dto.ReviewTaskRequest;
+import com.cosign.backend.dto.TaskDetailResponse;
+import com.cosign.backend.model.ProofAttachment;
+import java.time.LocalDateTime;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 public class TaskService {
@@ -19,15 +25,18 @@ public class TaskService {
     private final TaskListRepository taskListRepository;
     private final UserRepository userRepository;
     private final TaskListService taskListService;
+    private final S3Service s3Service;
 
     public TaskService(TaskRepository taskRepository, 
                        TaskListRepository taskListRepository,
                        UserRepository userRepository,
-                       TaskListService taskListService) {
+                       TaskListService taskListService,
+                       S3Service s3Service) {
         this.taskRepository = taskRepository;
         this.taskListRepository = taskListRepository;
         this.userRepository = userRepository;
         this.taskListService = taskListService;
+        this.s3Service = s3Service;
     }
 
     @Transactional
@@ -121,14 +130,124 @@ public class TaskService {
         task.setVerifier(newVerifier);
 
         // Resume Status
-        // If they had already uploaded proof, go back to PENDING_VERIFICATION
-        // Otherwise, go back to PENDING_PROOF
-        if (task.getProofUrl() != null && !task.getProofUrl().isEmpty()) {
+        // Check if the user has provided a description OR uploaded attachments
+        boolean hasProof = (task.getProofDescription() != null && !task.getProofDescription().isEmpty())
+                || (task.getProofAttachments() != null && !task.getProofAttachments().isEmpty());
+
+        if (hasProof) {
             task.setStatus(TaskStatus.PENDING_VERIFICATION);
         } else {
             task.setStatus(TaskStatus.PENDING_PROOF);
         }
 
         return taskRepository.save(task);
+    }
+
+    // Submit Proof
+    @Transactional
+    public Task submitProof(Long taskId, ProofSubmissionRequest request) {
+        User user = getCurrentUser();
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+
+        if (!task.getCreator().getId().equals(user.getId())) {
+            throw new RuntimeException("Only the task creator can submit proof.");
+        }
+
+        if (task.getStatus() != TaskStatus.PENDING_PROOF && task.getStatus() != TaskStatus.MISSED) {
+            throw new RuntimeException("Task is not pending proof.");
+        }
+
+        // Update Description
+        task.setProofDescription(request.getDescription());
+
+        // Clear old attachments if re-submitting
+        task.getProofAttachments().clear();
+
+        // Add new Attachments
+        if (request.getAttachments() != null) {
+            for (ProofSubmissionRequest.AttachmentDto dto : request.getAttachments()) {
+                ProofAttachment attachment = new ProofAttachment();
+                attachment.setS3Key(dto.getS3Key());
+                attachment.setOriginalFilename(dto.getOriginalFilename());
+                attachment.setMimeType(dto.getMimeType());
+                attachment.setTask(task);
+                task.getProofAttachments().add(attachment);
+            }
+        }
+
+        task.setStatus(TaskStatus.PENDING_VERIFICATION);
+        return taskRepository.save(task);
+    }
+
+    // Review Proof
+    @Transactional
+    public Task reviewProof(Long taskId, ReviewTaskRequest request) {
+        User verifier = getCurrentUser();
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+
+        if (!task.getVerifier().getId().equals(verifier.getId())) {
+            throw new RuntimeException("You are not the designated verifier for this task.");
+        }
+
+        if (task.getStatus() != TaskStatus.PENDING_VERIFICATION) {
+            throw new RuntimeException("This task is not waiting for verification.");
+        }
+
+        if (request.getApproved()) {
+            // ACCEPT
+            task.setStatus(TaskStatus.COMPLETED);
+            task.setVerifiedAt(LocalDateTime.now());
+            task.setApprovalComment(request.getComment());
+            task.setDenialReason(null); // Clear previous denials
+        } else {
+            // DENY
+            if (request.getComment() == null || request.getComment().trim().isEmpty()) {
+                throw new RuntimeException("A reason is required when denying proof.");
+            }
+            task.setStatus(TaskStatus.PENDING_PROOF); // Send back to user
+            task.setDenialReason(request.getComment());
+        }
+
+        return taskRepository.save(task);
+    }
+
+    // Get Task Details
+    public TaskDetailResponse getTaskDetails(Long taskId) {
+        User user = getCurrentUser();
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+
+        // Only Creator or Verifier can see details
+        boolean isCreator = task.getCreator().getId().equals(user.getId());
+        boolean isVerifier = task.getVerifier().getId().equals(user.getId());
+
+        if (!isCreator && !isVerifier) {
+            throw new RuntimeException("Not authorized to view this task.");
+        }
+
+        TaskDetailResponse response = new TaskDetailResponse();
+        response.setId(task.getId());
+        response.setTitle(task.getTitle());
+        response.setStatus(task.getStatus());
+        response.setProofDescription(task.getProofDescription());
+        response.setDenialReason(task.getDenialReason());
+        response.setApprovalComment(task.getApprovalComment());
+
+        // Convert attachments to View DTOs with Presigned URLs
+        List<TaskDetailResponse.AttachmentViewDto> attachmentDtos = task.getProofAttachments().stream()
+                .map(att -> {
+                    TaskDetailResponse.AttachmentViewDto dto = new TaskDetailResponse.AttachmentViewDto();
+                    dto.setFilename(att.getOriginalFilename());
+                    dto.setMimeType(att.getMimeType());
+                    // GENERATES SECURE URL
+                    dto.setUrl(s3Service.generatePresignedDownloadUrl(att.getS3Key()));
+                    return dto;
+                }).collect(Collectors.toList());
+
+        response.setAttachments(attachmentDtos);
+
+        return response;
     }
 }

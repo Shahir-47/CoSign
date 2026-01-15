@@ -49,8 +49,21 @@ public class Task {
     private TaskList list;
 
     // Proof Data
-    private String proofUrl;
-    private LocalDateTime completedAt;
+    @Column(columnDefinition = "TEXT")
+    private String proofDescription;
 
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<ProofAttachment> proofAttachments = new java.util.ArrayList<>();
+
+    // Verification result
+    private LocalDateTime verifiedAt;
+
+    @Column(columnDefinition = "TEXT")
+    private String denialReason;
+
+    @Column(columnDefinition = "TEXT")
+    private String approvalComment;
+
+    private LocalDateTime completedAt;
     private LocalDateTime createdAt = LocalDateTime.now();
 }

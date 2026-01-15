@@ -1,5 +1,8 @@
 package com.cosign.backend.controller;
 
+import com.cosign.backend.dto.ProofSubmissionRequest;
+import com.cosign.backend.dto.ReviewTaskRequest;
+import com.cosign.backend.dto.TaskDetailResponse;
 import com.cosign.backend.dto.TaskRequest;
 import com.cosign.backend.model.Task;
 import com.cosign.backend.service.TaskService;
@@ -49,5 +52,22 @@ public class TaskController {
         }
 
         return ResponseEntity.ok(taskService.reassignVerifier(taskId, email));
+    }
+
+    @PostMapping("/{taskId}/proof")
+    public ResponseEntity<Task> submitProof(@PathVariable Long taskId,
+                                            @RequestBody ProofSubmissionRequest request) {
+        return ResponseEntity.ok(taskService.submitProof(taskId, request));
+    }
+
+    @PostMapping("/{taskId}/review")
+    public ResponseEntity<Task> reviewProof(@PathVariable Long taskId,
+                                            @RequestBody @Valid ReviewTaskRequest request) {
+        return ResponseEntity.ok(taskService.reviewProof(taskId, request));
+    }
+
+    @GetMapping("/{taskId}")
+    public ResponseEntity<TaskDetailResponse> getTaskDetails(@PathVariable Long taskId) {
+        return ResponseEntity.ok(taskService.getTaskDetails(taskId));
     }
 }
