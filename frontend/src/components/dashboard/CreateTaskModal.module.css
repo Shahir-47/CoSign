@@ -443,6 +443,13 @@
 	background: rgba(99, 102, 241, 0.1);
 }
 
+.verifierAvatarWrapper {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
 .verifierAvatar {
 	width: 36px;
 	height: 36px;

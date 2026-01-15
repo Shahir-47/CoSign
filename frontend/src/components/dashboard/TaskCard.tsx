@@ -11,6 +11,8 @@ import {
 	UserX,
 } from "lucide-react";
 import type { Task } from "../../types";
+import { useWebSocket } from "../../context/useWebSocket";
+import OnlineStatusIndicator from "../shared/OnlineStatusIndicator";
 import styles from "./TaskCard.module.css";
 import {
 	getTimeUntilDeadline,
@@ -155,6 +157,7 @@ export default function TaskCard({
 	onReassign,
 }: TaskCardProps) {
 	const [, setTick] = useState(0);
+	const { isUserOnline } = useWebSocket();
 
 	// Update every second for live countdown
 	useEffect(() => {
@@ -167,6 +170,9 @@ export default function TaskCard({
 	const status = statusConfig[task.status];
 	const StatusIcon = status.icon;
 	const deadline = formatDeadline(task.deadline);
+
+	// Get the other person (verifier for my-tasks, creator for verification-requests)
+	const otherPerson = viewMode === "my-tasks" ? task.verifier : task.creator;
 
 	return (
 		<div
@@ -272,6 +278,10 @@ export default function TaskCard({
 							</>
 						)}
 					</span>
+					<OnlineStatusIndicator
+						isOnline={isUserOnline(otherPerson.id)}
+						size="sm"
+					/>
 				</div>
 			</div>
 		</div>

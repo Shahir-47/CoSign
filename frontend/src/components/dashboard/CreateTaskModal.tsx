@@ -15,9 +15,11 @@ import {
 	User,
 	Plus,
 } from "lucide-react";
+import { toast } from "react-toastify";
 import Input from "../shared/Input";
 import Select from "../shared/Select";
 import Button from "../shared/Button";
+import OnlineStatusIndicator from "../shared/OnlineStatusIndicator";
 import type {
 	TaskRequest,
 	TaskPriority,
@@ -30,6 +32,7 @@ import {
 	getMinDateTime,
 	formatForBackend,
 } from "../../utils/timezone";
+import { useWebSocket } from "../../context/useWebSocket";
 import styles from "./CreateTaskModal.module.css";
 
 interface CreateTaskModalProps {
@@ -72,6 +75,8 @@ export default function CreateTaskModal({
 	newlyAddedVerifierEmail,
 	removedVerifierEmail,
 }: CreateTaskModalProps) {
+	const { isUserOnline } = useWebSocket();
+
 	const [formData, setFormData] = useState<TaskRequest>({
 		title: "",
 		description: "",
@@ -239,6 +244,7 @@ export default function CreateTaskModal({
 			};
 
 			await api.post("/tasks", payload);
+			toast.success("Task created successfully!");
 			onSuccess();
 			handleClose();
 		} catch (err) {
@@ -398,34 +404,41 @@ export default function CreateTaskModal({
 
 							{showVerifierDropdown && (
 								<div className={styles.verifierDropdown}>
-									{savedVerifiers.map((verifier) => (
-										<button
-											key={verifier.id}
-											type="button"
-											className={`${styles.verifierOption} ${
-												formData.verifierEmail === verifier.email
-													? styles.selected
-													: ""
-											}`}
-											onClick={() => selectVerifier(verifier)}
-										>
-											<div className={styles.verifierAvatar}>
-												{verifier.fullName
-													.split(" ")
-													.map((n) => n[0])
-													.join("")
-													.toUpperCase()}
-											</div>
-											<div className={styles.verifierInfo}>
-												<span className={styles.verifierName}>
-													{verifier.fullName}
-												</span>
-												<span className={styles.verifierEmail}>
-													{verifier.email}
-												</span>
-											</div>
-										</button>
-									))}
+									{savedVerifiers.map((verifier) => {
+										const online =
+											verifier.isOnline || isUserOnline(verifier.id);
+										return (
+											<button
+												key={verifier.id}
+												type="button"
+												className={`${styles.verifierOption} ${
+													formData.verifierEmail === verifier.email
+														? styles.selected
+														: ""
+												}`}
+												onClick={() => selectVerifier(verifier)}
+											>
+												<div className={styles.verifierAvatarWrapper}>
+													<div className={styles.verifierAvatar}>
+														{verifier.fullName
+															.split(" ")
+															.map((n) => n[0])
+															.join("")
+															.toUpperCase()}
+													</div>
+													<OnlineStatusIndicator isOnline={online} size="sm" />
+												</div>
+												<div className={styles.verifierInfo}>
+													<span className={styles.verifierName}>
+														{verifier.fullName}
+													</span>
+													<span className={styles.verifierEmail}>
+														{verifier.email}
+													</span>
+												</div>
+											</button>
+										);
+									})}
 									{savedVerifiers.length > 0 && (
 										<div className={styles.verifierDropdownDivider} />
 									)}

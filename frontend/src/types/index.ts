@@ -22,6 +22,19 @@ export interface Verifier {
 	fullName: string;
 	email: string;
 	profilePictureUrl?: string;
+	isOnline?: boolean;
+}
+
+export interface Supervisee {
+	id: number;
+	fullName: string;
+	email: string;
+	profilePictureUrl?: string;
+	isOnline: boolean;
+	pendingProofCount: number;
+	pendingVerificationCount: number;
+	completedCount: number;
+	totalTaskCount: number;
 }
 
 export interface TaskList {

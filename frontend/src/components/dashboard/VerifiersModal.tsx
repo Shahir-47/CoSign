@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
 import { X, UserPlus, Trash2, Mail, Users, AlertCircle } from "lucide-react";
+import { toast } from "react-toastify";
 import type { Verifier } from "../../types";
 import { api } from "../../utils/api";
 import Input from "../shared/Input";
 import Button from "../shared/Button";
+import OnlineStatusIndicator from "../shared/OnlineStatusIndicator";
+import { useWebSocket } from "../../context/useWebSocket";
 import styles from "./VerifiersModal.module.css";
 
 interface VerifiersModalProps {
@@ -19,6 +22,8 @@ export default function VerifiersModal({
 	onVerifierAdded,
 	onVerifierRemoved,
 }: VerifiersModalProps) {
+	const { isUserOnline } = useWebSocket();
+
 	const [verifiers, setVerifiers] = useState<Verifier[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [email, setEmail] = useState("");
@@ -61,6 +66,7 @@ export default function VerifiersModal({
 			setVerifiers((prev) => [...prev, newVerifier]);
 			setEmail("");
 			setShowAddForm(false);
+			toast.success(`${newVerifier.fullName} added as verifier`);
 			onVerifierAdded?.(newVerifier);
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "Failed to add verifier");
@@ -81,6 +87,7 @@ export default function VerifiersModal({
 		try {
 			await api.delete(`/verifiers/${id}`);
 			setVerifiers((prev) => prev.filter((v) => v.id !== id));
+			toast.info("Verifier removed");
 			onVerifierRemoved?.(id, email);
 		} catch (err) {
 			setError(
@@ -168,41 +175,49 @@ export default function VerifiersModal({
 						</div>
 					) : (
 						<div className={styles.verifiersList}>
-							{verifiers.map((verifier) => (
-								<div key={verifier.id} className={styles.verifierCard}>
-									<div className={styles.verifierInfo}>
-										<div className={styles.avatar}>
-											{verifier.profilePictureUrl ? (
-												<img
-													src={verifier.profilePictureUrl}
-													alt={verifier.fullName}
-												/>
-											) : (
-												<span>
-													{verifier.fullName
-														.split(" ")
-														.map((n) => n[0])
-														.join("")
-														.toUpperCase()}
-												</span>
-											)}
+							{verifiers.map((verifier) => {
+								const online = verifier.isOnline || isUserOnline(verifier.id);
+								return (
+									<div key={verifier.id} className={styles.verifierCard}>
+										<div className={styles.verifierInfo}>
+											<div className={styles.avatarWrapper}>
+												<div className={styles.avatar}>
+													{verifier.profilePictureUrl ? (
+														<img
+															src={verifier.profilePictureUrl}
+															alt={verifier.fullName}
+														/>
+													) : (
+														<span>
+															{verifier.fullName
+																.split(" ")
+																.map((n) => n[0])
+																.join("")
+																.toUpperCase()}
+														</span>
+													)}
+												</div>
+												<div className={styles.statusIndicator}>
+													<OnlineStatusIndicator isOnline={online} size="sm" />
+												</div>
+											</div>
+											<div className={styles.verifierDetails}>
+												<span className={styles.name}>{verifier.fullName}</span>
+												<span className={styles.email}>{verifier.email}</span>
+											</div>
 										</div>
-										<div className={styles.verifierDetails}>
-											<span className={styles.name}>{verifier.fullName}</span>
-											<span className={styles.email}>{verifier.email}</span>
-										</div>
+										<button
+											className={styles.removeButton}
+											onClick={() =>
+												handleRemoveVerifier(verifier.id, verifier.email)
+											}
+											title="Remove verifier"
+										>
+											<Trash2 size={18} />
+										</button>
 									</div>
-									<button
-										className={styles.removeButton}
-										onClick={() =>
-											handleRemoveVerifier(verifier.id, verifier.email)
-										}
-										title="Remove verifier"
-									>
-										<Trash2 size={18} />
-									</button>
-								</div>
-							))}
+								);
+							})}
 						</div>
 					)}
 				</div>

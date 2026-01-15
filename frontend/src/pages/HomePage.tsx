@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import TaskListComponent from "../components/dashboard/TaskList";
 import FilterBar from "../components/dashboard/FilterBar";
@@ -9,11 +10,18 @@ import ReassignVerifierModal from "../components/dashboard/ReassignVerifierModal
 import VerifiersModal from "../components/dashboard/VerifiersModal";
 import SubmitProofModal from "../components/dashboard/SubmitProofModal";
 import ReviewProofModal from "../components/dashboard/ReviewProofModal";
+import SupervisingTab from "../components/dashboard/SupervisingTab";
 import type { Task, TaskFilters, TaskList } from "../types";
 import { api } from "../utils/api";
+import { useWebSocket } from "../context/useWebSocket";
+import type {
+	SocketMessage,
+	TaskUpdatedPayload,
+	NewTaskAssignedPayload,
+} from "../context/websocket.types";
 import styles from "./HomePage.module.css";
 
-type TabType = "my-tasks" | "verification-requests";
+type TabType = "my-tasks" | "verification-requests" | "supervising";
 
 const defaultFilters: TaskFilters = {
 	search: "",
@@ -51,6 +59,8 @@ export default function HomePage() {
 	const [submitProofTask, setSubmitProofTask] = useState<Task | null>(null);
 	const [reviewProofTask, setReviewProofTask] = useState<Task | null>(null);
 
+	const { subscribe } = useWebSocket();
+
 	// Check if user is authenticated
 	useEffect(() => {
 		const token = localStorage.getItem("token");
@@ -60,6 +70,12 @@ export default function HomePage() {
 	}, [navigate]);
 
 	const fetchTasks = useCallback(async () => {
+		// Don't fetch tasks when on supervising tab
+		if (activeTab === "supervising") {
+			setIsLoading(false);
+			return;
+		}
+
 		setIsLoading(true);
 		setError(undefined);
 
@@ -69,7 +85,7 @@ export default function HomePage() {
 				endpoint = selectedListId
 					? `/tasks?listId=${selectedListId}`
 					: "/tasks";
-			} else {
+			} else if (activeTab === "verification-requests") {
 				endpoint = "/tasks/verification-requests";
 			}
 			const data = await api.get<Task[]>(endpoint);
@@ -91,6 +107,56 @@ export default function HomePage() {
 	useEffect(() => {
 		fetchTasks();
 	}, [fetchTasks]);
+
+	// Subscribe to real-time task updates via WebSocket
+	useEffect(() => {
+		const handleSocketMessage = (message: SocketMessage) => {
+			if (message.type === "TASK_UPDATED") {
+				const payload = message.payload as TaskUpdatedPayload;
+				setTasks((prevTasks) =>
+					prevTasks.map((task) =>
+						task.id === payload.taskId
+							? {
+									...task,
+									status: payload.status as Task["status"],
+									denialReason: payload.denialReason,
+							  }
+							: task
+					)
+				);
+
+				// Show toast notification based on status
+				if (payload.approved === true) {
+					toast.success(`✅ ${payload.message}`, {
+						icon: false,
+					});
+				} else if (payload.approved === false) {
+					toast.warning(`❌ ${payload.message}`, {
+						icon: false,
+					});
+				} else if (payload.status === "PENDING_VERIFICATION") {
+					toast.info(`📋 ${payload.message}`, {
+						icon: false,
+					});
+				}
+			} else if (message.type === "NEW_TASK_ASSIGNED") {
+				const payload = message.payload as NewTaskAssignedPayload;
+				// If we're on verification-requests tab, refresh to get the new task
+				if (activeTab === "verification-requests") {
+					fetchTasks();
+				}
+				toast.info(
+					`📥 New task: "${payload.title}" from ${payload.creatorName}`,
+					{
+						icon: false,
+					}
+				);
+			}
+		};
+
+		const unsubscribe = subscribe(handleSocketMessage);
+		return unsubscribe;
+	}, [subscribe, activeTab, fetchTasks]);
 
 	const handleTabChange = (tab: TabType) => {
 		setActiveTab(tab);
@@ -210,68 +276,78 @@ export default function HomePage() {
 			refreshListsKey={refreshListsKey}
 			onOpenVerifiersModal={() => setIsVerifiersModalOpen(true)}
 		>
-			<div className={styles.container}>
-				<div className={styles.header}>
-					<div>
-						<h1 className={styles.title}>
-							{activeTab === "my-tasks" ? "My Tasks" : "Verification Requests"}
-						</h1>
-						<p className={styles.subtitle}>
-							{activeTab === "my-tasks"
-								? "Tasks you committed to completing with a trusted verifier."
-								: "Tasks others need you to verify upon completion."}
-						</p>
+			{activeTab === "supervising" ? (
+				<SupervisingTab />
+			) : (
+				<div className={styles.container}>
+					<div className={styles.header}>
+						<div>
+							<h1 className={styles.title}>
+								{activeTab === "my-tasks"
+									? "My Tasks"
+									: "Verification Requests"}
+							</h1>
+							<p className={styles.subtitle}>
+								{activeTab === "my-tasks"
+									? "Tasks you committed to completing with a trusted verifier."
+									: "Tasks others need you to verify upon completion."}
+							</p>
+						</div>
+
+						{!isLoading && tasks.length > 0 && (
+							<div className={styles.stats}>
+								{activeTab === "my-tasks" && (
+									<>
+										<div className={styles.stat}>
+											<span className={styles.statValue}>
+												{pendingProofCount}
+											</span>
+											<span className={styles.statLabel}>Pending Proof</span>
+										</div>
+										<div className={styles.stat}>
+											<span className={styles.statValue}>
+												{pendingVerificationCount}
+											</span>
+											<span className={styles.statLabel}>
+												Awaiting Verification
+											</span>
+										</div>
+									</>
+								)}
+								<div className={styles.stat}>
+									<span className={styles.statValue}>
+										{filteredTasks.length}
+									</span>
+									<span className={styles.statLabel}>
+										{filteredTasks.length !== tasks.length
+											? "Filtered"
+											: "Total"}
+									</span>
+								</div>
+							</div>
+						)}
 					</div>
 
 					{!isLoading && tasks.length > 0 && (
-						<div className={styles.stats}>
-							{activeTab === "my-tasks" && (
-								<>
-									<div className={styles.stat}>
-										<span className={styles.statValue}>
-											{pendingProofCount}
-										</span>
-										<span className={styles.statLabel}>Pending Proof</span>
-									</div>
-									<div className={styles.stat}>
-										<span className={styles.statValue}>
-											{pendingVerificationCount}
-										</span>
-										<span className={styles.statLabel}>
-											Awaiting Verification
-										</span>
-									</div>
-								</>
-							)}
-							<div className={styles.stat}>
-								<span className={styles.statValue}>{filteredTasks.length}</span>
-								<span className={styles.statLabel}>
-									{filteredTasks.length !== tasks.length ? "Filtered" : "Total"}
-								</span>
-							</div>
-						</div>
+						<FilterBar
+							tasks={tasks}
+							filters={filters}
+							onFiltersChange={setFilters}
+						/>
 					)}
-				</div>
 
-				{!isLoading && tasks.length > 0 && (
-					<FilterBar
-						tasks={tasks}
-						filters={filters}
-						onFiltersChange={setFilters}
+					<TaskListComponent
+						tasks={filteredTasks}
+						viewMode={activeTab as "my-tasks" | "verification-requests"}
+						isLoading={isLoading}
+						error={error}
+						searchTerm={filters.search}
+						onReassignTask={(task) => setReassignTask(task)}
+						onSubmitProof={(task) => setSubmitProofTask(task)}
+						onReviewProof={(task) => setReviewProofTask(task)}
 					/>
-				)}
-
-				<TaskListComponent
-					tasks={filteredTasks}
-					viewMode={activeTab}
-					isLoading={isLoading}
-					error={error}
-					searchTerm={filters.search}
-					onReassignTask={(task) => setReassignTask(task)}
-					onSubmitProof={(task) => setSubmitProofTask(task)}
-					onReviewProof={(task) => setReviewProofTask(task)}
-				/>
-			</div>
+				</div>
+			)}
 
 			<CreateTaskModal
 				isOpen={isModalOpen}

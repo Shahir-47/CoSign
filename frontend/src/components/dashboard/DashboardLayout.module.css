@@ -118,6 +118,35 @@
 	border-left: 1px solid var(--border-primary);
 }
 
+.connectionStatus {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 4px;
+	border-radius: 50%;
+	cursor: default;
+	transition: all 0.3s ease;
+}
+
+.connectionStatus.connected {
+	color: #22c55e;
+}
+
+.connectionStatus.disconnected {
+	color: var(--text-muted);
+	animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.4;
+	}
+}
+
 .userInfo {
 	display: flex;
 	flex-direction: column;

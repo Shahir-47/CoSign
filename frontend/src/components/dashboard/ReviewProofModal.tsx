@@ -11,6 +11,7 @@ import {
 	Eye,
 	Loader2,
 } from "lucide-react";
+import { toast } from "react-toastify";
 import type {
 	Task,
 	TaskDetails,
@@ -96,6 +97,7 @@ export default function ReviewProofModal({
 			};
 
 			await api.post(`/tasks/${task.id}/review`, request);
+			toast.success(approved ? "Task approved!" : "Proof rejected");
 			onSuccess();
 			handleClose();
 		} catch (err) {

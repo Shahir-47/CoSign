@@ -5,15 +5,22 @@ import {
 	ClipboardList,
 	ClipboardCheck,
 	Users,
+	Wifi,
+	WifiOff,
+	Eye,
 } from "lucide-react";
+import { toast } from "react-toastify";
+import { useWebSocket } from "../../context/useWebSocket";
 import Logo from "../shared/Logo";
 import ListsSidebar from "./ListsSidebar";
 import styles from "./DashboardLayout.module.css";
 
 interface DashboardLayoutProps {
 	children: React.ReactNode;
-	activeTab: "my-tasks" | "verification-requests";
-	onTabChange: (tab: "my-tasks" | "verification-requests") => void;
+	activeTab: "my-tasks" | "verification-requests" | "supervising";
+	onTabChange: (
+		tab: "my-tasks" | "verification-requests" | "supervising"
+	) => void;
 	onCreateTask: () => void;
 	selectedListId: number | null;
 	onSelectList: (listId: number | null) => void;
@@ -51,10 +58,13 @@ export default function DashboardLayout({
 }: DashboardLayoutProps) {
 	const navigate = useNavigate();
 	const user = getUser();
+	const { isConnected, disconnect } = useWebSocket();
 
 	const handleLogout = () => {
+		disconnect();
 		localStorage.removeItem("token");
 		localStorage.removeItem("user");
+		toast.info("You have been logged out");
 		navigate("/login");
 	};
 
@@ -84,6 +94,15 @@ export default function DashboardLayout({
 						<ClipboardCheck size={18} />
 						<span>To Verify</span>
 					</button>
+					<button
+						className={`${styles.navButton} ${
+							activeTab === "supervising" ? styles.active : ""
+						}`}
+						onClick={() => onTabChange("supervising")}
+					>
+						<Eye size={18} />
+						<span>Supervising</span>
+					</button>
 				</nav>
 
 				<div className={styles.headerRight}>
@@ -102,6 +121,18 @@ export default function DashboardLayout({
 					</button>
 
 					<div className={styles.userSection}>
+						<div
+							className={`${styles.connectionStatus} ${
+								isConnected ? styles.connected : styles.disconnected
+							}`}
+							title={
+								isConnected
+									? "Connected - Real-time updates active"
+									: "Disconnected - Reconnecting..."
+							}
+						>
+							{isConnected ? <Wifi size={14} /> : <WifiOff size={14} />}
+						</div>
 						{user && (
 							<div className={styles.userInfo}>
 								<span className={styles.userName}>{user.fullName}</span>

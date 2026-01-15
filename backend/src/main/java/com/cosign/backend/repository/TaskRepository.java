@@ -31,4 +31,15 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
             @Param("verifier") User verifier,
             @Param("now") LocalDateTime now
     );
+
+    // Count tasks by verifier and creator with specific status
+    @Query("SELECT COUNT(t) FROM Task t WHERE t.verifier = :verifier AND t.creator = :creator AND t.status = :status")
+    int countByVerifierAndCreatorAndStatus(
+            @Param("verifier") User verifier,
+            @Param("creator") User creator,
+            @Param("status") TaskStatus status
+    );
+
+    // Count all tasks by verifier and creator
+    int countByVerifierAndCreator(User verifier, User creator);
 }

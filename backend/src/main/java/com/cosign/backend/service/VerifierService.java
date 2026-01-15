@@ -1,5 +1,6 @@
 package com.cosign.backend.service;
 
+import com.cosign.backend.dto.SuperviseeResponse;
 import com.cosign.backend.dto.VerifierResponse;
 import com.cosign.backend.model.Task;
 import com.cosign.backend.model.TaskStatus;
@@ -18,11 +19,13 @@ import java.util.stream.Collectors;
 public class VerifierService {
 
     private final UserRepository userRepository;
-    private final TaskRepository taskRepository; // Inject TaskRepository
+    private final TaskRepository taskRepository;
+    private final SocketService socketService;
 
-    public VerifierService(UserRepository userRepository, TaskRepository taskRepository) {
+    public VerifierService(UserRepository userRepository, TaskRepository taskRepository, SocketService socketService) {
         this.userRepository = userRepository;
         this.taskRepository = taskRepository;
+        this.socketService = socketService;
     }
 
     private User getCurrentUser() {
@@ -57,7 +60,8 @@ public class VerifierService {
                 verifier.getId(),
                 verifier.getFullName(),
                 verifier.getEmail(),
-                verifier.getProfilePictureUrl()
+                verifier.getProfilePictureUrl(),
+                socketService.isUserOnline(verifier.getId())
         );
     }
 
@@ -70,7 +74,8 @@ public class VerifierService {
                         v.getId(),
                         v.getFullName(),
                         v.getEmail(),
-                        v.getProfilePictureUrl()
+                        v.getProfilePictureUrl(),
+                        socketService.isUserOnline(v.getId())
                 ))
                 .collect(Collectors.toList());
     }
@@ -101,6 +106,42 @@ public class VerifierService {
         // Remove the relationship
         currentUser.getSavedVerifiers().remove(verifierToRemove);
         userRepository.save(currentUser);
+    }
+
+    /**
+     * Get all users who have added the current user as their verifier (supervisees).
+     * Includes task statistics for each supervisee.
+     */
+    @Transactional(readOnly = true)
+    public List<SuperviseeResponse> getSupervisees() {
+        User currentUser = getCurrentUser();
+
+        // Find all users who have this user as a saved verifier
+        List<User> supervisees = userRepository.findUsersBySavedVerifier(currentUser.getId());
+
+        return supervisees.stream()
+                .map(supervisee -> {
+                    int pendingProofCount = taskRepository.countByVerifierAndCreatorAndStatus(
+                            currentUser, supervisee, TaskStatus.PENDING_PROOF);
+                    int pendingVerificationCount = taskRepository.countByVerifierAndCreatorAndStatus(
+                            currentUser, supervisee, TaskStatus.PENDING_VERIFICATION);
+                    int completedCount = taskRepository.countByVerifierAndCreatorAndStatus(
+                            currentUser, supervisee, TaskStatus.COMPLETED);
+                    int totalCount = taskRepository.countByVerifierAndCreator(currentUser, supervisee);
+
+                    return new SuperviseeResponse(
+                            supervisee.getId(),
+                            supervisee.getFullName(),
+                            supervisee.getEmail(),
+                            supervisee.getProfilePictureUrl(),
+                            socketService.isUserOnline(supervisee.getId()),
+                            pendingProofCount,
+                            pendingVerificationCount,
+                            completedCount,
+                            totalCount
+                    );
+                })
+                .collect(Collectors.toList());
     }
 
 }

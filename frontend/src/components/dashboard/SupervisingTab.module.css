@@ -1,0 +1,264 @@
+.container {
+	padding: 24px;
+}
+
+.header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 24px;
+}
+
+.header h2 {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	font-size: 1.5rem;
+	font-weight: 600;
+	color: var(--text-primary);
+}
+
+.header h2 svg {
+	color: var(--accent-primary);
+}
+
+.count {
+	font-size: 0.875rem;
+	color: var(--text-muted);
+	background: var(--bg-tertiary);
+	padding: 6px 12px;
+	border-radius: var(--radius-full);
+}
+
+.grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+	gap: 20px;
+}
+
+.card {
+	background: var(--bg-secondary);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-lg);
+	padding: 20px;
+	transition: all 0.2s ease;
+}
+
+.card:hover {
+	border-color: var(--border-secondary);
+	box-shadow: var(--shadow-md);
+}
+
+.cardHeader {
+	display: flex;
+	align-items: flex-start;
+	gap: 16px;
+	margin-bottom: 20px;
+}
+
+.avatar {
+	position: relative;
+	flex-shrink: 0;
+}
+
+.avatar img {
+	width: 48px;
+	height: 48px;
+	border-radius: 50%;
+	object-fit: cover;
+}
+
+.avatar svg {
+	color: var(--text-muted);
+}
+
+.statusDot {
+	position: absolute;
+	bottom: 2px;
+	right: 2px;
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	border: 2px solid var(--bg-secondary);
+}
+
+.statusDot.online {
+	background: #22c55e;
+}
+
+.statusDot.offline {
+	background: var(--text-muted);
+}
+
+.userInfo {
+	flex: 1;
+	min-width: 0;
+}
+
+.userInfo h3 {
+	font-size: 1rem;
+	font-weight: 600;
+	color: var(--text-primary);
+	margin-bottom: 4px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.email {
+	display: block;
+	font-size: 0.8125rem;
+	color: var(--text-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	margin-bottom: 6px;
+}
+
+.statusText {
+	font-size: 0.75rem;
+	font-weight: 500;
+}
+
+.statusText.online {
+	color: #22c55e;
+}
+
+.statusText.offline {
+	color: var(--text-muted);
+}
+
+.stats {
+	display: flex;
+	gap: 12px;
+	margin-bottom: 16px;
+}
+
+.stat {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 12px;
+	background: var(--bg-tertiary);
+	border-radius: var(--radius-md);
+}
+
+.statIcon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border-radius: var(--radius-md);
+}
+
+.statIcon[data-type="pending-proof"] {
+	background: rgba(234, 179, 8, 0.15);
+	color: #eab308;
+}
+
+.statIcon[data-type="pending-verification"] {
+	background: rgba(59, 130, 246, 0.15);
+	color: #3b82f6;
+}
+
+.statIcon[data-type="completed"] {
+	background: rgba(34, 197, 94, 0.15);
+	color: #22c55e;
+}
+
+.statInfo {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.statValue {
+	font-size: 1.125rem;
+	font-weight: 700;
+	color: var(--text-primary);
+	line-height: 1.2;
+}
+
+.statLabel {
+	font-size: 0.6875rem;
+	color: var(--text-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.cardFooter {
+	padding-top: 16px;
+	border-top: 1px solid var(--border-primary);
+}
+
+.totalTasks {
+	font-size: 0.8125rem;
+	color: var(--text-secondary);
+}
+
+/* Loading State */
+.loading {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 16px;
+	padding: 64px 24px;
+	color: var(--text-muted);
+}
+
+.spinner {
+	animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* Error State */
+.error {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+	padding: 64px 24px;
+	color: var(--error);
+}
+
+/* Empty State */
+.empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 16px;
+	padding: 64px 24px;
+	text-align: center;
+}
+
+.empty svg {
+	color: var(--text-muted);
+	opacity: 0.5;
+}
+
+.empty h3 {
+	font-size: 1.125rem;
+	font-weight: 600;
+	color: var(--text-primary);
+	margin: 0;
+}
+
+.empty p {
+	font-size: 0.875rem;
+	color: var(--text-muted);
+	max-width: 400px;
+	margin: 0;
+}

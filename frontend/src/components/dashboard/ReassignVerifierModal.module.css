@@ -292,6 +292,18 @@
 	background: rgba(99, 102, 241, 0.1);
 }
 
+.verifierAvatarWrapper {
+	position: relative;
+	display: flex;
+	align-items: center;
+}
+
+.statusIndicator {
+	position: absolute;
+	bottom: -1px;
+	right: -2px;
+}
+
 .verifierAvatar {
 	width: 36px;
 	height: 36px;

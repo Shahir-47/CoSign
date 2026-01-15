@@ -82,7 +82,16 @@ public class TaskService {
         // Default status
         task.setStatus(TaskStatus.PENDING_PROOF);
 
-        return taskRepository.save(task);
+        Task savedTask = taskRepository.save(task);
+
+        // Notify verifier about the new task
+        socketService.sendToUser(savedTask.getVerifier().getId(), "NEW_TASK_ASSIGNED", Map.of(
+                "taskId", savedTask.getId(),
+                "title", savedTask.getTitle(),
+                "creatorName", savedTask.getCreator().getFullName()
+        ));
+
+        return savedTask;
     }
 
     public List<Task> getMyTasks() {

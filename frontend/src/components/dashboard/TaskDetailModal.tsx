@@ -32,6 +32,8 @@ import {
 } from "lucide-react";
 import type { Task } from "../../types";
 import { getUserTimezone, getTimeUntilDeadline } from "../../utils/timezone";
+import { useWebSocket } from "../../context/useWebSocket";
+import OnlineStatusIndicator from "../shared/OnlineStatusIndicator";
 import styles from "./TaskDetailModal.module.css";
 
 interface TaskDetailModalProps {
@@ -208,6 +210,7 @@ export default function TaskDetailModal({
 	onReviewProof,
 }: TaskDetailModalProps) {
 	const [, setTick] = useState(0);
+	const { isUserOnline } = useWebSocket();
 
 	// Update every second for live countdown
 	useEffect(() => {
@@ -400,7 +403,14 @@ export default function TaskDetailModal({
 								<User size={18} />
 							</div>
 							<div className={styles.detailContent}>
-								<span className={styles.detailLabel}>{roleLabel}</span>
+								<span className={styles.detailLabel}>
+									{roleLabel}
+									<OnlineStatusIndicator
+										isOnline={isUserOnline(otherPerson.id)}
+										size="sm"
+										showLabel
+									/>
+								</span>
 								<span className={styles.detailValue}>
 									{otherPerson.fullName}
 									<span className={styles.email}>{otherPerson.email}</span>

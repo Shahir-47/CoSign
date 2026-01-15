@@ -188,6 +188,18 @@
 	gap: 14px;
 }
 
+.avatarWrapper {
+	position: relative;
+	display: flex;
+	align-items: center;
+}
+
+.statusIndicator {
+	position: absolute;
+	bottom: 0;
+	right: -2px;
+}
+
 .avatar {
 	width: 42px;
 	height: 42px;

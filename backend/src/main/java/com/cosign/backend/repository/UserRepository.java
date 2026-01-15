@@ -16,4 +16,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // Find users who have saved a specific verifier to notify them when verifier is online
     @Query("SELECT u FROM User u JOIN u.savedVerifiers v WHERE v.id = :verifierId")
     List<User> findUsersBySavedVerifier(@Param("verifierId") Long verifierId);
+
+    @Query("SELECT u FROM User u LEFT JOIN FETCH u.savedVerifiers WHERE u.id = :id")
+    Optional<User> findByIdWithVerifiers(@Param("id") Long id);
 }

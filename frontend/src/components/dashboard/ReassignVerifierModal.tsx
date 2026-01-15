@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
 import { X, User, UserPlus, ChevronDown, AlertTriangle } from "lucide-react";
+import { toast } from "react-toastify";
 import type { Task, Verifier } from "../../types";
 import { api } from "../../utils/api";
+import { useWebSocket } from "../../context/useWebSocket";
 import Button from "../shared/Button";
+import OnlineStatusIndicator from "../shared/OnlineStatusIndicator";
 import styles from "./ReassignVerifierModal.module.css";
 
 interface ReassignVerifierModalProps {
@@ -31,6 +34,7 @@ export default function ReassignVerifierModal({
 	const [showDropdown, setShowDropdown] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | undefined>();
+	const { isUserOnline } = useWebSocket();
 
 	useEffect(() => {
 		if (isOpen) {
@@ -69,6 +73,7 @@ export default function ReassignVerifierModal({
 			await api.put(`/tasks/${task.id}/reassign`, {
 				email: verifierEmail.trim(),
 			});
+			toast.success("Verifier reassigned successfully!");
 			onSuccess();
 			handleClose();
 		} catch (err) {
@@ -159,12 +164,22 @@ export default function ReassignVerifierModal({
 											}`}
 											onClick={() => selectVerifier(verifier)}
 										>
-											<div className={styles.verifierAvatar}>
-												{verifier.fullName
-													.split(" ")
-													.map((n) => n[0])
-													.join("")
-													.toUpperCase()}
+											<div className={styles.verifierAvatarWrapper}>
+												<div className={styles.verifierAvatar}>
+													{verifier.fullName
+														.split(" ")
+														.map((n) => n[0])
+														.join("")
+														.toUpperCase()}
+												</div>
+												<div className={styles.statusIndicator}>
+													<OnlineStatusIndicator
+														isOnline={
+															verifier.isOnline || isUserOnline(verifier.id)
+														}
+														size="sm"
+													/>
+												</div>
 											</div>
 											<div className={styles.verifierInfo}>
 												<span className={styles.verifierName}>

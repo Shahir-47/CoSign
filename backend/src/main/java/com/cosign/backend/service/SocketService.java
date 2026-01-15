@@ -79,6 +79,14 @@ public class SocketService {
     }
 
     /**
+     * Check if a user is currently online (has an active WebSocket session)
+     */
+    public boolean isUserOnline(Long userId) {
+        WebSocketSession session = userSessions.get(userId);
+        return session != null && session.isOpen();
+    }
+
+    /**
      * Broadcasts ONLINE/OFFLINE status to relevant users.
      * Logic:
      * If I am a User, notify my Saved Verifiers.
@@ -88,7 +96,7 @@ public class SocketService {
         // Run in a separate thread to not block the socket handler
         new Thread(() -> {
             try {
-                User user = userRepository.findById(userId).orElse(null);
+                User user = userRepository.findByIdWithVerifiers(userId).orElse(null);
                 if (user == null) return;
 
                 // Notify my Saved Verifiers

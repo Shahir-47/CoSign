@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { X, Send, AlertTriangle } from "lucide-react";
+import { toast } from "react-toastify";
 import type { Task, ProofSubmissionRequest } from "../../types";
 import RichTextEditor from "../shared/RichTextEditor";
 import FileUploader from "../shared/FileUploader";
@@ -55,6 +56,7 @@ export default function SubmitProofModal({
 			};
 
 			await api.post(`/tasks/${task.id}/proof`, request);
+			toast.success("Proof submitted successfully!");
 			onSuccess();
 			handleClose();
 		} catch (err) {

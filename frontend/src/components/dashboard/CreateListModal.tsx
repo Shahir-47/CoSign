@@ -11,6 +11,7 @@ import {
 	BookOpen,
 	List,
 } from "lucide-react";
+import { toast } from "react-toastify";
 import Button from "../shared/Button";
 import Input from "../shared/Input";
 import { api } from "../../utils/api";
@@ -78,6 +79,7 @@ export default function CreateListModal({
 			};
 
 			const newList = await api.post<TaskList>("/lists", request);
+			toast.success(`List "${newList.name}" created!`);
 			onSuccess(newList);
 			handleClose();
 		} catch (err) {

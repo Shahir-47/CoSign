@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+import { useWebSocket } from "../context/useWebSocket";
 import AuthLayout from "../components/shared/AuthLayout";
 import Card, {
 	CardHeader,
@@ -23,6 +25,7 @@ export default function LoginPage() {
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | undefined>();
 	const navigate = useNavigate();
+	const { connect } = useWebSocket();
 
 	const handleSubmit = async (data: LoginFormData) => {
 		setIsLoading(true);
@@ -54,6 +57,11 @@ export default function LoginPage() {
 					timezone: result.timezone,
 				})
 			);
+
+			// Connect to WebSocket after login
+			connect();
+
+			toast.success(`Welcome back, ${result.fullName}!`);
 
 			// Navigate to dashboard (or home for now)
 			navigate("/");

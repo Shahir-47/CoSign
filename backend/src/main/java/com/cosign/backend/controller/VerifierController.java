@@ -1,5 +1,6 @@
 package com.cosign.backend.controller;
 
+import com.cosign.backend.dto.SuperviseeResponse;
 import com.cosign.backend.dto.VerifierRequest;
 import com.cosign.backend.dto.VerifierResponse;
 import com.cosign.backend.service.VerifierService;
@@ -22,6 +23,15 @@ public class VerifierController {
     @GetMapping
     public ResponseEntity<List<VerifierResponse>> getMyVerifiers() {
         return ResponseEntity.ok(verifierService.getSavedVerifiers());
+    }
+
+    /**
+     * Get all users who have added the current user as their verifier.
+     * This shows who the current user is supervising (read-only view).
+     */
+    @GetMapping("/supervisees")
+    public ResponseEntity<List<SuperviseeResponse>> getSupervisees() {
+        return ResponseEntity.ok(verifierService.getSupervisees());
     }
 
     @PostMapping
