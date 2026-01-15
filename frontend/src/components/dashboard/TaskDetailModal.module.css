@@ -289,3 +289,103 @@
 	background: rgba(249, 115, 22, 0.2);
 	border-color: rgba(249, 115, 22, 0.5);
 }
+
+.submitProofButton {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	width: 100%;
+	padding: 14px 20px;
+	background: rgba(99, 102, 241, 0.1);
+	border: 1px solid rgba(99, 102, 241, 0.3);
+	border-radius: var(--radius-md);
+	color: #6366f1;
+	font-size: 0.9375rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.submitProofButton:hover {
+	background: rgba(99, 102, 241, 0.2);
+	border-color: rgba(99, 102, 241, 0.5);
+}
+
+.reviewProofButton {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	width: 100%;
+	padding: 14px 20px;
+	background: rgba(16, 185, 129, 0.1);
+	border: 1px solid rgba(16, 185, 129, 0.3);
+	border-radius: var(--radius-md);
+	color: #10b981;
+	font-size: 0.9375rem;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.reviewProofButton:hover {
+	background: rgba(16, 185, 129, 0.2);
+	border-color: rgba(16, 185, 129, 0.5);
+}
+
+.denialBanner {
+	display: flex;
+	gap: 12px;
+	padding: 16px;
+	background: rgba(239, 68, 68, 0.1);
+	border: 1px solid rgba(239, 68, 68, 0.3);
+	border-radius: var(--radius-md);
+	color: #ef4444;
+}
+
+.denialBanner svg {
+	flex-shrink: 0;
+	margin-top: 2px;
+}
+
+.denialBanner strong {
+	display: block;
+	margin-bottom: 4px;
+	font-size: 0.875rem;
+}
+
+.denialBanner p {
+	margin: 0;
+	color: var(--text-secondary);
+	font-size: 0.875rem;
+	line-height: 1.5;
+}
+
+.approvalBanner {
+	display: flex;
+	gap: 12px;
+	padding: 16px;
+	background: rgba(16, 185, 129, 0.1);
+	border: 1px solid rgba(16, 185, 129, 0.3);
+	border-radius: var(--radius-md);
+	color: #10b981;
+}
+
+.approvalBanner svg {
+	flex-shrink: 0;
+	margin-top: 2px;
+}
+
+.approvalBanner strong {
+	display: block;
+	margin-bottom: 4px;
+	font-size: 0.875rem;
+}
+
+.approvalBanner p {
+	margin: 0;
+	color: var(--text-secondary);
+	font-size: 0.875rem;
+	line-height: 1.5;
+}

@@ -12,6 +12,8 @@ interface TaskListProps {
 	error?: string;
 	searchTerm?: string;
 	onReassignTask?: (task: Task) => void;
+	onSubmitProof?: (task: Task) => void;
+	onReviewProof?: (task: Task) => void;
 }
 
 export default function TaskList({
@@ -21,6 +23,8 @@ export default function TaskList({
 	error,
 	searchTerm,
 	onReassignTask,
+	onSubmitProof,
+	onReviewProof,
 }: TaskListProps) {
 	const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 	const [showOverdue, setShowOverdue] = useState(false);
@@ -167,6 +171,8 @@ export default function TaskList({
 				onClose={() => setSelectedTask(null)}
 				viewMode={viewMode}
 				onReassign={onReassignTask}
+				onSubmitProof={onSubmitProof}
+				onReviewProof={onReviewProof}
 			/>
 		</>
 	);

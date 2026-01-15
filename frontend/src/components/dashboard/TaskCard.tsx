@@ -82,14 +82,13 @@ function formatDeadline(deadline: string): {
 
 	const seconds = totalSeconds % 60;
 	const minutes = totalMinutes % 60;
-	const hours = totalHours % 24;
 
 	const isPast = diffMs < 0;
 
 	if (isPast) {
 		if (totalDays > 0) {
 			return {
-				text: `${totalDays}d ${hours}h overdue`,
+				text: `${totalDays}d overdue`,
 				isUrgent: false,
 				isPast: true,
 			};
@@ -126,7 +125,7 @@ function formatDeadline(deadline: string): {
 
 	if (totalDays > 0) {
 		return {
-			text: `${totalDays}d ${hours}h left`,
+			text: `${totalDays}d left`,
 			isUrgent: false,
 			isPast: false,
 		};

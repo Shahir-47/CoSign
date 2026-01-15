@@ -27,6 +27,8 @@ import {
 	BookOpen,
 	Pause,
 	UserX,
+	Send,
+	ClipboardCheck,
 } from "lucide-react";
 import type { Task } from "../../types";
 import { getUserTimezone, getTimeUntilDeadline } from "../../utils/timezone";
@@ -38,6 +40,8 @@ interface TaskDetailModalProps {
 	onClose: () => void;
 	viewMode: "my-tasks" | "verification-requests";
 	onReassign?: (task: Task) => void;
+	onSubmitProof?: (task: Task) => void;
+	onReviewProof?: (task: Task) => void;
 }
 
 const LIST_ICON_MAP: Record<string, React.ComponentType<{ size?: number }>> = {
@@ -144,23 +148,20 @@ function formatTimeRemaining(deadline: string): {
 
 	const seconds = totalSeconds % 60;
 	const minutes = totalMinutes % 60;
-	const hours = totalHours % 24;
 
 	const isPast = diffMs < 0;
 
 	if (isPast) {
 		if (totalDays > 0) {
 			return {
-				text: `${totalDays} day${
-					totalDays > 1 ? "s" : ""
-				} ${hours}h ${minutes}m overdue`,
+				text: `${totalDays} day${totalDays > 1 ? "s" : ""} overdue`,
 				isUrgent: false,
 				isPast: true,
 			};
 		}
 		if (totalHours > 0) {
 			return {
-				text: `${totalHours}h ${minutes}m ${seconds}s overdue`,
+				text: `${totalHours}h ${minutes}m overdue`,
 				isUrgent: false,
 				isPast: true,
 			};
@@ -175,9 +176,7 @@ function formatTimeRemaining(deadline: string): {
 	// Not past - show time remaining
 	if (totalDays > 0) {
 		return {
-			text: `${totalDays} day${
-				totalDays > 1 ? "s" : ""
-			} ${hours}h ${minutes}m remaining`,
+			text: `${totalDays} day${totalDays > 1 ? "s" : ""} remaining`,
 			isUrgent: false,
 			isPast: false,
 		};
@@ -185,7 +184,7 @@ function formatTimeRemaining(deadline: string): {
 
 	if (totalHours > 0) {
 		return {
-			text: `${totalHours}h ${minutes}m ${seconds}s remaining`,
+			text: `${totalHours}h ${minutes}m remaining`,
 			isUrgent: true,
 			isPast: false,
 		};
@@ -205,6 +204,8 @@ export default function TaskDetailModal({
 	onClose,
 	viewMode,
 	onReassign,
+	onSubmitProof,
+	onReviewProof,
 }: TaskDetailModalProps) {
 	const [, setTick] = useState(0);
 
@@ -293,6 +294,60 @@ export default function TaskDetailModal({
 								Reassign Verifier
 							</button>
 						)}
+
+					{/* Submit Proof Button for PENDING_PROOF tasks (task creator) */}
+					{(task.status === "PENDING_PROOF" || task.status === "MISSED") &&
+						viewMode === "my-tasks" &&
+						onSubmitProof && (
+							<button
+								className={styles.submitProofButton}
+								onClick={() => {
+									onSubmitProof(task);
+									onClose();
+								}}
+							>
+								<Send size={16} />
+								Submit Proof
+							</button>
+						)}
+
+					{/* Review Proof Button for PENDING_VERIFICATION tasks (verifier) */}
+					{task.status === "PENDING_VERIFICATION" &&
+						viewMode === "verification-requests" &&
+						onReviewProof && (
+							<button
+								className={styles.reviewProofButton}
+								onClick={() => {
+									onReviewProof(task);
+									onClose();
+								}}
+							>
+								<ClipboardCheck size={16} />
+								Review Proof
+							</button>
+						)}
+
+					{/* Denial Reason Banner */}
+					{task.denialReason && viewMode === "my-tasks" && (
+						<div className={styles.denialBanner}>
+							<XCircle size={18} />
+							<div>
+								<strong>Previous proof was not accepted</strong>
+								<p>{task.denialReason}</p>
+							</div>
+						</div>
+					)}
+
+					{/* Approval Comment Banner */}
+					{task.approvalComment && task.status === "COMPLETED" && (
+						<div className={styles.approvalBanner}>
+							<CheckCircle2 size={18} />
+							<div>
+								<strong>Verifier's Comment</strong>
+								<p>{task.approvalComment}</p>
+							</div>
+						</div>
+					)}
 
 					{/* Description */}
 					{task.description && (

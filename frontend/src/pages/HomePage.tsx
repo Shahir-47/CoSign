@@ -7,6 +7,8 @@ import CreateTaskModal from "../components/dashboard/CreateTaskModal";
 import CreateListModal from "../components/dashboard/CreateListModal";
 import ReassignVerifierModal from "../components/dashboard/ReassignVerifierModal";
 import VerifiersModal from "../components/dashboard/VerifiersModal";
+import SubmitProofModal from "../components/dashboard/SubmitProofModal";
+import ReviewProofModal from "../components/dashboard/ReviewProofModal";
 import type { Task, TaskFilters, TaskList } from "../types";
 import { api } from "../utils/api";
 import styles from "./HomePage.module.css";
@@ -46,6 +48,8 @@ export default function HomePage() {
 	const [removedVerifierEmail, setRemovedVerifierEmail] = useState<
 		string | null
 	>(null);
+	const [submitProofTask, setSubmitProofTask] = useState<Task | null>(null);
+	const [reviewProofTask, setReviewProofTask] = useState<Task | null>(null);
 
 	// Check if user is authenticated
 	useEffect(() => {
@@ -264,6 +268,8 @@ export default function HomePage() {
 					error={error}
 					searchTerm={filters.search}
 					onReassignTask={(task) => setReassignTask(task)}
+					onSubmitProof={(task) => setSubmitProofTask(task)}
+					onReviewProof={(task) => setReviewProofTask(task)}
 				/>
 			</div>
 
@@ -323,6 +329,26 @@ export default function HomePage() {
 					setRemovedVerifierEmail(email);
 					setNewlyAddedVerifierEmail(null);
 					fetchTasks(); // Refresh tasks when verifier is removed
+				}}
+			/>
+
+			<SubmitProofModal
+				task={submitProofTask}
+				isOpen={submitProofTask !== null}
+				onClose={() => setSubmitProofTask(null)}
+				onSuccess={() => {
+					setSubmitProofTask(null);
+					fetchTasks();
+				}}
+			/>
+
+			<ReviewProofModal
+				task={reviewProofTask}
+				isOpen={reviewProofTask !== null}
+				onClose={() => setReviewProofTask(null)}
+				onSuccess={() => {
+					setReviewProofTask(null);
+					fetchTasks();
 				}}
 			/>
 		</DashboardLayout>

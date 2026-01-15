@@ -48,8 +48,42 @@ export interface Task {
 	tags?: string; // Comma-separated tags
 	list?: TaskList;
 	proofUrl?: string;
+	proofDescription?: string;
+	denialReason?: string;
+	approvalComment?: string;
+	verifiedAt?: string;
 	completedAt?: string;
 	createdAt: string;
+}
+
+export interface ProofAttachment {
+	filename: string;
+	url: string;
+	mimeType: string;
+}
+
+export interface TaskDetails {
+	id: number;
+	title: string;
+	status: TaskStatus;
+	proofDescription?: string;
+	denialReason?: string;
+	approvalComment?: string;
+	attachments: ProofAttachment[];
+}
+
+export interface ProofSubmissionRequest {
+	description: string;
+	attachments: {
+		s3Key: string;
+		originalFilename: string;
+		mimeType: string;
+	}[];
+}
+
+export interface ReviewTaskRequest {
+	approved: boolean;
+	comment?: string;
 }
 
 export interface TaskRequest {
