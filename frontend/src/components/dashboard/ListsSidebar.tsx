@@ -23,6 +23,7 @@ interface ListsSidebarProps {
 	onSelectList: (listId: number | null) => void;
 	onCreateList: () => void;
 	refreshKey?: number;
+	onSelectedListNameChange?: (name: string | null) => void;
 }
 
 const ICON_MAP: Record<string, React.ComponentType<{ size?: number }>> = {
@@ -47,6 +48,7 @@ export default function ListsSidebar({
 	onSelectList,
 	onCreateList,
 	refreshKey,
+	onSelectedListNameChange,
 }: ListsSidebarProps) {
 	const [lists, setLists] = useState<TaskList[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
@@ -62,7 +64,12 @@ export default function ListsSidebar({
 				const defaultList = data.find((l) => l.isDefault);
 				if (defaultList) {
 					onSelectList(defaultList.id);
+					onSelectedListNameChange?.(defaultList.name);
 				}
+			} else if (selectedListId !== null) {
+				// Update name for current selection
+				const selected = data.find((l) => l.id === selectedListId);
+				onSelectedListNameChange?.(selected?.name ?? null);
 			}
 		} catch (err) {
 			console.error("Failed to fetch lists:", err);
@@ -125,7 +132,10 @@ export default function ListsSidebar({
 					className={`${styles.listItem} ${
 						selectedListId === null ? styles.active : ""
 					}`}
-					onClick={() => onSelectList(null)}
+					onClick={() => {
+						onSelectList(null);
+						onSelectedListNameChange?.(null);
+					}}
 				>
 					<div className={styles.listIcon} style={{ color: "#6366f1" }}>
 						<Inbox size={18} />
@@ -144,7 +154,10 @@ export default function ListsSidebar({
 								className={`${styles.listItem} ${
 									selectedListId === list.id ? styles.active : ""
 								}`}
-								onClick={() => onSelectList(list.id)}
+								onClick={() => {
+									onSelectList(list.id);
+									onSelectedListNameChange?.(list.name);
+								}}
 							>
 								<div
 									className={styles.listIcon}

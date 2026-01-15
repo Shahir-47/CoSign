@@ -73,6 +73,7 @@ export default function HomePage() {
 	const [selectedListId, setSelectedListId] = useState<number | null>(
 		initialState?.list ?? null
 	);
+	const [selectedListName, setSelectedListName] = useState<string | null>(null);
 	const [refreshListsKey, setRefreshListsKey] = useState(0);
 	const [filters, setFilters] = useState<TaskFilters>(defaultFilters);
 	const [refreshVerifiersKey, setRefreshVerifiersKey] = useState(0);
@@ -422,6 +423,9 @@ export default function HomePage() {
 		(t) => t.status === "PENDING_VERIFICATION"
 	).length;
 
+	// Compute the title for My Tasks tab
+	const myTasksTitle = selectedListName || "All Tasks";
+
 	return (
 		<DashboardLayout
 			activeTab={activeTab}
@@ -432,6 +436,7 @@ export default function HomePage() {
 			onCreateList={handleOpenCreateList}
 			refreshListsKey={refreshListsKey}
 			onOpenVerifiersModal={handleOpenVerifiers}
+			onSelectedListNameChange={setSelectedListName}
 		>
 			{activeTab === "supervising" ? (
 				<SupervisingTab />
@@ -441,7 +446,7 @@ export default function HomePage() {
 						<div>
 							<h1 className={styles.title}>
 								{activeTab === "my-tasks"
-									? "My Tasks"
+									? myTasksTitle
 									: "Verification Requests"}
 							</h1>
 							<p className={styles.subtitle}>

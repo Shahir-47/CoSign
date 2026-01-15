@@ -27,6 +27,7 @@ interface DashboardLayoutProps {
 	onCreateList: () => void;
 	refreshListsKey?: number;
 	onOpenVerifiersModal: () => void;
+	onSelectedListNameChange?: (name: string | null) => void;
 }
 
 function getUser(): {
@@ -55,6 +56,7 @@ export default function DashboardLayout({
 	onCreateList,
 	refreshListsKey,
 	onOpenVerifiersModal,
+	onSelectedListNameChange,
 }: DashboardLayoutProps) {
 	const navigate = useNavigate();
 	const user = getUser();
@@ -157,6 +159,7 @@ export default function DashboardLayout({
 						onSelectList={onSelectList}
 						onCreateList={onCreateList}
 						refreshKey={refreshListsKey}
+						onSelectedListNameChange={onSelectedListNameChange}
 					/>
 				)}
 				<div className={styles.content}>{children}</div>
