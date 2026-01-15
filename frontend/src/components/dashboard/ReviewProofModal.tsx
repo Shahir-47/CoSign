@@ -3,17 +3,22 @@ import {
 	X,
 	CheckCircle2,
 	XCircle,
-	Download,
 	File,
 	Image,
 	Film,
 	FileText,
 	Music,
-	ExternalLink,
+	Eye,
 	Loader2,
 } from "lucide-react";
-import type { Task, TaskDetails, ReviewTaskRequest } from "../../types";
+import type {
+	Task,
+	TaskDetails,
+	ReviewTaskRequest,
+	ProofAttachment,
+} from "../../types";
 import Button from "../shared/Button";
+import ViewAttachmentModal from "../shared/ViewAttachmentModal";
 import { api } from "../../utils/api";
 import styles from "./ReviewProofModal.module.css";
 
@@ -45,6 +50,8 @@ export default function ReviewProofModal({
 	const [isApproving, setIsApproving] = useState(false);
 	const [isDenying, setIsDenying] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [viewingAttachment, setViewingAttachment] =
+		useState<ProofAttachment | null>(null);
 
 	// Fetch task details with presigned URLs
 	useEffect(() => {
@@ -162,20 +169,19 @@ export default function ReviewProofModal({
 												return (
 													<div key={index} className={styles.attachment}>
 														{isImage ? (
-															<a
-																href={attachment.url}
-																target="_blank"
-																rel="noopener noreferrer"
+															<button
+																type="button"
 																className={styles.imagePreview}
+																onClick={() => setViewingAttachment(attachment)}
 															>
 																<img
 																	src={attachment.url}
 																	alt={attachment.filename}
 																/>
 																<div className={styles.imageOverlay}>
-																	<ExternalLink size={20} />
+																	<Eye size={20} />
 																</div>
-															</a>
+															</button>
 														) : isVideo ? (
 															<video
 																src={attachment.url}
@@ -183,23 +189,26 @@ export default function ReviewProofModal({
 																className={styles.videoPreview}
 															/>
 														) : (
-															<div className={styles.filePreview}>
+															<button
+																type="button"
+																className={styles.filePreview}
+																onClick={() => setViewingAttachment(attachment)}
+															>
 																<FileIcon size={32} />
-															</div>
+															</button>
 														)}
 														<div className={styles.attachmentInfo}>
 															<span className={styles.attachmentName}>
 																{attachment.filename}
 															</span>
-															<a
-																href={attachment.url}
-																target="_blank"
-																rel="noopener noreferrer"
-																className={styles.downloadLink}
+															<button
+																type="button"
+																className={styles.viewLink}
+																onClick={() => setViewingAttachment(attachment)}
 															>
-																<Download size={14} />
-																Open
-															</a>
+																<Eye size={14} />
+																View
+															</button>
 														</div>
 													</div>
 												);
@@ -259,6 +268,13 @@ export default function ReviewProofModal({
 					</Button>
 				</div>
 			</div>
+
+			{/* View Attachment Modal */}
+			<ViewAttachmentModal
+				attachment={viewingAttachment}
+				isOpen={!!viewingAttachment}
+				onClose={() => setViewingAttachment(null)}
+			/>
 		</div>
 	);
 }

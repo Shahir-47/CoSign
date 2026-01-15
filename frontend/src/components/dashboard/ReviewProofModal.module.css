@@ -181,6 +181,11 @@
 	position: relative;
 	aspect-ratio: 16 / 10;
 	overflow: hidden;
+	background: transparent;
+	border: none;
+	padding: 0;
+	cursor: pointer;
+	width: 100%;
 }
 
 .imagePreview img {
@@ -223,6 +228,16 @@
 	justify-content: center;
 	color: var(--text-muted);
 	background: var(--bg-secondary);
+	border: none;
+	padding: 0;
+	cursor: pointer;
+	width: 100%;
+	transition: background 0.15s ease;
+}
+
+.filePreview:hover {
+	background: var(--bg-tertiary);
+	color: var(--accent-primary);
 }
 
 .attachmentInfo {
@@ -255,6 +270,24 @@
 }
 
 .downloadLink:hover {
+	text-decoration: underline;
+}
+
+.viewLink {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: var(--accent-primary);
+	background: transparent;
+	border: none;
+	padding: 0;
+	cursor: pointer;
+	flex-shrink: 0;
+}
+
+.viewLink:hover {
 	text-decoration: underline;
 }
 
