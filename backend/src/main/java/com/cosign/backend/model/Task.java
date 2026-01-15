@@ -55,15 +55,33 @@ public class Task {
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
     private java.util.List<ProofAttachment> proofAttachments = new java.util.ArrayList<>();
 
-    // Verification result
-    private LocalDateTime verifiedAt;
-
     @Column(columnDefinition = "TEXT")
     private String denialReason;
 
     @Column(columnDefinition = "TEXT")
     private String approvalComment;
 
-    private LocalDateTime completedAt;
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    private LocalDateTime submittedAt;
+
+    private LocalDateTime verifiedAt;
+
+    private LocalDateTime completedAt;
+
+    private LocalDateTime updatedAt;
+
+    private LocalDateTime rejectedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }

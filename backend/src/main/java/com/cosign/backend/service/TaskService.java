@@ -199,6 +199,7 @@ public class TaskService {
         }
 
         task.setStatus(TaskStatus.PENDING_VERIFICATION);
+        task.setSubmittedAt(LocalDateTime.now());
         Task savedTask = taskRepository.save(task);
 
         // notify verifier
@@ -230,7 +231,9 @@ public class TaskService {
         if (request.getApproved()) {
             // ACCEPT
             task.setStatus(TaskStatus.COMPLETED);
-            task.setVerifiedAt(LocalDateTime.now());
+            LocalDateTime now = LocalDateTime.now();
+            task.setVerifiedAt(now);
+            task.setCompletedAt(now);
             task.setApprovalComment(request.getComment());
             task.setDenialReason(null); // Clear previous denials
         } else {
@@ -240,6 +243,7 @@ public class TaskService {
             }
             task.setStatus(TaskStatus.PENDING_PROOF); // Send back to user
             task.setDenialReason(request.getComment());
+            task.setRejectedAt(LocalDateTime.now());
         }
 
         Task savedTask = taskRepository.save(task);
