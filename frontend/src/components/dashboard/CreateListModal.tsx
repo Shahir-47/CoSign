@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
 	X,
 	Inbox,
@@ -16,6 +16,11 @@ import Button from "../shared/Button";
 import Input from "../shared/Input";
 import { api } from "../../utils/api";
 import type { TaskList, TaskListRequest } from "../../types";
+import {
+	saveListDraft,
+	loadListDraft,
+	clearListDraft,
+} from "../../utils/persistence";
 import styles from "./CreateListModal.module.css";
 
 interface CreateListModalProps {
@@ -59,6 +64,53 @@ export default function CreateListModal({
 	const [selectedColor, setSelectedColor] = useState(COLORS[0]);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | undefined>();
+	const [hasDraft, setHasDraft] = useState(false);
+	const draftLoadedRef = useRef(false);
+	const saveDraftTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+		null
+	);
+
+	// Load draft when modal opens
+	useEffect(() => {
+		if (isOpen && !draftLoadedRef.current) {
+			const draft = loadListDraft();
+			if (draft) {
+				setName(draft.name);
+				setSelectedColor(draft.colorHex);
+				setHasDraft(true);
+				toast.info("📝 Draft restored", { icon: false, autoClose: 2000 });
+			}
+			draftLoadedRef.current = true;
+		}
+		if (!isOpen) {
+			draftLoadedRef.current = false;
+		}
+	}, [isOpen]);
+
+	// Auto-save draft on changes (debounced)
+	useEffect(() => {
+		if (!isOpen) return;
+
+		// Only save if there's meaningful content
+		if (!name.trim()) return;
+
+		if (saveDraftTimeoutRef.current) {
+			clearTimeout(saveDraftTimeoutRef.current);
+		}
+
+		saveDraftTimeoutRef.current = setTimeout(() => {
+			saveListDraft({
+				name,
+				colorHex: selectedColor,
+			});
+		}, 1000);
+
+		return () => {
+			if (saveDraftTimeoutRef.current) {
+				clearTimeout(saveDraftTimeoutRef.current);
+			}
+		};
+	}, [isOpen, name, selectedColor]);
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -80,6 +132,8 @@ export default function CreateListModal({
 
 			const newList = await api.post<TaskList>("/lists", request);
 			toast.success(`List "${newList.name}" created!`);
+			clearListDraft(); // Clear draft on success
+			setHasDraft(false);
 			onSuccess(newList);
 			handleClose();
 		} catch (err) {
@@ -90,11 +144,21 @@ export default function CreateListModal({
 	};
 
 	const handleClose = () => {
+		// Note: Keep draft on close so user can continue later
 		setName("");
 		setSelectedIcon("folder");
 		setSelectedColor(COLORS[0]);
 		setError(undefined);
 		onClose();
+	};
+
+	const handleDiscardDraft = () => {
+		clearListDraft();
+		setHasDraft(false);
+		setName("");
+		setSelectedIcon("folder");
+		setSelectedColor(COLORS[0]);
+		toast.info("Draft discarded", { icon: false, autoClose: 2000 });
 	};
 
 	if (!isOpen) return null;
@@ -104,6 +168,15 @@ export default function CreateListModal({
 			<div className={styles.modal} onClick={(e) => e.stopPropagation()}>
 				<div className={styles.header}>
 					<h2 className={styles.title}>Create New List</h2>
+					{hasDraft && (
+						<button
+							type="button"
+							className={styles.discardDraft}
+							onClick={handleDiscardDraft}
+						>
+							Discard Draft
+						</button>
+					)}
 					<button className={styles.closeButton} onClick={handleClose}>
 						<X size={20} />
 					</button>

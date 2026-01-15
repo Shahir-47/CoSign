@@ -64,6 +64,26 @@
 	color: var(--text-primary);
 }
 
+.discardDraft {
+	background: transparent;
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-sm);
+	padding: 6px 12px;
+	color: var(--text-muted);
+	font-size: 0.75rem;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	flex-shrink: 0;
+	margin-left: auto;
+	margin-right: 8px;
+}
+
+.discardDraft:hover {
+	background: rgba(239, 68, 68, 0.1);
+	border-color: var(--accent-danger);
+	color: var(--accent-danger);
+}
+
 .content {
 	padding: 24px;
 	overflow-y: auto;

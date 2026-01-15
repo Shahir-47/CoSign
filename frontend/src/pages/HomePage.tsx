@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
@@ -19,6 +19,13 @@ import type {
 	TaskUpdatedPayload,
 	NewTaskAssignedPayload,
 } from "../context/websocket.types";
+import {
+	parseURLState,
+	updateURLState,
+	pushModal,
+	popModal,
+	type ModalType,
+} from "../utils/persistence";
 import styles from "./HomePage.module.css";
 
 type TabType = "my-tasks" | "verification-requests" | "supervising";
@@ -33,19 +40,41 @@ const defaultFilters: TaskFilters = {
 	deadlineTo: undefined,
 };
 
+// Helper to get task ID from modal type like "proof-123"
+function getTaskIdFromModal(stack: ModalType[], prefix: string): number | null {
+	const modal = stack.find((m) => m.startsWith(`${prefix}-`));
+	if (!modal) return null;
+	const id = parseInt(modal.split("-")[1], 10);
+	return isNaN(id) ? null : id;
+}
+
 export default function HomePage() {
 	const navigate = useNavigate();
-	const [activeTab, setActiveTab] = useState<TabType>("my-tasks");
+	const initializedRef = useRef(false);
+
+	// Parse URL state on initial mount
+	const initialState = useMemo(() => {
+		if (initializedRef.current) return null;
+		return parseURLState();
+	}, []);
+
+	const [activeTab, setActiveTab] = useState<TabType>(
+		initialState?.tab || "my-tasks"
+	);
 	const [tasks, setTasks] = useState<Task[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | undefined>();
-	const [isModalOpen, setIsModalOpen] = useState(false);
-	const [isListModalOpen, setIsListModalOpen] = useState(false);
-	const [selectedListId, setSelectedListId] = useState<number | null>(null);
+
+	// Modal stack state - tracks which modals are open and in what order
+	const [modalStack, setModalStack] = useState<ModalType[]>(
+		initialState?.modalStack || []
+	);
+
+	const [selectedListId, setSelectedListId] = useState<number | null>(
+		initialState?.list ?? null
+	);
 	const [refreshListsKey, setRefreshListsKey] = useState(0);
 	const [filters, setFilters] = useState<TaskFilters>(defaultFilters);
-	const [reassignTask, setReassignTask] = useState<Task | null>(null);
-	const [isVerifiersModalOpen, setIsVerifiersModalOpen] = useState(false);
 	const [refreshVerifiersKey, setRefreshVerifiersKey] = useState(0);
 	const [newlyCreatedListId, setNewlyCreatedListId] = useState<number | null>(
 		null
@@ -56,10 +85,37 @@ export default function HomePage() {
 	const [removedVerifierEmail, setRemovedVerifierEmail] = useState<
 		string | null
 	>(null);
+
+	// Task objects for task-specific modals (resolved from IDs after fetch)
 	const [submitProofTask, setSubmitProofTask] = useState<Task | null>(null);
 	const [reviewProofTask, setReviewProofTask] = useState<Task | null>(null);
+	const [reassignTask, setReassignTask] = useState<Task | null>(null);
 
 	const { subscribe } = useWebSocket();
+
+	// Derived modal states from stack
+	const isModalOpen = modalStack.includes("create-task");
+	const isListModalOpen = modalStack.includes("create-list");
+	const isVerifiersModalOpen = modalStack.includes("verifiers");
+
+	// Mark as initialized after first render
+	useEffect(() => {
+		initializedRef.current = true;
+	}, []);
+
+	// Sync URL when tab changes
+	useEffect(() => {
+		if (initializedRef.current) {
+			updateURLState({ tab: activeTab }, true);
+		}
+	}, [activeTab]);
+
+	// Sync URL when list changes
+	useEffect(() => {
+		if (initializedRef.current) {
+			updateURLState({ list: selectedListId }, true);
+		}
+	}, [selectedListId]);
 
 	// Check if user is authenticated
 	useEffect(() => {
@@ -90,6 +146,24 @@ export default function HomePage() {
 			}
 			const data = await api.get<Task[]>(endpoint);
 			setTasks(data);
+
+			// Resolve task IDs from modal stack to actual task objects
+			const proofTaskId = getTaskIdFromModal(modalStack, "proof");
+			const reviewTaskId = getTaskIdFromModal(modalStack, "review");
+			const reassignTaskId = getTaskIdFromModal(modalStack, "reassign");
+
+			if (proofTaskId) {
+				const task = data.find((t) => t.id === proofTaskId);
+				if (task) setSubmitProofTask(task);
+			}
+			if (reviewTaskId) {
+				const task = data.find((t) => t.id === reviewTaskId);
+				if (task) setReviewProofTask(task);
+			}
+			if (reassignTaskId) {
+				const task = data.find((t) => t.id === reassignTaskId);
+				if (task) setReassignTask(task);
+			}
 		} catch (err) {
 			if (err instanceof Error && err.message.includes("401")) {
 				// Token expired, redirect to login
@@ -102,6 +176,7 @@ export default function HomePage() {
 		} finally {
 			setIsLoading(false);
 		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [activeTab, selectedListId, navigate]);
 
 	useEffect(() => {
@@ -162,8 +237,90 @@ export default function HomePage() {
 		setActiveTab(tab);
 	};
 
+	// Modal stack management helpers
+	const openModal = useCallback((modal: ModalType) => {
+		setModalStack((prev) => {
+			if (prev.includes(modal)) return prev;
+			return [...prev, modal];
+		});
+		pushModal(modal);
+	}, []);
+
+	const closeModal = useCallback((modal: ModalType) => {
+		setModalStack((prev) => prev.filter((m) => m !== modal));
+		popModal();
+
+		// Clear associated state
+		if (modal === "create-task") {
+			setNewlyCreatedListId(null);
+			setNewlyAddedVerifierEmail(null);
+			setRemovedVerifierEmail(null);
+		} else if (modal.startsWith("proof-")) {
+			setSubmitProofTask(null);
+		} else if (modal.startsWith("review-")) {
+			setReviewProofTask(null);
+		} else if (modal.startsWith("reassign-")) {
+			setReassignTask(null);
+			setNewlyAddedVerifierEmail(null);
+			setRemovedVerifierEmail(null);
+		}
+	}, []);
+
 	const handleCreateTask = () => {
-		setIsModalOpen(true);
+		openModal("create-task");
+	};
+
+	const handleCloseCreateTask = () => {
+		closeModal("create-task");
+	};
+
+	const handleOpenCreateList = () => {
+		openModal("create-list");
+	};
+
+	const handleCloseCreateList = () => {
+		closeModal("create-list");
+	};
+
+	const handleOpenVerifiers = () => {
+		openModal("verifiers");
+	};
+
+	const handleCloseVerifiers = () => {
+		closeModal("verifiers");
+	};
+
+	const handleOpenSubmitProof = (task: Task) => {
+		setSubmitProofTask(task);
+		openModal(`proof-${task.id}` as ModalType);
+	};
+
+	const handleCloseSubmitProof = () => {
+		if (submitProofTask) {
+			closeModal(`proof-${submitProofTask.id}` as ModalType);
+		}
+	};
+
+	const handleOpenReviewProof = (task: Task) => {
+		setReviewProofTask(task);
+		openModal(`review-${task.id}` as ModalType);
+	};
+
+	const handleCloseReviewProof = () => {
+		if (reviewProofTask) {
+			closeModal(`review-${reviewProofTask.id}` as ModalType);
+		}
+	};
+
+	const handleOpenReassign = (task: Task) => {
+		setReassignTask(task);
+		openModal(`reassign-${task.id}` as ModalType);
+	};
+
+	const handleCloseReassign = () => {
+		if (reassignTask) {
+			closeModal(`reassign-${reassignTask.id}` as ModalType);
+		}
 	};
 
 	const handleTaskCreated = () => {
@@ -272,9 +429,9 @@ export default function HomePage() {
 			onCreateTask={handleCreateTask}
 			selectedListId={selectedListId}
 			onSelectList={handleSelectList}
-			onCreateList={() => setIsListModalOpen(true)}
+			onCreateList={handleOpenCreateList}
 			refreshListsKey={refreshListsKey}
-			onOpenVerifiersModal={() => setIsVerifiersModalOpen(true)}
+			onOpenVerifiersModal={handleOpenVerifiers}
 		>
 			{activeTab === "supervising" ? (
 				<SupervisingTab />
@@ -342,25 +499,20 @@ export default function HomePage() {
 						isLoading={isLoading}
 						error={error}
 						searchTerm={filters.search}
-						onReassignTask={(task) => setReassignTask(task)}
-						onSubmitProof={(task) => setSubmitProofTask(task)}
-						onReviewProof={(task) => setReviewProofTask(task)}
+						onReassignTask={handleOpenReassign}
+						onSubmitProof={handleOpenSubmitProof}
+						onReviewProof={handleOpenReviewProof}
 					/>
 				</div>
 			)}
 
 			<CreateTaskModal
 				isOpen={isModalOpen}
-				onClose={() => {
-					setIsModalOpen(false);
-					setNewlyCreatedListId(null);
-					setNewlyAddedVerifierEmail(null);
-					setRemovedVerifierEmail(null);
-				}}
+				onClose={handleCloseCreateTask}
 				onSuccess={handleTaskCreated}
 				selectedListId={selectedListId}
-				onOpenVerifiersModal={() => setIsVerifiersModalOpen(true)}
-				onOpenCreateListModal={() => setIsListModalOpen(true)}
+				onOpenVerifiersModal={handleOpenVerifiers}
+				onOpenCreateListModal={handleOpenCreateList}
 				refreshVerifiersKey={refreshVerifiersKey}
 				newlyCreatedListId={newlyCreatedListId}
 				refreshListsKey={refreshListsKey}
@@ -370,23 +522,19 @@ export default function HomePage() {
 
 			<CreateListModal
 				isOpen={isListModalOpen}
-				onClose={() => setIsListModalOpen(false)}
+				onClose={handleCloseCreateList}
 				onSuccess={handleListCreated}
 			/>
 
 			<ReassignVerifierModal
 				task={reassignTask}
 				isOpen={reassignTask !== null}
-				onClose={() => {
-					setReassignTask(null);
-					setNewlyAddedVerifierEmail(null);
-					setRemovedVerifierEmail(null);
-				}}
+				onClose={handleCloseReassign}
 				onSuccess={() => {
-					setReassignTask(null);
+					handleCloseReassign();
 					fetchTasks();
 				}}
-				onOpenVerifiersModal={() => setIsVerifiersModalOpen(true)}
+				onOpenVerifiersModal={handleOpenVerifiers}
 				refreshVerifiersKey={refreshVerifiersKey}
 				newlyAddedVerifierEmail={newlyAddedVerifierEmail}
 				removedVerifierEmail={removedVerifierEmail}
@@ -394,7 +542,7 @@ export default function HomePage() {
 
 			<VerifiersModal
 				isOpen={isVerifiersModalOpen}
-				onClose={() => setIsVerifiersModalOpen(false)}
+				onClose={handleCloseVerifiers}
 				onVerifierAdded={(verifier) => {
 					setRefreshVerifiersKey((k) => k + 1);
 					setNewlyAddedVerifierEmail(verifier.email);
@@ -411,9 +559,9 @@ export default function HomePage() {
 			<SubmitProofModal
 				task={submitProofTask}
 				isOpen={submitProofTask !== null}
-				onClose={() => setSubmitProofTask(null)}
+				onClose={handleCloseSubmitProof}
 				onSuccess={() => {
-					setSubmitProofTask(null);
+					handleCloseSubmitProof();
 					fetchTasks();
 				}}
 			/>
@@ -421,9 +569,9 @@ export default function HomePage() {
 			<ReviewProofModal
 				task={reviewProofTask}
 				isOpen={reviewProofTask !== null}
-				onClose={() => setReviewProofTask(null)}
+				onClose={handleCloseReviewProof}
 				onSuccess={() => {
-					setReviewProofTask(null);
+					handleCloseReviewProof();
 					fetchTasks();
 				}}
 			/>

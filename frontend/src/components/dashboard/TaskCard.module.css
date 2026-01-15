@@ -117,6 +117,10 @@
 	color: var(--accent-danger);
 }
 
+.deadline.completed {
+	color: #10b981;
+}
+
 .tags {
 	display: flex;
 	flex-wrap: wrap;

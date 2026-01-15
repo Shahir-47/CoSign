@@ -159,17 +159,22 @@ export default function TaskCard({
 	const [, setTick] = useState(0);
 	const { isUserOnline } = useWebSocket();
 
-	// Update every second for live countdown
+	const status = statusConfig[task.status];
+	const StatusIcon = status.icon;
+	const deadline = formatDeadline(task.deadline);
+
+	// For completed tasks, don't run the countdown timer
+	const isCompleted = task.status === "COMPLETED";
+
+	// Update every second for live countdown (only for non-completed tasks)
 	useEffect(() => {
+		if (isCompleted) return; // Don't run timer for completed tasks
+
 		const interval = setInterval(() => {
 			setTick((t) => t + 1);
 		}, 1000);
 		return () => clearInterval(interval);
-	}, []);
-
-	const status = statusConfig[task.status];
-	const StatusIcon = status.icon;
-	const deadline = formatDeadline(task.deadline);
+	}, [isCompleted]);
 
 	// Get the other person (verifier for my-tasks, creator for verification-requests)
 	const otherPerson = viewMode === "my-tasks" ? task.verifier : task.creator;
@@ -209,14 +214,29 @@ export default function TaskCard({
 			)}
 
 			<div className={styles.meta}>
-				<div
-					className={`${styles.deadline} ${
-						deadline.isUrgent ? styles.urgent : ""
-					} ${deadline.isPast ? styles.overdue : ""}`}
-				>
-					<Clock size={14} />
-					<span>{deadline.text}</span>
-				</div>
+				{isCompleted && task.completedAt ? (
+					<div className={`${styles.deadline} ${styles.completed}`}>
+						<CheckCircle2 size={14} />
+						<span>
+							Completed{" "}
+							{formatDeadlineDisplay(task.completedAt, {
+								month: "short",
+								day: "numeric",
+								hour: "numeric",
+								minute: "2-digit",
+							})}
+						</span>
+					</div>
+				) : (
+					<div
+						className={`${styles.deadline} ${
+							deadline.isUrgent ? styles.urgent : ""
+						} ${deadline.isPast ? styles.overdue : ""}`}
+					>
+						<Clock size={14} />
+						<span>{deadline.text}</span>
+					</div>
+				)}
 
 				{task.location && (
 					<div className={styles.location}>

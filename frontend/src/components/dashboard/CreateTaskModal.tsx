@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { FormEvent } from "react";
 import {
 	X,
@@ -33,6 +33,11 @@ import {
 	formatForBackend,
 } from "../../utils/timezone";
 import { useWebSocket } from "../../context/useWebSocket";
+import {
+	saveTaskDraft,
+	loadTaskDraft,
+	clearTaskDraft,
+} from "../../utils/persistence";
 import styles from "./CreateTaskModal.module.css";
 
 interface CreateTaskModalProps {
@@ -76,18 +81,27 @@ export default function CreateTaskModal({
 	removedVerifierEmail,
 }: CreateTaskModalProps) {
 	const { isUserOnline } = useWebSocket();
+	const draftLoadedRef = useRef(false);
+	const saveDraftTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+		null
+	);
 
-	const [formData, setFormData] = useState<TaskRequest>({
-		title: "",
-		description: "",
-		deadline: "",
-		verifierEmail: "",
-		tags: "",
-		listId: selectedListId ?? undefined,
-		priority: "MEDIUM",
-		location: "",
-		starred: false,
-	});
+	const getInitialFormData = useCallback(
+		(): TaskRequest => ({
+			title: "",
+			description: "",
+			deadline: "",
+			verifierEmail: "",
+			tags: "",
+			listId: selectedListId ?? undefined,
+			priority: "MEDIUM",
+			location: "",
+			starred: false,
+		}),
+		[selectedListId]
+	);
+
+	const [formData, setFormData] = useState<TaskRequest>(getInitialFormData);
 
 	const [errors, setErrors] = useState<FormErrors>({});
 	const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -97,6 +111,79 @@ export default function CreateTaskModal({
 	const [savedVerifiers, setSavedVerifiers] = useState<Verifier[]>([]);
 	const [showVerifierDropdown, setShowVerifierDropdown] = useState(false);
 	const [showListDropdown, setShowListDropdown] = useState(false);
+	const [hasDraft, setHasDraft] = useState(false);
+
+	// Load draft when modal opens
+	useEffect(() => {
+		if (isOpen && !draftLoadedRef.current) {
+			const draft = loadTaskDraft();
+			if (draft) {
+				setFormData({
+					title: draft.title,
+					description: draft.description,
+					deadline: draft.deadline,
+					verifierEmail: draft.verifierEmail,
+					tags: draft.tags,
+					listId: draft.listId,
+					priority: draft.priority as TaskPriority,
+					location: draft.location,
+					starred: draft.starred,
+				});
+				setHasDraft(true);
+				toast.info("📝 Draft restored", { icon: false, autoClose: 2000 });
+			}
+			draftLoadedRef.current = true;
+		}
+		if (!isOpen) {
+			draftLoadedRef.current = false;
+		}
+	}, [isOpen]);
+
+	// Auto-save draft on form changes (debounced)
+	useEffect(() => {
+		if (!isOpen) return;
+
+		// Only save if there's meaningful content
+		const hasContent =
+			formData.title.trim() ||
+			formData.description?.trim() ||
+			formData.tags?.trim();
+		if (!hasContent) return;
+
+		if (saveDraftTimeoutRef.current) {
+			clearTimeout(saveDraftTimeoutRef.current);
+		}
+
+		saveDraftTimeoutRef.current = setTimeout(() => {
+			saveTaskDraft({
+				title: formData.title,
+				description: formData.description || "",
+				deadline: formData.deadline,
+				verifierEmail: formData.verifierEmail,
+				tags: formData.tags || "",
+				listId: formData.listId,
+				priority: formData.priority || "MEDIUM",
+				location: formData.location || "",
+				starred: formData.starred ?? false,
+			});
+		}, 1000); // Save after 1s of inactivity
+
+		return () => {
+			if (saveDraftTimeoutRef.current) {
+				clearTimeout(saveDraftTimeoutRef.current);
+			}
+		};
+	}, [isOpen, formData]);
+
+	// Function to clear draft and reset form
+	const clearDraftAndReset = useCallback(() => {
+		clearTaskDraft();
+		setHasDraft(false);
+		setFormData(getInitialFormData());
+		setErrors({});
+		setTouched({});
+		setServerError(undefined);
+	}, [getInitialFormData]);
 
 	useEffect(() => {
 		if (isOpen) {
@@ -245,6 +332,8 @@ export default function CreateTaskModal({
 
 			await api.post("/tasks", payload);
 			toast.success("Task created successfully!");
+			clearTaskDraft(); // Clear draft on success
+			setHasDraft(false);
 			onSuccess();
 			handleClose();
 		} catch (err) {
@@ -257,23 +346,19 @@ export default function CreateTaskModal({
 	};
 
 	const handleClose = () => {
-		setFormData({
-			title: "",
-			description: "",
-			deadline: "",
-			verifierEmail: "",
-			tags: "",
-			listId: selectedListId ?? undefined,
-			priority: "MEDIUM",
-			location: "",
-			starred: false,
-		});
+		// Note: We intentionally keep the draft on close so user can continue later
+		setFormData(getInitialFormData());
 		setErrors({});
 		setTouched({});
 		setServerError(undefined);
 		setShowVerifierDropdown(false);
 		setShowListDropdown(false);
 		onClose();
+	};
+
+	const handleDiscardDraft = () => {
+		clearDraftAndReset();
+		toast.info("Draft discarded", { icon: false, autoClose: 2000 });
 	};
 
 	const selectVerifier = (verifier: Verifier) => {
@@ -293,6 +378,15 @@ export default function CreateTaskModal({
 				<div className={styles.header}>
 					<h2>Create New Task</h2>
 					<p>Set up a new accountability contract with a trusted verifier.</p>
+					{hasDraft && (
+						<button
+							type="button"
+							className={styles.discardDraft}
+							onClick={handleDiscardDraft}
+						>
+							Discard Draft
+						</button>
+					)}
 					<button className={styles.closeButton} onClick={handleClose}>
 						<X size={20} />
 					</button>
