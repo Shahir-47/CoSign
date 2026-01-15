@@ -15,6 +15,7 @@ import com.cosign.backend.model.ProofAttachment;
 import java.time.LocalDateTime;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -26,17 +27,20 @@ public class TaskService {
     private final UserRepository userRepository;
     private final TaskListService taskListService;
     private final S3Service s3Service;
+    private final SocketService socketService;
 
-    public TaskService(TaskRepository taskRepository, 
+    public TaskService(TaskRepository taskRepository,
                        TaskListRepository taskListRepository,
                        UserRepository userRepository,
                        TaskListService taskListService,
-                       S3Service s3Service) {
+                       S3Service s3Service,
+                       SocketService socketService) {
         this.taskRepository = taskRepository;
         this.taskListRepository = taskListRepository;
         this.userRepository = userRepository;
         this.taskListService = taskListService;
         this.s3Service = s3Service;
+        this.socketService = socketService;
     }
 
     @Transactional
@@ -140,7 +144,16 @@ public class TaskService {
             task.setStatus(TaskStatus.PENDING_PROOF);
         }
 
-        return taskRepository.save(task);
+        Task savedTask = taskRepository.save(task);
+
+        // Notify new verifier
+        socketService.sendToUser(savedTask.getVerifier().getId(), "NEW_TASK_ASSIGNED", Map.of(
+                "taskId", savedTask.getId(),
+                "title", savedTask.getTitle(),
+                "creatorName", savedTask.getCreator().getFullName()
+        ));
+
+        return savedTask;
     }
 
     // Submit Proof
@@ -177,7 +190,17 @@ public class TaskService {
         }
 
         task.setStatus(TaskStatus.PENDING_VERIFICATION);
-        return taskRepository.save(task);
+        Task savedTask = taskRepository.save(task);
+
+        // notify verifier
+        socketService.sendToUser(savedTask.getVerifier().getId(), "TASK_UPDATED", Map.of(
+                "taskId", savedTask.getId(),
+                "status", "PENDING_VERIFICATION",
+                "message", "Proof submitted for: " + savedTask.getTitle(),
+                "updatedBy", savedTask.getCreator().getFullName()
+        ));
+
+        return savedTask;
     }
 
     // Review Proof
@@ -210,7 +233,22 @@ public class TaskService {
             task.setDenialReason(request.getComment());
         }
 
-        return taskRepository.save(task);
+        Task savedTask = taskRepository.save(task);
+
+        // Notify Creator
+        String message = request.getApproved()
+                ? "Task Verified: " + savedTask.getTitle()
+                : "Proof Rejected: " + savedTask.getTitle();
+
+        socketService.sendToUser(savedTask.getCreator().getId(), "TASK_UPDATED", Map.of(
+                "taskId", savedTask.getId(),
+                "status", savedTask.getStatus().toString(),
+                "message", message,
+                "approved", request.getApproved(),
+                "denialReason", savedTask.getDenialReason() != null ? savedTask.getDenialReason() : ""
+        ));
+
+        return savedTask;
     }
 
     // Get Task Details
