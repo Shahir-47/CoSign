@@ -5,6 +5,7 @@ import com.cosign.backend.model.*;
 import com.cosign.backend.repository.TaskListRepository;
 import com.cosign.backend.repository.TaskRepository;
 import com.cosign.backend.repository.UserRepository;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +14,8 @@ import com.cosign.backend.dto.ReviewTaskRequest;
 import com.cosign.backend.dto.TaskDetailResponse;
 import com.cosign.backend.model.ProofAttachment;
 import java.time.LocalDateTime;
+import com.cosign.backend.util.RecurrenceUtil;
+import org.hibernate.Hibernate;
 
 import java.util.List;
 import java.util.Map;
@@ -239,6 +242,76 @@ public class TaskService {
         return savedTask;
     }
 
+    @Transactional
+    public Task updateTask(Long taskId, TaskRequest request) {
+        User user = getCurrentUser();
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+
+        if (!task.getCreator().getId().equals(user.getId())) {
+            throw new RuntimeException("Not authorized to update this task");
+        }
+
+        // Only allow edits if active
+        if (task.getStatus() == TaskStatus.COMPLETED || task.getStatus() == TaskStatus.MISSED) {
+            throw new RuntimeException("Cannot edit a completed or missed task.");
+        }
+
+        task.setTitle(request.getTitle());
+        task.setDescription(request.getDescription());
+        task.setDeadline(request.getDeadline());
+        task.setPriority(request.getPriority());
+        task.setTags(request.getTags());
+
+
+        // Save the new RRULE string
+        task.setRepeatPattern(request.getRepeatPattern());
+
+        return taskRepository.save(task);
+    }
+
+    private void handleRecurrence(Task finishedTask) {
+        String rrule = finishedTask.getRepeatPattern();
+
+        // If no pattern, stop.
+        if (rrule == null || rrule.isEmpty()) return;
+
+        // Calculate next date
+        LocalDateTime nextDeadline = RecurrenceUtil.getNextOccurrence(rrule, finishedTask.getDeadline());
+
+        // If null, the schedule is over
+        if (nextDeadline == null) return;
+
+        // Create the Next Instance
+        Task nextTask = new Task();
+        nextTask.setTitle(finishedTask.getTitle());
+        nextTask.setDescription(finishedTask.getDescription());
+        nextTask.setDeadline(nextDeadline);
+        nextTask.setPriority(finishedTask.getPriority());
+        nextTask.setLocation(finishedTask.getLocation());
+        nextTask.setTags(finishedTask.getTags());
+        nextTask.setStarred(finishedTask.isStarred());
+
+        // Copy the rule so the chain continues indefinitely or until end date
+        nextTask.setRepeatPattern(rrule);
+
+        nextTask.setCreator(finishedTask.getCreator());
+        nextTask.setVerifier(finishedTask.getVerifier());
+        nextTask.setList(finishedTask.getList());
+
+        nextTask.setStatus(TaskStatus.PENDING_PROOF);
+
+        Task savedTask = taskRepository.save(nextTask);
+
+        // Notify User
+        socketService.sendToUser(savedTask.getCreator().getId(), "NEW_TASK_ASSIGNED", Map.of(
+                "taskId", savedTask.getId(),
+                "title", savedTask.getTitle(),
+                "message", "Recurring task created: " + savedTask.getTitle(),
+                "deadline", savedTask.getDeadline().toString()
+        ));
+    }
+
     // Submit Proof
     @Transactional
     public Task submitProof(Long taskId, ProofSubmissionRequest request) {
@@ -318,6 +391,7 @@ public class TaskService {
             task.setCompletedAt(now);
             task.setApprovalComment(request.getComment());
             task.setDenialReason(null); // Clear previous denials
+            handleRecurrence(task);
         } else {
             // DENY
             if (request.getComment() == null || request.getComment().trim().isEmpty()) {
@@ -428,10 +502,37 @@ public class TaskService {
         Task savedTask = taskRepository.save(task);
         
         // Force initialize lazy-loaded associations for JSON serialization
-        savedTask.getList().getName();
-        savedTask.getCreator().getEmail();
-        savedTask.getVerifier().getEmail();
+        Hibernate.initialize(savedTask.getList());
+        Hibernate.initialize(savedTask.getCreator());
+        Hibernate.initialize(savedTask.getVerifier());
         
         return savedTask;
+    }
+
+    @Scheduled(fixedRate = 60000) // Runs every minute
+    @Transactional
+    public void processMissedTasks() {
+        LocalDateTime now = LocalDateTime.now();
+
+        // Find active tasks past deadline
+        List<Task> overdueTasks = taskRepository.findOverdueTasks(now,
+                List.of(TaskStatus.PENDING_PROOF, TaskStatus.PENDING_VERIFICATION));
+
+        for (Task task : overdueTasks) {
+            // Mark as Missed
+            task.setStatus(TaskStatus.MISSED);
+
+            // Trigger Penalty Notification
+            socketService.sendToUser(task.getCreator().getId(), "TASK_MISSED", Map.of(
+                    "taskId", task.getId(),
+                    "title", task.getTitle(),
+                    "message", "Deadline missed! Penalty applied."
+            ));
+
+            // GENERATE NEXT TASK
+            handleRecurrence(task);
+
+            taskRepository.save(task);
+        }
     }
 }

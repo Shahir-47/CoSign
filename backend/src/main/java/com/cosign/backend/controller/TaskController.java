@@ -78,4 +78,10 @@ public class TaskController {
         Long listId = body.get("listId"); // null means move to default list
         return ResponseEntity.ok(taskService.moveTaskToList(taskId, listId));
     }
+
+    @PutMapping("/{taskId}")
+    public ResponseEntity<Task> updateTask(@PathVariable Long taskId,
+                                           @RequestBody @Valid TaskRequest request) {
+        return ResponseEntity.ok(taskService.updateTask(taskId, request));
+    }
 }

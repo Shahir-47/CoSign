@@ -40,6 +40,9 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
             @Param("status") TaskStatus status
     );
 
+    @Query("SELECT t FROM Task t WHERE t.deadline < :now AND t.status IN :statuses")
+    List<Task> findOverdueTasks(@Param("now") LocalDateTime now, @Param("statuses") List<TaskStatus> statuses);
+
     // Count all tasks by verifier and creator
     int countByVerifierAndCreator(User verifier, User creator);
 }
