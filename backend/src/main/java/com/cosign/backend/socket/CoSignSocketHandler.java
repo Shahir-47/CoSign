@@ -3,10 +3,17 @@ package com.cosign.backend.socket;
 import com.cosign.backend.model.User;
 import com.cosign.backend.repository.UserRepository;
 import com.cosign.backend.service.SocketService;
+import com.cosign.backend.service.TaskService;
 import com.cosign.backend.util.JwtUtils;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jspecify.annotations.NonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -18,14 +25,20 @@ import java.util.Optional;
 @Component
 public class CoSignSocketHandler extends TextWebSocketHandler {
 
+    private static final Logger logger = LoggerFactory.getLogger(CoSignSocketHandler.class);
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
     private final SocketService socketService;
     private final JwtUtils jwtUtils;
     private final UserRepository userRepository;
+    private final TaskService taskService;
 
-    public CoSignSocketHandler(SocketService socketService, JwtUtils jwtUtils, UserRepository userRepository) {
+    public CoSignSocketHandler(SocketService socketService, JwtUtils jwtUtils, 
+                               UserRepository userRepository, @Lazy TaskService taskService) {
         this.socketService = socketService;
         this.jwtUtils = jwtUtils;
         this.userRepository = userRepository;
+        this.taskService = taskService;
     }
 
     @Override
@@ -41,8 +54,9 @@ public class CoSignSocketHandler extends TextWebSocketHandler {
             if (userOpt.isPresent()) {
                 Long userId = userOpt.get().getId();
 
-                // Store userId in session attributes for easy access on close
+                // Store userId and email in session attributes for easy access
                 session.getAttributes().put("userId", userId);
+                session.getAttributes().put("userEmail", email);
 
                 socketService.addSession(userId, session);
                 return;
@@ -51,6 +65,31 @@ public class CoSignSocketHandler extends TextWebSocketHandler {
 
         // Close if unauthorized
         session.close(CloseStatus.POLICY_VIOLATION);
+    }
+
+    @Override
+    protected void handleTextMessage(@NonNull WebSocketSession session, @NonNull TextMessage message) {
+        try {
+            String userEmail = (String) session.getAttributes().get("userEmail");
+            if (userEmail == null) {
+                logger.warn("Received message from unauthenticated session");
+                return;
+            }
+
+            JsonNode json = objectMapper.readTree(message.getPayload());
+            String type = json.has("type") ? json.get("type").asText() : null;
+
+            if ("TRIGGER_DEADLINE_CHECK".equals(type)) {
+                Long taskId = json.has("taskId") ? json.get("taskId").asLong() : null;
+                if (taskId != null) {
+                    logger.info("Deadline check triggered for task {} by user {}", taskId, userEmail);
+                    taskService.triggerDeadlineCheck(taskId, userEmail);
+                }
+            }
+            // Add more message types here as needed
+        } catch (Exception e) {
+            logger.error("Error handling WebSocket message: {}", e.getMessage());
+        }
     }
 
     @Override

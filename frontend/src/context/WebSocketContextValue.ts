@@ -8,6 +8,7 @@ export interface WebSocketContextValue {
 	isUserOnline: (userId: number) => boolean;
 	connect: () => void;
 	disconnect: () => void;
+	send: (type: string, payload: Record<string, unknown>) => void;
 }
 
 export const WebSocketContext = createContext<WebSocketContextValue | null>(

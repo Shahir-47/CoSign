@@ -70,6 +70,15 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 		setOnlineUsers(new Set());
 	}, []);
 
+	// Send message to server
+	const send = useCallback((type: string, payload: Record<string, unknown>) => {
+		if (wsRef.current?.readyState === WebSocket.OPEN) {
+			wsRef.current.send(JSON.stringify({ type, ...payload }));
+		} else {
+			console.warn("WebSocket not connected, cannot send message:", type);
+		}
+	}, []);
+
 	// Handle incoming messages
 	const handleMessage = useCallback((event: MessageEvent) => {
 		try {
@@ -221,6 +230,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 		isUserOnline,
 		connect,
 		disconnect,
+		send,
 	};
 
 	return (

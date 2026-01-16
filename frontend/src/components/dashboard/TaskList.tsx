@@ -3,6 +3,7 @@ import { ClipboardList, ChevronDown, Clock, CheckCircle2 } from "lucide-react";
 import type { Task } from "../../types";
 import TaskCard from "./TaskCard";
 import TaskDetailModal from "./TaskDetailModal";
+import { useWebSocket } from "../../context/useWebSocket";
 import styles from "./TaskList.module.css";
 
 interface TaskListProps {
@@ -60,6 +61,12 @@ export default function TaskList({
 	>(null);
 	const [internalShowOverdue, setInternalShowOverdue] = useState(false);
 	const [internalShowCompleted, setInternalShowCompleted] = useState(false);
+
+	// WebSocket for triggering deadline checks
+	const { send, isConnected } = useWebSocket();
+
+	// Track which tasks we've already triggered deadline checks for
+	const triggeredDeadlineChecks = useRef<Set<number>>(new Set());
 
 	// Use controlled values if provided, otherwise use internal state
 	const selectedTaskId =
@@ -155,6 +162,25 @@ export default function TaskList({
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [tasks, currentTime]);
+
+	// Trigger deadline check via WebSocket for newly overdue tasks (my-tasks only)
+	// This immediately processes the penalty instead of waiting for backend scheduler
+	useEffect(() => {
+		if (viewMode !== "my-tasks" || !isConnected) return;
+
+		overdueTasks.forEach((task) => {
+			// Only trigger for tasks that are still PENDING_PROOF or PENDING_VERIFICATION
+			// and haven't been triggered yet in this session
+			if (
+				(task.status === "PENDING_PROOF" ||
+					task.status === "PENDING_VERIFICATION") &&
+				!triggeredDeadlineChecks.current.has(task.id)
+			) {
+				triggeredDeadlineChecks.current.add(task.id);
+				send("TRIGGER_DEADLINE_CHECK", { taskId: task.id });
+			}
+		});
+	}, [overdueTasks, viewMode, isConnected, send]);
 
 	// Auto-expand overdue section when tasks first become overdue
 	const prevOverdueCountRef = useRef(overdueTasks.length);

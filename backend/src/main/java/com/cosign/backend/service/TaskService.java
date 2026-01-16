@@ -665,6 +665,108 @@ public class TaskService {
         return savedTask;
     }
 
+    /**
+     * Process a single task that has missed its deadline.
+     * Exposes the penalty, sends email/socket notifications.
+     * Returns true if the task was processed (newly missed), false if already processed.
+     */
+    @Transactional
+    public boolean processDeadlineMiss(Task task) {
+        // Already processed - skip
+        if (task.getStatus() == TaskStatus.MISSED || task.isPenaltyEmailSent()) {
+            return false;
+        }
+
+        // Verify the deadline has actually passed in user's timezone
+        String userTimezone = task.getCreator().getTimezone();
+        ZonedDateTime nowInUserTz = ZonedDateTime.now(ZoneId.of(userTimezone));
+        
+        if (!task.getDeadline().isBefore(nowInUserTz.toLocalDateTime())) {
+            return false; // Deadline hasn't passed yet
+        }
+
+        // Mark Missed
+        task.setStatus(TaskStatus.MISSED);
+        task.setPenaltyEmailSent(true); // Prevent duplicate emails
+
+        // EXPOSE PENALTY
+        Penalty penalty = task.getPenalty();
+        if (penalty != null && !penalty.isExposed()) {
+            penalty.setExposed(true);
+
+            // Decrypt for delivery
+            String decryptedSecret = encryptionService.decrypt(penalty.getEncryptedContent());
+
+            // Build attachments section for email
+            StringBuilder attachmentsHtml = new StringBuilder();
+            if (penalty.getAttachments() != null && !penalty.getAttachments().isEmpty()) {
+                attachmentsHtml.append("<h3>Penalty Attachments:</h3><ul>");
+                for (PenaltyAttachment att : penalty.getAttachments()) {
+                    String presignedUrl = s3Service.generatePresignedDownloadUrl(att.getS3Key());
+                    if (att.getMimeType().startsWith("image/")) {
+                        attachmentsHtml.append("<li><img src=\"").append(presignedUrl)
+                                .append("\" alt=\"").append(att.getOriginalFilename())
+                                .append("\" style=\"max-width:100%;height:auto;margin:10px 0;\"/></li>");
+                    } else {
+                        attachmentsHtml.append("<li><a href=\"").append(presignedUrl)
+                                .append("\">").append(att.getOriginalFilename()).append("</a></li>");
+                    }
+                }
+                attachmentsHtml.append("</ul>");
+            }
+
+            // Send Email to Verifier
+            String subject = "CoSign Penalty Triggered: " + task.getCreator().getFullName() + " failed a task";
+            String htmlBody = "<h1>Task Failed</h1>" +
+                    "<p>Your supervisee failed to complete: <b>" + task.getTitle() + "</b></p>" +
+                    "<hr/>" +
+                    "<h3>The Penalty (Confidential):</h3>" +
+                    "<div>" + decryptedSecret + "</div>" +
+                    attachmentsHtml.toString();
+
+            emailService.sendEmail(task.getVerifier().getEmail(), subject, htmlBody);
+
+            // Send Socket Notification to Verifier
+            socketService.sendToUser(task.getVerifier().getId(), "PENALTY_UNLOCKED", Map.of(
+                    "taskId", task.getId(),
+                    "creatorName", task.getCreator().getFullName(),
+                    "penaltyContent", decryptedSecret
+            ));
+        }
+
+        // Notify Creator
+        socketService.sendToUser(task.getCreator().getId(), "TASK_MISSED", Map.of(
+                "taskId", task.getId(),
+                "title", task.getTitle(),
+                "message", "Deadline missed! Your penalty has been sent to your verifier."
+        ));
+
+        // Handle Recurrence
+        handleRecurrence(task);
+
+        taskRepository.save(task);
+        return true;
+    }
+
+    /**
+     * Trigger deadline check for a specific task (called via socket when frontend detects deadline passed)
+     */
+    @Transactional
+    public void triggerDeadlineCheck(Long taskId, String userEmail) {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+        
+        // Verify user is the creator (only creator can trigger their own deadline check)
+        if (!task.getCreator().getId().equals(user.getId())) {
+            throw new RuntimeException("Not authorized to trigger deadline check for this task");
+        }
+
+        processDeadlineMiss(task);
+    }
+
 
     @Scheduled(fixedRate = 60000)
     @Transactional
@@ -673,71 +775,13 @@ public class TaskService {
                 List.of(TaskStatus.PENDING_PROOF, TaskStatus.PENDING_VERIFICATION));
 
         for (Task task : activeTasks) {
-            String userTimezone = task.getCreator().getTimezone();
-            ZonedDateTime nowInUserTz = ZonedDateTime.now(ZoneId.of(userTimezone));
-
-            if (task.getDeadline().isBefore(nowInUserTz.toLocalDateTime())) {
-
-                // Mark Missed
-                task.setStatus(TaskStatus.MISSED);
-
-                // EXPOSE PENALTY
-                Penalty penalty = task.getPenalty();
-                if (penalty != null && !penalty.isExposed()) {
-                    penalty.setExposed(true);
-
-                    // Decrypt for delivery
-                    String decryptedSecret = encryptionService.decrypt(penalty.getEncryptedContent());
-
-                    // Build attachments section for email
-                    StringBuilder attachmentsHtml = new StringBuilder();
-                    if (penalty.getAttachments() != null && !penalty.getAttachments().isEmpty()) {
-                        attachmentsHtml.append("<h3>Penalty Attachments:</h3><ul>");
-                        for (PenaltyAttachment att : penalty.getAttachments()) {
-                            String presignedUrl = s3Service.generatePresignedDownloadUrl(att.getS3Key());
-                            if (att.getMimeType().startsWith("image/")) {
-                                attachmentsHtml.append("<li><img src=\"").append(presignedUrl)
-                                        .append("\" alt=\"").append(att.getOriginalFilename())
-                                        .append("\" style=\"max-width:100%;height:auto;margin:10px 0;\"/></li>");
-                            } else {
-                                attachmentsHtml.append("<li><a href=\"").append(presignedUrl)
-                                        .append("\">").append(att.getOriginalFilename()).append("</a></li>");
-                            }
-                        }
-                        attachmentsHtml.append("</ul>");
-                    }
-
-                    // Send Email to Verifier
-                    String subject = "CoSign Penalty Triggered: " + task.getCreator().getFullName() + " failed a task";
-                    String htmlBody = "<h1>Task Failed</h1>" +
-                            "<p>Your supervisee failed to complete: <b>" + task.getTitle() + "</b></p>" +
-                            "<hr/>" +
-                            "<h3>The Penalty (Confidential):</h3>" +
-                            "<div>" + decryptedSecret + "</div>" + // Injects the rich text/images
-                            attachmentsHtml.toString();
-
-                    emailService.sendEmail(task.getVerifier().getEmail(), subject, htmlBody);
-
-                    // Send Socket Notification to Verifier
-                    socketService.sendToUser(task.getVerifier().getId(), "PENALTY_UNLOCKED", Map.of(
-                            "taskId", task.getId(),
-                            "creatorName", task.getCreator().getFullName(),
-                            "penaltyContent", decryptedSecret // Frontend renders this HTML
-                    ));
-                }
-
-                // Notify Creator
-                socketService.sendToUser(task.getCreator().getId(), "TASK_MISSED", Map.of(
-                        "taskId", task.getId(),
-                        "title", task.getTitle(),
-                        "message", "Deadline missed! Your penalty has been sent to your verifier."
-                ));
-
-                // Recurrence
-                handleRecurrence(task);
-
-                taskRepository.save(task);
+            // Skip if penalty email already sent (processed via socket)
+            if (task.isPenaltyEmailSent()) {
+                continue;
             }
+
+            // Use the shared method to process the deadline miss
+            processDeadlineMiss(task);
         }
     }
 }

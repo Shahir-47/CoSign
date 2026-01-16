@@ -84,6 +84,9 @@ public class Task {
 
     private LocalDateTime rejectedAt;
 
+    // Penalty tracking - prevents duplicate penalty emails
+    private boolean penaltyEmailSent = false;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
