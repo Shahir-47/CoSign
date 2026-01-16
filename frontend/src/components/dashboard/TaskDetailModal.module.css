@@ -623,3 +623,60 @@
 .listDropdownItem.selected svg {
 	color: var(--accent-primary);
 }
+
+/* Repeat Pattern Editing */
+.repeatEditWrapper {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	width: 100%;
+	margin-top: 4px;
+}
+
+.repeatDisplayRow {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.editRepeatButton {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 4px;
+	background: transparent;
+	border: none;
+	border-radius: var(--radius-sm);
+	color: var(--text-muted);
+	cursor: pointer;
+	transition: all 0.2s ease;
+	opacity: 0.6;
+}
+
+.editRepeatButton:hover {
+	background: var(--bg-tertiary);
+	color: var(--accent-primary);
+	opacity: 1;
+}
+
+.cancelEditButton {
+	padding: 6px 12px;
+	background: transparent;
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-sm);
+	color: var(--text-muted);
+	font-size: 0.8125rem;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	align-self: flex-start;
+}
+
+.cancelEditButton:hover {
+	border-color: var(--accent-danger);
+	color: var(--accent-danger);
+}
+
+.cancelEditButton:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}

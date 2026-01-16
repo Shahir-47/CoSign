@@ -38,10 +38,12 @@ import {
 	Loader2,
 	Paperclip,
 	ChevronDown,
+	Pencil,
 } from "lucide-react";
 import type { Task, TaskDetails, ProofAttachment, TaskList } from "../../types";
 import { api } from "../../utils/api";
 import ViewAttachmentModal from "../shared/ViewAttachmentModal";
+import RecurrenceSelector from "./RecurrenceSelector";
 import { getUserTimezone, getTimeUntilDeadline } from "../../utils/timezone";
 import { useWebSocket } from "../../context/useWebSocket";
 import OnlineStatusIndicator from "../shared/OnlineStatusIndicator";
@@ -147,6 +149,98 @@ const statusConfig: Record<
 	},
 };
 
+// Helper to format RRULE string for display
+function formatRRuleDisplay(rruleStr: string): string {
+	if (!rruleStr) return "Does not repeat";
+
+	try {
+		const cleanRule = rruleStr.toUpperCase().startsWith("RRULE:")
+			? rruleStr.substring(6)
+			: rruleStr;
+
+		const parts: Record<string, string> = {};
+		cleanRule.split(";").forEach((part) => {
+			const [key, value] = part.split("=");
+			if (key && value) parts[key] = value;
+		});
+
+		let result = "";
+		const freq = parts["FREQ"];
+		const interval = parseInt(parts["INTERVAL"] || "1");
+
+		// Frequency
+		if (interval === 1) {
+			switch (freq) {
+				case "DAILY":
+					result = "Daily";
+					break;
+				case "WEEKLY":
+					result = "Weekly";
+					break;
+				case "MONTHLY":
+					result = "Monthly";
+					break;
+				case "YEARLY":
+					result = "Yearly";
+					break;
+				default:
+					result = freq || "Custom";
+			}
+		} else {
+			switch (freq) {
+				case "DAILY":
+					result = `Every ${interval} days`;
+					break;
+				case "WEEKLY":
+					result = `Every ${interval} weeks`;
+					break;
+				case "MONTHLY":
+					result = `Every ${interval} months`;
+					break;
+				case "YEARLY":
+					result = `Every ${interval} years`;
+					break;
+				default:
+					result = `Every ${interval} ${freq?.toLowerCase() || "intervals"}`;
+			}
+		}
+
+		// Weekdays
+		if (parts["BYDAY"]) {
+			const dayMap: Record<string, string> = {
+				MO: "Mon",
+				TU: "Tue",
+				WE: "Wed",
+				TH: "Thu",
+				FR: "Fri",
+				SA: "Sat",
+				SU: "Sun",
+			};
+			const days = parts["BYDAY"].split(",").map((d) => dayMap[d] || d);
+			if (days.length > 0 && days.length < 7) {
+				result += ` on ${days.join(", ")}`;
+			}
+		}
+
+		// End condition
+		if (parts["UNTIL"]) {
+			const until = parts["UNTIL"];
+			// Parse UNTIL date (format: YYYYMMDDTHHmmssZ or YYYYMMDD)
+			const year = until.substring(0, 4);
+			const month = until.substring(4, 6);
+			const day = until.substring(6, 8);
+			const date = new Date(`${year}-${month}-${day}`);
+			result += `, until ${date.toLocaleDateString()}`;
+		} else if (parts["COUNT"]) {
+			result += `, ${parts["COUNT"]} times`;
+		}
+
+		return result;
+	} catch {
+		return rruleStr;
+	}
+}
+
 function formatDateTime(dateString: string): string {
 	const userTimezone = getUserTimezone();
 	const date = new Date(dateString);
@@ -251,6 +345,10 @@ export default function TaskDetailModal({
 	const [availableLists, setAvailableLists] = useState<TaskList[]>([]);
 	const [isMovingTask, setIsMovingTask] = useState(false);
 	const listDropdownRef = useRef<HTMLDivElement>(null);
+
+	// State for editing repeat pattern
+	const [isEditingRepeat, setIsEditingRepeat] = useState(false);
+	const [isSavingRepeat, setIsSavingRepeat] = useState(false);
 
 	// Track the last fetched task ID to avoid re-fetching
 	const lastFetchedTaskIdRef = useRef<number | null>(null);
@@ -405,6 +503,43 @@ export default function TaskDetailModal({
 			setIsMovingTask(false);
 		}
 	};
+
+	// Handle updating repeat pattern
+	const handleUpdateRepeatPattern = async (newPattern: string | undefined) => {
+		if (!task || isSavingRepeat) return;
+
+		setIsSavingRepeat(true);
+		try {
+			const updatedTask = await api.put<Task>(`/tasks/${task.id}`, {
+				title: task.title,
+				description: task.description,
+				deadline: task.deadline,
+				priority: task.priority,
+				tags: task.tags,
+				location: task.location,
+				repeatPattern: newPattern,
+				starred: task.starred,
+			});
+
+			// Update the task in the parent state
+			if (onTaskUpdated) {
+				onTaskUpdated(updatedTask);
+			}
+
+			setIsEditingRepeat(false);
+		} catch (error) {
+			console.error("Failed to update repeat pattern:", error);
+		} finally {
+			setIsSavingRepeat(false);
+		}
+	};
+
+	// Determine if task can be edited (not completed or missed)
+	const canEditTask =
+		task &&
+		viewMode === "my-tasks" &&
+		task.status !== "COMPLETED" &&
+		task.status !== "MISSED";
 
 	if (!isOpen || !task) return null;
 
@@ -786,8 +921,55 @@ export default function TaskDetailModal({
 							)
 						)}
 
-						{/* Repeat Pattern */}
-						{task.repeatPattern && (
+						{/* Repeat Pattern - with editing capability */}
+						{viewMode === "my-tasks" && (
+							<div className={styles.detailItem}>
+								<div className={styles.detailIcon}>
+									<Repeat size={18} />
+								</div>
+								<div className={styles.detailContent}>
+									<span className={styles.detailLabel}>Repeats</span>
+									{isEditingRepeat ? (
+										<div className={styles.repeatEditWrapper}>
+											<RecurrenceSelector
+												value={task.repeatPattern}
+												onChange={handleUpdateRepeatPattern}
+												disabled={isSavingRepeat}
+											/>
+											<button
+												type="button"
+												className={styles.cancelEditButton}
+												onClick={() => setIsEditingRepeat(false)}
+												disabled={isSavingRepeat}
+											>
+												Cancel
+											</button>
+										</div>
+									) : (
+										<div className={styles.repeatDisplayRow}>
+											<span className={styles.detailValue}>
+												{task.repeatPattern
+													? formatRRuleDisplay(task.repeatPattern)
+													: "Does not repeat"}
+											</span>
+											{canEditTask && (
+												<button
+													type="button"
+													className={styles.editRepeatButton}
+													onClick={() => setIsEditingRepeat(true)}
+													title="Edit repeat pattern"
+												>
+													<Pencil size={14} />
+												</button>
+											)}
+										</div>
+									)}
+								</div>
+							</div>
+						)}
+
+						{/* Show repeat pattern in verification view (read-only) */}
+						{viewMode === "verification-requests" && task.repeatPattern && (
 							<div className={styles.detailItem}>
 								<div className={styles.detailIcon}>
 									<Repeat size={18} />
@@ -795,8 +977,7 @@ export default function TaskDetailModal({
 								<div className={styles.detailContent}>
 									<span className={styles.detailLabel}>Repeats</span>
 									<span className={styles.detailValue}>
-										{task.repeatPattern.charAt(0) +
-											task.repeatPattern.slice(1).toLowerCase()}
+										{formatRRuleDisplay(task.repeatPattern)}
 									</span>
 								</div>
 							</div>

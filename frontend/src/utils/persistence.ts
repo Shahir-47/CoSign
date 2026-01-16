@@ -436,6 +436,7 @@ export interface TaskDraft {
 	listId?: number;
 	priority: string;
 	location: string;
+	repeatPattern?: string;
 	starred: boolean;
 	savedAt: number; // timestamp
 }

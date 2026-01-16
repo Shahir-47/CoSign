@@ -20,6 +20,7 @@ import Input from "../shared/Input";
 import Select from "../shared/Select";
 import Button from "../shared/Button";
 import OnlineStatusIndicator from "../shared/OnlineStatusIndicator";
+import RecurrenceSelector from "./RecurrenceSelector";
 import type {
 	TaskRequest,
 	TaskPriority,
@@ -111,6 +112,7 @@ export default function CreateTaskModal({
 			listId: selectedListId ?? undefined,
 			priority: "MEDIUM",
 			location: "",
+			repeatPattern: undefined,
 			starred: false,
 		}),
 		[selectedListId]
@@ -142,6 +144,7 @@ export default function CreateTaskModal({
 					listId: draft.listId,
 					priority: draft.priority as TaskPriority,
 					location: draft.location,
+					repeatPattern: draft.repeatPattern,
 					starred: draft.starred,
 				});
 				setHasDraft(true);
@@ -179,6 +182,7 @@ export default function CreateTaskModal({
 				listId: formData.listId,
 				priority: formData.priority || "MEDIUM",
 				location: formData.location || "",
+				repeatPattern: formData.repeatPattern,
 				starred: formData.starred ?? false,
 			});
 		}, 1000); // Save after 1s of inactivity
@@ -666,6 +670,16 @@ export default function CreateTaskModal({
 							disabled={isLoading}
 						/>
 						<div style={{ flex: 1 }} />
+					</div>
+
+					{/* Recurrence Pattern */}
+					<div className={styles.field}>
+						<label className={styles.label}>Repeat</label>
+						<RecurrenceSelector
+							value={formData.repeatPattern}
+							onChange={(rrule) => handleChange("repeatPattern", rrule)}
+							disabled={isLoading}
+						/>
 					</div>
 
 					<label className={styles.checkbox}>
