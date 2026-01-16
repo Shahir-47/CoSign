@@ -98,7 +98,11 @@ function parseRRule(rruleStr: string | undefined): {
 		if (options.until) {
 			endType = "date";
 			const d = new Date(options.until);
-			endDate = d.toISOString().split("T")[0];
+			// Use local date components to avoid timezone shifts
+			const year = d.getFullYear();
+			const month = String(d.getMonth() + 1).padStart(2, "0");
+			const day = String(d.getDate()).padStart(2, "0");
+			endDate = `${year}-${month}-${day}`;
 		} else if (options.count) {
 			endType = "count";
 			count = options.count;
@@ -312,9 +316,10 @@ export default function RecurrenceSelector({
 
 		// Handle end condition
 		if (endType === "date" && endDate) {
-			// Parse the date as local time to avoid timezone shifts
+			// Parse the date and set to noon to avoid timezone boundary issues
+			// Use local time so the UNTIL date matches exactly what user selected
 			const [year, month, day] = endDate.split("-").map(Number);
-			options.until = new Date(Date.UTC(year, month - 1, day, 23, 59, 59));
+			options.until = new Date(year, month - 1, day, 12, 0, 0);
 		} else if (endType === "count" && count > 0) {
 			options.count = count;
 		}
