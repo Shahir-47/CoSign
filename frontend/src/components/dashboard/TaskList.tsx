@@ -14,8 +14,17 @@ interface TaskListProps {
 	onReassignTask?: (task: Task) => void;
 	onSubmitProof?: (task: Task) => void;
 	onReviewProof?: (task: Task) => void;
+	onTaskUpdated?: (task: Task) => void;
+	onTaskMoved?: (
+		task: Task,
+		newListId: number | null,
+		newListName: string
+	) => void;
 	selectedTaskId?: number | null;
 	onSelectTask?: (taskId: number | null) => void;
+	// Scroll to a specific task card after navigation
+	scrollToTaskId?: number | null;
+	onScrollComplete?: () => void;
 	// Section visibility (controlled for URL persistence)
 	showOverdue?: boolean;
 	onShowOverdueChange?: (show: boolean) => void;
@@ -32,8 +41,12 @@ export default function TaskList({
 	onReassignTask,
 	onSubmitProof,
 	onReviewProof,
+	onTaskUpdated,
+	onTaskMoved,
 	selectedTaskId: controlledSelectedTaskId,
 	onSelectTask,
+	scrollToTaskId,
+	onScrollComplete,
 	showOverdue: controlledShowOverdue,
 	onShowOverdueChange,
 	showCompleted: controlledShowCompleted,
@@ -151,6 +164,31 @@ export default function TaskList({
 		prevOverdueCountRef.current = overdueTasks.length;
 	}, [overdueTasks.length, showOverdue, setShowOverdue]);
 
+	// Refs map for scrolling to specific task cards
+	const taskRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+
+	// Scroll to task when scrollToTaskId is set and task is found
+	useEffect(() => {
+		if (scrollToTaskId === null || scrollToTaskId === undefined) return;
+
+		// Small delay to ensure DOM has updated after navigation
+		const timeoutId = setTimeout(() => {
+			const taskElement = taskRefs.current.get(scrollToTaskId);
+			if (taskElement) {
+				taskElement.scrollIntoView({ behavior: "smooth", block: "center" });
+				// Add a brief highlight effect
+				taskElement.classList.add(styles.scrollHighlight);
+				setTimeout(() => {
+					taskElement.classList.remove(styles.scrollHighlight);
+				}, 2000);
+				// Notify parent that scroll is complete
+				onScrollComplete?.();
+			}
+		}, 100);
+
+		return () => clearTimeout(timeoutId);
+	}, [scrollToTaskId, tasks, onScrollComplete]);
+
 	if (isLoading) {
 		return (
 			<div className={styles.loading}>
@@ -194,16 +232,23 @@ export default function TaskList({
 			{activeTasks.length > 0 && (
 				<div className={styles.list}>
 					{activeTasks.map((task) => (
-						<TaskCard
+						<div
 							key={task.id}
-							task={task}
-							viewMode={viewMode}
-							searchTerm={searchTerm}
-							onClick={() => setSelectedTaskId(task.id)}
-							onReassign={
-								onReassignTask ? () => onReassignTask(task) : undefined
-							}
-						/>
+							ref={(el) => {
+								if (el) taskRefs.current.set(task.id, el);
+								else taskRefs.current.delete(task.id);
+							}}
+						>
+							<TaskCard
+								task={task}
+								viewMode={viewMode}
+								searchTerm={searchTerm}
+								onClick={() => setSelectedTaskId(task.id)}
+								onReassign={
+									onReassignTask ? () => onReassignTask(task) : undefined
+								}
+							/>
+						</div>
 					))}
 				</div>
 			)}
@@ -249,16 +294,23 @@ export default function TaskList({
 					{showOverdue && (
 						<div className={styles.overdueList}>
 							{overdueTasks.map((task) => (
-								<TaskCard
+								<div
 									key={task.id}
-									task={task}
-									viewMode={viewMode}
-									searchTerm={searchTerm}
-									onClick={() => setSelectedTaskId(task.id)}
-									onReassign={
-										onReassignTask ? () => onReassignTask(task) : undefined
-									}
-								/>
+									ref={(el) => {
+										if (el) taskRefs.current.set(task.id, el);
+										else taskRefs.current.delete(task.id);
+									}}
+								>
+									<TaskCard
+										task={task}
+										viewMode={viewMode}
+										searchTerm={searchTerm}
+										onClick={() => setSelectedTaskId(task.id)}
+										onReassign={
+											onReassignTask ? () => onReassignTask(task) : undefined
+										}
+									/>
+								</div>
 							))}
 						</div>
 					)}
@@ -290,16 +342,23 @@ export default function TaskList({
 					{showCompleted && (
 						<div className={styles.completedList}>
 							{completedTasks.map((task) => (
-								<TaskCard
+								<div
 									key={task.id}
-									task={task}
-									viewMode={viewMode}
-									searchTerm={searchTerm}
-									onClick={() => setSelectedTaskId(task.id)}
-									onReassign={
-										onReassignTask ? () => onReassignTask(task) : undefined
-									}
-								/>
+									ref={(el) => {
+										if (el) taskRefs.current.set(task.id, el);
+										else taskRefs.current.delete(task.id);
+									}}
+								>
+									<TaskCard
+										task={task}
+										viewMode={viewMode}
+										searchTerm={searchTerm}
+										onClick={() => setSelectedTaskId(task.id)}
+										onReassign={
+											onReassignTask ? () => onReassignTask(task) : undefined
+										}
+									/>
+								</div>
 							))}
 						</div>
 					)}
@@ -314,6 +373,8 @@ export default function TaskList({
 				onReassign={onReassignTask}
 				onSubmitProof={onSubmitProof}
 				onReviewProof={onReviewProof}
+				onTaskUpdated={onTaskUpdated}
+				onTaskMoved={onTaskMoved}
 			/>
 		</>
 	);

@@ -101,6 +101,9 @@ export default function HomePage() {
 	const [selectedListName, setSelectedListName] = useState<string | null>(null);
 	const [refreshListsKey, setRefreshListsKey] = useState(0);
 
+	// Task ID to scroll to after navigation (e.g., after moving a task to a new list)
+	const [scrollToTaskId, setScrollToTaskId] = useState<number | null>(null);
+
 	// Initialize filters from URL or use defaults
 	const [filters, setFilters] = useState<TaskFilters>(() => ({
 		...defaultFilters,
@@ -557,6 +560,51 @@ export default function HomePage() {
 		setRefreshListsKey((k) => k + 1);
 	};
 
+	// Handle task updated (e.g., moved to a different list)
+	const handleTaskUpdated = (updatedTask: Task) => {
+		setTasks((prevTasks) =>
+			prevTasks.map((task) => (task.id === updatedTask.id ? updatedTask : task))
+		);
+	};
+
+	// Handle task moved to a different list - navigate and show toast
+	const handleTaskMoved = (
+		movedTask: Task,
+		newListId: number | null,
+		newListName: string
+	) => {
+		// Remove the task from the current view since it's moving to a different list
+		// (If viewing "All Tasks", we'll re-add it when we navigate)
+		setTasks((prevTasks) =>
+			prevTasks.filter((task) => task.id !== movedTask.id)
+		);
+
+		// Refresh lists to update task counts
+		setRefreshListsKey((k) => k + 1);
+
+		// Close the task detail modal
+		setSelectedTaskId(null);
+
+		// Navigate to the new list immediately
+		setSelectedListId(newListId);
+		setSelectedListName(newListName);
+
+		// Set the task ID to scroll to after navigation
+		setScrollToTaskId(movedTask.id);
+
+		// Show toast with clickable navigation (in case user navigates away)
+		toast.success(`📁 Task moved to "${newListName}"`, {
+			icon: false,
+			onClick: () => {
+				// Navigate to the new list and scroll to the task
+				setSelectedListId(newListId);
+				setSelectedListName(newListName);
+				setScrollToTaskId(movedTask.id);
+			},
+			style: { cursor: "pointer" },
+		});
+	};
+
 	const handleListCreated = (list: TaskList) => {
 		setRefreshListsKey((k) => k + 1);
 		setNewlyCreatedListId(list.id);
@@ -743,8 +791,12 @@ export default function HomePage() {
 						onReassignTask={handleOpenReassign}
 						onSubmitProof={handleOpenSubmitProof}
 						onReviewProof={handleOpenReviewProof}
+						onTaskUpdated={handleTaskUpdated}
+						onTaskMoved={handleTaskMoved}
 						selectedTaskId={selectedTaskId}
 						onSelectTask={setSelectedTaskId}
+						scrollToTaskId={scrollToTaskId}
+						onScrollComplete={() => setScrollToTaskId(null)}
 						showOverdue={showOverdue}
 						onShowOverdueChange={setShowOverdue}
 						showCompleted={showCompleted}

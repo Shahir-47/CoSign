@@ -207,3 +207,23 @@
 		grid-template-columns: 1fr;
 	}
 }
+
+/* Scroll highlight animation for moved tasks */
+.scrollHighlight {
+	animation: pulseHighlight 2s ease-out;
+}
+
+@keyframes pulseHighlight {
+	0% {
+		box-shadow: 0 0 0 3px var(--accent-primary);
+		transform: scale(1.01);
+	}
+	50% {
+		box-shadow: 0 0 0 3px var(--accent-primary);
+		transform: scale(1.01);
+	}
+	100% {
+		box-shadow: 0 0 0 0 transparent;
+		transform: scale(1);
+	}
+}

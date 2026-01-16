@@ -164,6 +164,7 @@
 }
 
 .detailItem {
+	position: relative;
 	display: flex;
 	align-items: flex-start;
 	gap: 12px;
@@ -548,4 +549,77 @@
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+/* List Change Dropdown */
+.listChangeButton {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 8px;
+	background: var(--bg-tertiary);
+	border: 1px solid var(--border-primary);
+	border-radius: 6px;
+	color: var(--text-primary);
+	font-size: 0.875rem;
+	cursor: pointer;
+	transition: all 0.15s ease;
+}
+
+.listChangeButton:hover:not(:disabled) {
+	background: var(--bg-primary);
+	border-color: var(--accent-primary);
+}
+
+.listChangeButton:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.listDropdown {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	right: 0;
+	margin-top: 4px;
+	background: var(--bg-primary);
+	border: 1px solid var(--border-primary);
+	border-radius: 8px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	z-index: 100;
+	max-height: 200px;
+	overflow-y: auto;
+}
+
+.listDropdownItem {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	padding: 10px 12px;
+	background: transparent;
+	border: none;
+	color: var(--text-primary);
+	font-size: 0.875rem;
+	cursor: pointer;
+	transition: background 0.15s ease;
+	text-align: left;
+}
+
+.listDropdownItem:hover {
+	background: var(--bg-tertiary);
+}
+
+.listDropdownItem.selected {
+	background: var(--accent-primary-10);
+	color: var(--accent-primary);
+}
+
+.listDropdownItem svg {
+	flex-shrink: 0;
+	color: var(--text-secondary);
+}
+
+.listDropdownItem.selected svg {
+	color: var(--accent-primary);
 }

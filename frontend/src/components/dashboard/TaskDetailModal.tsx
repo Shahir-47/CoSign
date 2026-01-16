@@ -37,8 +37,9 @@ import {
 	Eye,
 	Loader2,
 	Paperclip,
+	ChevronDown,
 } from "lucide-react";
-import type { Task, TaskDetails, ProofAttachment } from "../../types";
+import type { Task, TaskDetails, ProofAttachment, TaskList } from "../../types";
 import { api } from "../../utils/api";
 import ViewAttachmentModal from "../shared/ViewAttachmentModal";
 import { getUserTimezone, getTimeUntilDeadline } from "../../utils/timezone";
@@ -54,8 +55,13 @@ interface TaskDetailModalProps {
 	onReassign?: (task: Task) => void;
 	onSubmitProof?: (task: Task) => void;
 	onReviewProof?: (task: Task) => void;
+	onTaskUpdated?: (task: Task) => void;
+	onTaskMoved?: (
+		task: Task,
+		newListId: number | null,
+		newListName: string
+	) => void;
 }
-
 const LIST_ICON_MAP: Record<string, React.ComponentType<{ size?: number }>> = {
 	inbox: Inbox,
 	folder: FolderKanban,
@@ -228,6 +234,8 @@ export default function TaskDetailModal({
 	onReassign,
 	onSubmitProof,
 	onReviewProof,
+	onTaskUpdated,
+	onTaskMoved,
 }: TaskDetailModalProps) {
 	const [, setTick] = useState(0);
 	const { isUserOnline, subscribe } = useWebSocket();
@@ -237,6 +245,12 @@ export default function TaskDetailModal({
 	const [fetchingTaskId, setFetchingTaskId] = useState<number | null>(null);
 	const [viewingAttachment, setViewingAttachment] =
 		useState<ProofAttachment | null>(null);
+
+	// State for list change dropdown
+	const [showListDropdown, setShowListDropdown] = useState(false);
+	const [availableLists, setAvailableLists] = useState<TaskList[]>([]);
+	const [isMovingTask, setIsMovingTask] = useState(false);
+	const listDropdownRef = useRef<HTMLDivElement>(null);
 
 	// Track the last fetched task ID to avoid re-fetching
 	const lastFetchedTaskIdRef = useRef<number | null>(null);
@@ -301,6 +315,38 @@ export default function TaskDetailModal({
 		};
 	}, [shouldFetchProof, currentTaskId]);
 
+	// Fetch available lists when dropdown is opened
+	useEffect(() => {
+		if (!showListDropdown || viewMode !== "my-tasks") return;
+
+		api
+			.get<TaskList[]>("/lists")
+			.then((data) => {
+				setAvailableLists(data);
+			})
+			.catch(() => {
+				// Silently fail
+			});
+	}, [showListDropdown, viewMode]);
+
+	// Close list dropdown when clicking outside
+	useEffect(() => {
+		const handleClickOutside = (e: MouseEvent) => {
+			if (
+				listDropdownRef.current &&
+				!listDropdownRef.current.contains(e.target as Node)
+			) {
+				setShowListDropdown(false);
+			}
+		};
+
+		if (showListDropdown) {
+			document.addEventListener("mousedown", handleClickOutside);
+			return () =>
+				document.removeEventListener("mousedown", handleClickOutside);
+		}
+	}, [showListDropdown]);
+
 	// Update every second for live countdown
 	useEffect(() => {
 		if (!isOpen) return;
@@ -324,6 +370,41 @@ export default function TaskDetailModal({
 		const unsubscribe = subscribe(handleMessage);
 		return unsubscribe;
 	}, [isOpen, task, subscribe]);
+
+	// Handle moving task to a different list
+	const handleMoveToList = async (listId: number | null, listName: string) => {
+		if (!task || isMovingTask) return;
+
+		// Don't move if already in this list
+		const currentListId = task.list?.id ?? null;
+		const isDefaultList = task.list?.name === "Default" || !task.list;
+		if (listId === currentListId || (listId === null && isDefaultList)) {
+			setShowListDropdown(false);
+			return;
+		}
+
+		setIsMovingTask(true);
+		try {
+			const updatedTask = await api.put<Task>(`/tasks/${task.id}/move`, {
+				listId,
+			});
+			setShowListDropdown(false);
+
+			// Call the onTaskMoved callback which handles toast and navigation
+			if (onTaskMoved) {
+				onTaskMoved(updatedTask, listId, listName);
+			}
+
+			// Also update the task in the parent state
+			if (onTaskUpdated) {
+				onTaskUpdated(updatedTask);
+			}
+		} catch (error) {
+			console.error("Failed to move task:", error);
+		} finally {
+			setIsMovingTask(false);
+		}
+	};
 
 	if (!isOpen || !task) return null;
 
@@ -632,24 +713,78 @@ export default function TaskDetailModal({
 							</div>
 						)}
 
-						{/* List */}
-						{task.list &&
-							(() => {
-								const ListIconComponent = getListIconComponent(task.list.icon);
-								return (
-									<div className={styles.detailItem}>
-										<div className={styles.detailIcon}>
-											<ListIconComponent size={18} />
-										</div>
-										<div className={styles.detailContent}>
-											<span className={styles.detailLabel}>List</span>
-											<span className={styles.detailValue}>
-												{task.list.name}
-											</span>
-										</div>
+						{/* List - with dropdown to change (only for my-tasks view) */}
+						{viewMode === "my-tasks" ? (
+							<div className={styles.detailItem} ref={listDropdownRef}>
+								<div className={styles.detailIcon}>
+									{task.list ? (
+										(() => {
+											const ListIconComponent = getListIconComponent(
+												task.list.icon
+											);
+											return <ListIconComponent size={18} />;
+										})()
+									) : (
+										<Inbox size={18} />
+									)}
+								</div>
+								<div className={styles.detailContent}>
+									<span className={styles.detailLabel}>List</span>
+									<button
+										className={styles.listChangeButton}
+										onClick={() => setShowListDropdown(!showListDropdown)}
+										disabled={isMovingTask}
+									>
+										<span>{task.list?.name || "Default"}</span>
+										{isMovingTask ? (
+											<Loader2 size={14} className={styles.spinner} />
+										) : (
+											<ChevronDown size={14} />
+										)}
+									</button>
+								</div>
+								{showListDropdown && (
+									<div className={styles.listDropdown}>
+										{/* Show all lists including Default */}
+										{availableLists.map((list) => {
+											const IconComponent = getListIconComponent(list.icon);
+											const isCurrentList =
+												task.list?.id === list.id ||
+												(!task.list && list.isDefault);
+											return (
+												<button
+													key={list.id}
+													className={`${styles.listDropdownItem} ${
+														isCurrentList ? styles.selected : ""
+													}`}
+													onClick={() => handleMoveToList(list.id, list.name)}
+												>
+													<IconComponent size={16} />
+													<span>{list.name}</span>
+												</button>
+											);
+										})}
 									</div>
-								);
-							})()}
+								)}
+							</div>
+						) : (
+							task.list && (
+								<div className={styles.detailItem}>
+									<div className={styles.detailIcon}>
+										{(() => {
+											const ListIconComponent = getListIconComponent(
+												task.list.icon
+											);
+											return <ListIconComponent size={18} />;
+										})()}
+									</div>
+									<div className={styles.detailContent}>
+										<span className={styles.detailLabel}>List</span>
+										<span className={styles.detailValue}>{task.list.name}</span>
+									</div>
+								</div>
+							)
+						)}
 
 						{/* Repeat Pattern */}
 						{task.repeatPattern && (

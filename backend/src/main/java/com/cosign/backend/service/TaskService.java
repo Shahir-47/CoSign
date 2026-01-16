@@ -402,4 +402,36 @@ public class TaskService {
 
         return response;
     }
+
+    // Move task to a different list
+    @Transactional
+    public Task moveTaskToList(Long taskId, Long listId) {
+        User user = getCurrentUser();
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+
+        // Only the task creator can move it to a different list
+        if (!task.getCreator().getId().equals(user.getId())) {
+            throw new RuntimeException("Not authorized to modify this task");
+        }
+
+        // Get target list (null listId means move to default list)
+        TaskList targetList;
+        if (listId == null) {
+            targetList = taskListService.getOrCreateDefaultList(user);
+        } else {
+            targetList = taskListRepository.findByIdAndUser(listId, user)
+                    .orElseThrow(() -> new RuntimeException("List not found"));
+        }
+
+        task.setList(targetList);
+        Task savedTask = taskRepository.save(task);
+        
+        // Force initialize lazy-loaded associations for JSON serialization
+        savedTask.getList().getName();
+        savedTask.getCreator().getEmail();
+        savedTask.getVerifier().getEmail();
+        
+        return savedTask;
+    }
 }
