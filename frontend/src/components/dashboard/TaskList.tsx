@@ -14,6 +14,8 @@ interface TaskListProps {
 	onReassignTask?: (task: Task) => void;
 	onSubmitProof?: (task: Task) => void;
 	onReviewProof?: (task: Task) => void;
+	selectedTaskId?: number | null;
+	onSelectTask?: (taskId: number | null) => void;
 }
 
 export default function TaskList({
@@ -25,9 +27,21 @@ export default function TaskList({
 	onReassignTask,
 	onSubmitProof,
 	onReviewProof,
+	selectedTaskId: controlledSelectedTaskId,
+	onSelectTask,
 }: TaskListProps) {
-	const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
+	// Use internal state if not controlled externally
+	const [internalSelectedTaskId, setInternalSelectedTaskId] = useState<
+		number | null
+	>(null);
 	const [showOverdue, setShowOverdue] = useState(false);
+
+	// Use controlled value if provided, otherwise use internal state
+	const selectedTaskId =
+		controlledSelectedTaskId !== undefined
+			? controlledSelectedTaskId
+			: internalSelectedTaskId;
+	const setSelectedTaskId = onSelectTask || setInternalSelectedTaskId;
 
 	// Get the selected task from the tasks array (so it stays in sync with updates)
 	// Returns null if task is no longer in the list (was deleted or filtered out)

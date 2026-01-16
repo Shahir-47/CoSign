@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
+import { toast, type ToastOptions } from "react-toastify";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import TaskListComponent from "../components/dashboard/TaskList";
 import FilterBar from "../components/dashboard/FilterBar";
@@ -27,6 +27,20 @@ import {
 	type ModalType,
 } from "../utils/persistence";
 import styles from "./HomePage.module.css";
+
+// Helper to get current user's email from localStorage
+function getCurrentUserEmail(): string | null {
+	try {
+		const userData = localStorage.getItem("user");
+		if (userData) {
+			const user = JSON.parse(userData);
+			return user.email || null;
+		}
+	} catch {
+		// Ignore parse errors
+	}
+	return null;
+}
 
 type TabType = "my-tasks" | "verification-requests" | "supervising";
 
@@ -86,6 +100,9 @@ export default function HomePage() {
 	const [removedVerifierEmail, setRemovedVerifierEmail] = useState<
 		string | null
 	>(null);
+
+	// Selected task ID for task detail modal (lifted from TaskList for toast navigation)
+	const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
 
 	// Task objects for task-specific modals (resolved from IDs after fetch)
 	const [submitProofTask, setSubmitProofTask] = useState<Task | null>(null);
@@ -184,8 +201,19 @@ export default function HomePage() {
 		fetchTasks();
 	}, [fetchTasks]);
 
+	// Navigate to a specific task (used by clickable toast notifications)
+	// Defined before WebSocket handler so it can be used in toast onClick
+	const navigateToTask = useCallback((taskId: number, targetTab: TabType) => {
+		// Switch to the correct tab if needed
+		setActiveTab(targetTab);
+		// Select the task to open the detail modal
+		setSelectedTaskId(taskId);
+	}, []);
+
 	// Subscribe to real-time task updates via WebSocket
 	useEffect(() => {
+		const currentUserEmail = getCurrentUserEmail();
+
 		const handleSocketMessage = (message: SocketMessage) => {
 			if (message.type === "TASK_UPDATED") {
 				const payload = message.payload as TaskUpdatedPayload;
@@ -201,8 +229,11 @@ export default function HomePage() {
 					return;
 				}
 
-				setTasks((prevTasks) =>
-					prevTasks.map((task) =>
+				// Find the task to determine if user is creator or verifier
+				let taskForNavigation: Task | undefined;
+				setTasks((prevTasks) => {
+					taskForNavigation = prevTasks.find((t) => t.id === payload.taskId);
+					return prevTasks.map((task) =>
 						task.id === payload.taskId
 							? {
 									...task,
@@ -217,26 +248,30 @@ export default function HomePage() {
 									...(payload.verifier && { verifier: payload.verifier }),
 							  }
 							: task
-					)
-				);
+					);
+				});
 
-				// Show toast notification based on status
+				// Determine which tab to navigate to based on user's role
+				const isCreator = taskForNavigation?.creator.email === currentUserEmail;
+				const targetTab: TabType = isCreator
+					? "my-tasks"
+					: "verification-requests";
+
+				// Show clickable toast notification based on status
+				const toastOptions: ToastOptions = {
+					icon: false,
+					onClick: () => navigateToTask(payload.taskId, targetTab),
+					style: { cursor: "pointer" },
+				};
+
 				if (payload.approved === true) {
-					toast.success(`✅ ${payload.message}`, {
-						icon: false,
-					});
+					toast.success(`✅ ${payload.message}`, toastOptions);
 				} else if (payload.approved === false) {
-					toast.warning(`❌ ${payload.message}`, {
-						icon: false,
-					});
+					toast.warning(`❌ ${payload.message}`, toastOptions);
 				} else if (payload.status === "PENDING_VERIFICATION") {
-					toast.info(`📋 ${payload.message}`, {
-						icon: false,
-					});
+					toast.info(`📋 ${payload.message}`, toastOptions);
 				} else if (payload.status === "PAUSED") {
-					toast.warning(`⏸️ ${payload.message}`, {
-						icon: false,
-					});
+					toast.warning(`⏸️ ${payload.message}`, toastOptions);
 				}
 			} else if (message.type === "NEW_TASK_ASSIGNED") {
 				const payload = message.payload as NewTaskAssignedPayload;
@@ -267,19 +302,28 @@ export default function HomePage() {
 					return [newTask, ...prevTasks];
 				});
 
-				// Show toast notification
+				// Determine which tab to navigate to based on user's role
+				const isCreator = payload.creator.email === currentUserEmail;
+				const targetTab: TabType = isCreator
+					? "my-tasks"
+					: "verification-requests";
+
+				// Show clickable toast notification
+				const newTaskToastOptions: ToastOptions = {
+					icon: false,
+					onClick: () => navigateToTask(payload.taskId, targetTab),
+					style: { cursor: "pointer" },
+				};
 				toast.info(
 					`📥 New task: "${payload.title}" from ${payload.creatorName}`,
-					{
-						icon: false,
-					}
+					newTaskToastOptions
 				);
 			}
 		};
 
 		const unsubscribe = subscribe(handleSocketMessage);
 		return unsubscribe;
-	}, [subscribe]);
+	}, [subscribe, navigateToTask]);
 
 	const handleTabChange = (tab: TabType) => {
 		setActiveTab(tab);
@@ -554,6 +598,8 @@ export default function HomePage() {
 						onReassignTask={handleOpenReassign}
 						onSubmitProof={handleOpenSubmitProof}
 						onReviewProof={handleOpenReviewProof}
+						selectedTaskId={selectedTaskId}
+						onSelectTask={setSelectedTaskId}
 					/>
 				</div>
 			)}
