@@ -751,7 +751,23 @@ export default function HomePage() {
 
 	// Filter and sort tasks based on current filters and sort config
 	const filteredTasks = useMemo(() => {
+		const currentUserEmail = getCurrentUserEmail();
+
 		const filtered = tasks.filter((task) => {
+			// CRITICAL: Filter tasks based on current view to prevent cross-contamination
+			// This ensures real-time socket updates don't render tasks in the wrong view
+			if (activeTab === "my-tasks") {
+				// Only show tasks where current user is the CREATOR
+				if (task.creator.email !== currentUserEmail) {
+					return false;
+				}
+			} else if (activeTab === "verification-requests") {
+				// Only show tasks where current user is the VERIFIER
+				if (task.verifier.email !== currentUserEmail) {
+					return false;
+				}
+			}
+
 			// Search filter - check title and description
 			if (filters.search) {
 				const search = filters.search.toLowerCase();
@@ -828,7 +844,7 @@ export default function HomePage() {
 		// Apply sorting
 		const sortedTasks = [...filtered].sort(getSortComparator(sortConfig));
 		return sortedTasks;
-	}, [tasks, filters, sortConfig]);
+	}, [tasks, filters, sortConfig, activeTab]);
 
 	// Calculate stats from filtered tasks
 	const pendingProofCount = filteredTasks.filter(
