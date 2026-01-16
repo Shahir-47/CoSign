@@ -16,6 +16,11 @@ export interface TaskUpdatedPayload {
 	message: string;
 	approved?: boolean;
 	denialReason?: string;
+	approvalComment?: string;
+	verifiedAt?: string;
+	completedAt?: string;
+	rejectedAt?: string;
+	submittedAt?: string;
 	updatedBy?: string;
 }
 

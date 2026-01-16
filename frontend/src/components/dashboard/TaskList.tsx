@@ -26,8 +26,15 @@ export default function TaskList({
 	onSubmitProof,
 	onReviewProof,
 }: TaskListProps) {
-	const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+	const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
 	const [showOverdue, setShowOverdue] = useState(false);
+
+	// Get the selected task from the tasks array (so it stays in sync with updates)
+	// Returns null if task is no longer in the list (was deleted or filtered out)
+	const selectedTask = useMemo(() => {
+		if (selectedTaskId === null) return null;
+		return tasks.find((t) => t.id === selectedTaskId) || null;
+	}, [tasks, selectedTaskId]);
 
 	// Separate active and overdue tasks
 	const { activeTasks, overdueTasks } = useMemo(() => {
@@ -107,7 +114,7 @@ export default function TaskList({
 							task={task}
 							viewMode={viewMode}
 							searchTerm={searchTerm}
-							onClick={() => setSelectedTask(task)}
+							onClick={() => setSelectedTaskId(task.id)}
 							onReassign={
 								onReassignTask ? () => onReassignTask(task) : undefined
 							}
@@ -154,7 +161,7 @@ export default function TaskList({
 									task={task}
 									viewMode={viewMode}
 									searchTerm={searchTerm}
-									onClick={() => setSelectedTask(task)}
+									onClick={() => setSelectedTaskId(task.id)}
 									onReassign={
 										onReassignTask ? () => onReassignTask(task) : undefined
 									}
@@ -168,7 +175,7 @@ export default function TaskList({
 			<TaskDetailModal
 				task={selectedTask}
 				isOpen={selectedTask !== null}
-				onClose={() => setSelectedTask(null)}
+				onClose={() => setSelectedTaskId(null)}
 				viewMode={viewMode}
 				onReassign={onReassignTask}
 				onSubmitProof={onSubmitProof}

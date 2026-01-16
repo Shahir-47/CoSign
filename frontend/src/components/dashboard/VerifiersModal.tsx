@@ -22,7 +22,8 @@ export default function VerifiersModal({
 	onVerifierAdded,
 	onVerifierRemoved,
 }: VerifiersModalProps) {
-	const { isUserOnline } = useWebSocket();
+	const { isUserOnline, subscribe } = useWebSocket();
+	const [, setStatusTick] = useState(0);
 
 	const [verifiers, setVerifiers] = useState<Verifier[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
@@ -30,6 +31,20 @@ export default function VerifiersModal({
 	const [isAdding, setIsAdding] = useState(false);
 	const [error, setError] = useState<string | undefined>();
 	const [showAddForm, setShowAddForm] = useState(false);
+
+	// Subscribe to user status changes for real-time online indicator updates
+	useEffect(() => {
+		if (!isOpen) return;
+
+		const handleMessage = (message: { type: string }) => {
+			if (message.type === "USER_STATUS") {
+				setStatusTick((t) => t + 1);
+			}
+		};
+
+		const unsubscribe = subscribe(handleMessage);
+		return unsubscribe;
+	}, [isOpen, subscribe]);
 
 	const fetchVerifiers = async () => {
 		try {

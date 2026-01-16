@@ -196,6 +196,11 @@ export default function HomePage() {
 									...task,
 									status: payload.status as Task["status"],
 									denialReason: payload.denialReason,
+									approvalComment: payload.approvalComment,
+									verifiedAt: payload.verifiedAt,
+									completedAt: payload.completedAt,
+									rejectedAt: payload.rejectedAt,
+									submittedAt: payload.submittedAt,
 							  }
 							: task
 					)

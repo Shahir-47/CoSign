@@ -195,7 +195,7 @@ export default function TaskCard({
 	onReassign,
 }: TaskCardProps) {
 	const [, setTick] = useState(0);
-	const { isUserOnline } = useWebSocket();
+	const { isUserOnline, subscribe } = useWebSocket();
 
 	const status = statusConfig[task.status];
 	const StatusIcon = status.icon;
@@ -213,6 +213,19 @@ export default function TaskCard({
 		}, 1000);
 		return () => clearInterval(interval);
 	}, [isCompleted]);
+
+	// Subscribe to user status changes to update online indicator in real-time
+	useEffect(() => {
+		const handleMessage = (message: { type: string }) => {
+			if (message.type === "USER_STATUS") {
+				// Force re-render to update online status indicator
+				setTick((t) => t + 1);
+			}
+		};
+
+		const unsubscribe = subscribe(handleMessage);
+		return unsubscribe;
+	}, [subscribe]);
 
 	// Get the other person (verifier for my-tasks, creator for verification-requests)
 	const otherPerson = viewMode === "my-tasks" ? task.verifier : task.creator;

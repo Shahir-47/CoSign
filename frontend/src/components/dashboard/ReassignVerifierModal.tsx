@@ -34,7 +34,22 @@ export default function ReassignVerifierModal({
 	const [showDropdown, setShowDropdown] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | undefined>();
-	const { isUserOnline } = useWebSocket();
+	const { isUserOnline, subscribe } = useWebSocket();
+	const [, setStatusTick] = useState(0);
+
+	// Subscribe to user status changes for real-time online indicator updates
+	useEffect(() => {
+		if (!isOpen) return;
+
+		const handleMessage = (message: { type: string }) => {
+			if (message.type === "USER_STATUS") {
+				setStatusTick((t) => t + 1);
+			}
+		};
+
+		const unsubscribe = subscribe(handleMessage);
+		return unsubscribe;
+	}, [isOpen, subscribe]);
 
 	useEffect(() => {
 		if (isOpen) {

@@ -80,11 +80,26 @@ export default function CreateTaskModal({
 	newlyAddedVerifierEmail,
 	removedVerifierEmail,
 }: CreateTaskModalProps) {
-	const { isUserOnline } = useWebSocket();
+	const { isUserOnline, subscribe } = useWebSocket();
 	const draftLoadedRef = useRef(false);
 	const saveDraftTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
 		null
 	);
+	const [, setStatusTick] = useState(0);
+
+	// Subscribe to user status changes for real-time online indicator updates
+	useEffect(() => {
+		if (!isOpen) return;
+
+		const handleMessage = (message: { type: string }) => {
+			if (message.type === "USER_STATUS") {
+				setStatusTick((t) => t + 1);
+			}
+		};
+
+		const unsubscribe = subscribe(handleMessage);
+		return unsubscribe;
+	}, [isOpen, subscribe]);
 
 	const getInitialFormData = useCallback(
 		(): TaskRequest => ({

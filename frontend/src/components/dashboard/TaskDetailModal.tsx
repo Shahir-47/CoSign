@@ -211,7 +211,7 @@ export default function TaskDetailModal({
 	onReviewProof,
 }: TaskDetailModalProps) {
 	const [, setTick] = useState(0);
-	const { isUserOnline } = useWebSocket();
+	const { isUserOnline, subscribe } = useWebSocket();
 
 	// Update every second for live countdown
 	useEffect(() => {
@@ -221,6 +221,21 @@ export default function TaskDetailModal({
 		}, 1000);
 		return () => clearInterval(interval);
 	}, [isOpen]);
+
+	// Subscribe to user status changes to re-render when verifier/creator comes online/offline
+	useEffect(() => {
+		if (!isOpen || !task) return;
+
+		const handleMessage = (message: { type: string }) => {
+			if (message.type === "USER_STATUS") {
+				// Force re-render to update online status indicator
+				setTick((t) => t + 1);
+			}
+		};
+
+		const unsubscribe = subscribe(handleMessage);
+		return unsubscribe;
+	}, [isOpen, task, subscribe]);
 
 	if (!isOpen || !task) return null;
 

@@ -202,13 +202,17 @@ public class TaskService {
         task.setSubmittedAt(LocalDateTime.now());
         Task savedTask = taskRepository.save(task);
 
-        // notify verifier
-        socketService.sendToUser(savedTask.getVerifier().getId(), "TASK_UPDATED", Map.of(
-                "taskId", savedTask.getId(),
-                "status", "PENDING_VERIFICATION",
-                "message", "Proof submitted for: " + savedTask.getTitle(),
-                "updatedBy", savedTask.getCreator().getFullName()
-        ));
+        // notify verifier with full update data
+        Map<String, Object> payload = new java.util.HashMap<>();
+        payload.put("taskId", savedTask.getId());
+        payload.put("status", "PENDING_VERIFICATION");
+        payload.put("message", "Proof submitted for: " + savedTask.getTitle());
+        payload.put("updatedBy", savedTask.getCreator().getFullName());
+        if (savedTask.getSubmittedAt() != null) {
+            payload.put("submittedAt", savedTask.getSubmittedAt().toString());
+        }
+
+        socketService.sendToUser(savedTask.getVerifier().getId(), "TASK_UPDATED", payload);
 
         return savedTask;
     }
@@ -248,18 +252,29 @@ public class TaskService {
 
         Task savedTask = taskRepository.save(task);
 
-        // Notify Creator
+        // Notify Creator with full task update data
         String message = request.getApproved()
                 ? "Task Verified: " + savedTask.getTitle()
                 : "Proof Rejected: " + savedTask.getTitle();
 
-        socketService.sendToUser(savedTask.getCreator().getId(), "TASK_UPDATED", Map.of(
-                "taskId", savedTask.getId(),
-                "status", savedTask.getStatus().toString(),
-                "message", message,
-                "approved", request.getApproved(),
-                "denialReason", savedTask.getDenialReason() != null ? savedTask.getDenialReason() : ""
-        ));
+        Map<String, Object> payload = new java.util.HashMap<>();
+        payload.put("taskId", savedTask.getId());
+        payload.put("status", savedTask.getStatus().toString());
+        payload.put("message", message);
+        payload.put("approved", request.getApproved());
+        payload.put("denialReason", savedTask.getDenialReason() != null ? savedTask.getDenialReason() : "");
+        payload.put("approvalComment", savedTask.getApprovalComment() != null ? savedTask.getApprovalComment() : "");
+        if (savedTask.getVerifiedAt() != null) {
+            payload.put("verifiedAt", savedTask.getVerifiedAt().toString());
+        }
+        if (savedTask.getCompletedAt() != null) {
+            payload.put("completedAt", savedTask.getCompletedAt().toString());
+        }
+        if (savedTask.getRejectedAt() != null) {
+            payload.put("rejectedAt", savedTask.getRejectedAt().toString());
+        }
+
+        socketService.sendToUser(savedTask.getCreator().getId(), "TASK_UPDATED", payload);
 
         return savedTask;
     }
