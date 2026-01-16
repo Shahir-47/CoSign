@@ -327,10 +327,8 @@ export default function HomePage() {
 					return;
 				}
 
-				// Find the task to determine if user is creator or verifier
-				let taskForNavigation: Task | undefined;
+				// Update task in state
 				setTasks((prevTasks) => {
-					taskForNavigation = prevTasks.find((t) => t.id === payload.taskId);
 					return prevTasks.map((task) =>
 						task.id === payload.taskId
 							? {
@@ -351,12 +349,17 @@ export default function HomePage() {
 
 				// Only show toast to the OTHER user, not the one who triggered the action
 				if (!isSelfTriggered) {
-					// Determine which tab to navigate to based on user's role
-					const isCreator =
-						taskForNavigation?.creator.email === currentUserEmail;
-					const targetTab: TabType = isCreator
-						? "my-tasks"
-						: "verification-requests";
+					// Determine which tab to navigate to based on who triggered the action:
+					// - If someone else triggered it, I'm the other party
+					// - Verifier actions (approve/deny): current user is the CREATOR -> "my-tasks"
+					// - Creator actions (submit proof, pause): current user is the VERIFIER -> "verification-requests"
+					// We determine this by the status/action type:
+					// - COMPLETED/denied (approved field set) = verifier action -> user is creator
+					// - PENDING_VERIFICATION/PAUSED = creator action -> user is verifier
+					const isVerifierAction = payload.approved !== undefined;
+					const targetTab: TabType = isVerifierAction
+						? "my-tasks" // Verifier took action, so current user is the creator
+						: "verification-requests"; // Creator took action, so current user is the verifier
 
 					// Show clickable toast notification based on status
 					const toastOptions: ToastOptions = {
