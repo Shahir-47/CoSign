@@ -683,11 +683,19 @@ public class TaskService {
     /**
      * Process a single task that has missed its deadline.
      * Exposes the penalty, sends email/socket notifications.
-     * Returns true if the task was processed (newly missed), false if already processed.
+     * Uses pessimistic locking to prevent race conditions between socket trigger and scheduler.
      */
     @Transactional
-    public void processDeadlineMiss(Task task) {
-        // Already processed - skip
+    public void processDeadlineMiss(Task taskParam) {
+        // Re-fetch with pessimistic lock to prevent race conditions
+        Task task = taskRepository.findByIdWithLock(taskParam.getId())
+                .orElse(null);
+        
+        if (task == null) {
+            return;
+        }
+
+        // Already processed - skip (check AFTER acquiring lock)
         if (task.getStatus() == TaskStatus.MISSED || task.isPenaltyEmailSent()) {
             return;
         }
@@ -703,6 +711,9 @@ public class TaskService {
         // Mark Missed
         task.setStatus(TaskStatus.MISSED);
         task.setPenaltyEmailSent(true); // Prevent duplicate emails
+        
+        // Save immediately to ensure the flag is persisted
+        taskRepository.save(task);
 
         // EXPOSE PENALTY
         Penalty penalty = task.getPenalty();
@@ -755,10 +766,10 @@ public class TaskService {
                 "message", "Deadline missed! Your penalty has been sent to your verifier."
         ));
 
-        // Handle Recurrence
+        // Handle Recurrence (creates next task instance if repeat pattern exists)
         handleRecurrence(task);
-
-        taskRepository.save(task);
+        
+        // Note: task is already saved after setting MISSED status above
     }
 
     /**
@@ -788,12 +799,8 @@ public class TaskService {
                 List.of(TaskStatus.PENDING_PROOF, TaskStatus.PENDING_VERIFICATION));
 
         for (Task task : activeTasks) {
-            // Skip if penalty email already sent (processed via socket)
-            if (task.isPenaltyEmailSent()) {
-                continue;
-            }
-
-            // Use the shared method to process the deadline miss
+            // processDeadlineMiss will acquire a lock and check if already processed
+            // No need to pre-check here - the lock ensures no race condition
             processDeadlineMiss(task);
         }
     }

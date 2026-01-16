@@ -4,18 +4,26 @@ import com.cosign.backend.model.Task;
 import com.cosign.backend.model.TaskList;
 import com.cosign.backend.model.TaskStatus;
 import com.cosign.backend.model.User;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface TaskRepository extends JpaRepository<Task, Long> {
     List<Task> findByCreator(User creator);
     List<Task> findByVerifier(User verifier);
     List<Task> findByCreatorAndList(User creator, TaskList list);
+
+    // Find by ID with pessimistic write lock to prevent race conditions
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT t FROM Task t WHERE t.id = :id")
+    Optional<Task> findByIdWithLock(@Param("id") Long id);
 
     int countByListAndCreator(TaskList list, User creator);
 
