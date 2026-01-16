@@ -34,7 +34,6 @@ public class User {
 
     // Verification
     private boolean isEmailVerified = false;
-
     private String emailVerificationToken;
     private LocalDateTime emailVerificationTokenExpiry;
 
@@ -48,5 +47,20 @@ public class User {
     @EqualsAndHashCode.Exclude
     private Set<User> savedVerifiers = new HashSet<>();
 
-    private LocalDateTime createdAt = LocalDateTime.now();
+
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }
