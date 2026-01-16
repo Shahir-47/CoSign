@@ -492,14 +492,34 @@ export default function HomePage() {
 					repeatPattern: payload.repeatPattern,
 					creator: payload.creator,
 					verifier: payload.verifier,
+					list: payload.list
+						? {
+								id: payload.list.id,
+								name: payload.list.name,
+								colorHex: payload.list.colorHex,
+								icon: payload.list.icon,
+								isDefault: payload.list.isDefault,
+								taskCount: 0, // Not provided in payload, will be updated on refresh
+						  }
+						: undefined,
 				};
 
-				// Add to the task list for real-time update (applies to both tabs)
+				// Add to the task list for real-time update
+				// Only add if it matches the current list filter (or viewing All Tasks)
 				setTasks((prevTasks) => {
 					// Only add if not already in the list
 					if (prevTasks.some((t) => t.id === newTask.id)) {
 						return prevTasks;
 					}
+
+					// If viewing a specific list, only add if task belongs to that list
+					if (selectedListId !== null) {
+						// Task must belong to the selected list
+						if (!newTask.list || newTask.list.id !== selectedListId) {
+							return prevTasks; // Don't add - task doesn't belong to this list
+						}
+					}
+
 					return [newTask, ...prevTasks];
 				});
 
@@ -581,7 +601,7 @@ export default function HomePage() {
 
 		const unsubscribe = subscribe(handleSocketMessage);
 		return unsubscribe;
-	}, [subscribe, navigateToTask]);
+	}, [subscribe, navigateToTask, selectedListId]);
 
 	const handleTabChange = (tab: TabType) => {
 		setActiveTab(tab);

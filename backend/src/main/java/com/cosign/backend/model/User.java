@@ -1,5 +1,6 @@
 package com.cosign.backend.model;
 
+import com.cosign.backend.converter.EncryptedStringConverter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -20,6 +21,7 @@ public class User {
     private Long id;
 
     @Column(nullable = false)
+    @Convert(converter = EncryptedStringConverter.class)
     private String fullName;
 
     @Column(nullable = false, unique = true)

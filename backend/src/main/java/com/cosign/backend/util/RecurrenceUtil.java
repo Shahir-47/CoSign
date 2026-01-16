@@ -8,10 +8,13 @@ import org.slf4j.LoggerFactory;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class RecurrenceUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(RecurrenceUtil.class);
+    private static final Pattern COUNT_PATTERN = Pattern.compile("COUNT=(\\d+)", Pattern.CASE_INSENSITIVE);
 
     /**
      * Calculates the next deadline based on the RRULE string.
@@ -71,5 +74,45 @@ public class RecurrenceUtil {
 
     private static LocalDateTime toLocalDateTime(DateTime dt, ZoneId zoneId) {
         return dt.toInstant().atZone(zoneId).toLocalDateTime();
+    }
+
+    /**
+     * Decrements the COUNT in an RRULE string by 1.
+     * If COUNT becomes 0 or less, returns null (no more occurrences).
+     * If no COUNT is present, returns the original RRULE unchanged.
+     * 
+     * @param rruleStr The RRULE string
+     * @return The updated RRULE with decremented COUNT, or null if no more occurrences
+     */
+    public static String decrementCount(String rruleStr) {
+        if (rruleStr == null || rruleStr.isEmpty()) return null;
+
+        Matcher matcher = COUNT_PATTERN.matcher(rruleStr);
+        if (!matcher.find()) {
+            // No COUNT in the rule, return as-is (infinite or UNTIL-based)
+            return rruleStr;
+        }
+
+        int currentCount = Integer.parseInt(matcher.group(1));
+        int newCount = currentCount - 1;
+
+        if (newCount <= 0) {
+            // No more occurrences left
+            return null;
+        }
+
+        // Replace the COUNT value with the decremented one
+        return matcher.replaceFirst("COUNT=" + newCount);
+    }
+
+    /**
+     * Checks if an RRULE has a COUNT parameter.
+     * 
+     * @param rruleStr The RRULE string
+     * @return true if COUNT is present
+     */
+    public static boolean hasCount(String rruleStr) {
+        if (rruleStr == null || rruleStr.isEmpty()) return false;
+        return COUNT_PATTERN.matcher(rruleStr).find();
     }
 }

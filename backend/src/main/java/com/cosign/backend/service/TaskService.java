@@ -107,6 +107,17 @@ public class TaskService {
         verifierInfo.put("timezone", task.getVerifier().getTimezone());
         taskPayload.put("verifier", verifierInfo);
 
+        // Include list info if present
+        if (task.getList() != null) {
+            Map<String, Object> listInfo = new java.util.HashMap<>();
+            listInfo.put("id", task.getList().getId());
+            listInfo.put("name", task.getList().getName());
+            listInfo.put("colorHex", task.getList().getColorHex());
+            listInfo.put("icon", task.getList().getIcon());
+            listInfo.put("isDefault", task.getList().isDefault());
+            taskPayload.put("list", listInfo);
+        }
+
         return taskPayload;
     }
 
@@ -156,7 +167,7 @@ public class TaskService {
             List<String> sortedHashes = request.getPenaltyAttachments().stream()
                     .map(att -> att.getContentHash() != null ? att.getContentHash() : att.getS3Key())
                     .sorted()
-                    .collect(Collectors.toList());
+                    .toList();
             for (String hash : sortedHashes) {
                 hashInput.append("|").append(hash);
             }
@@ -201,9 +212,9 @@ public class TaskService {
         task.setList(list);
 
         Penalty penalty = new Penalty();
-        // Encrypt content (use empty string if null to avoid encryption errors)
-        String contentToEncrypt = hasContent ? rawPenalty : "";
-        penalty.setEncryptedContent(encryptionService.encrypt(contentToEncrypt));
+        // Use empty string if null to avoid validation errors, encryption handled by converter
+        String penaltyContent = hasContent ? rawPenalty : "";
+        penalty.setContent(penaltyContent);
         penalty.setContentHash(combinedHash);
         penalty.setUser(creator);
         penalty.setExposed(false);
@@ -412,8 +423,14 @@ public class TaskService {
         // If null, the schedule is over
         if (nextDeadline == null) return;
 
-        // Create the Next Instance
-        Task nextTask = createNextTaskInstance(finishedTask, nextDeadline, rrule);
+        // Decrement COUNT if present (so we don't create infinite tasks)
+        String updatedRrule = RecurrenceUtil.decrementCount(rrule);
+        
+        // If decrementCount returns null, no more occurrences left
+        if (updatedRrule == null) return;
+
+        // Create the Next Instance with the updated RRULE
+        Task nextTask = createNextTaskInstance(finishedTask, nextDeadline, updatedRrule);
 
         Task savedTask = taskRepository.save(nextTask);
 
@@ -601,9 +618,7 @@ public class TaskService {
         response.setApprovalComment(task.getApprovalComment());
 
         if (task.getPenalty() != null && task.getPenalty().isExposed()) {
-            // Only decrypt and show if it has been exposed
-            String decrypted = encryptionService.decrypt(task.getPenalty().getEncryptedContent());
-            response.setPenaltyContent(decrypted);
+            response.setPenaltyContent(task.getPenalty().getContent());
 
             // Include penalty attachments with presigned URLs
             List<TaskDetailResponse.AttachmentViewDto> penaltyAttachmentDtos = task.getPenalty().getAttachments().stream()
@@ -671,10 +686,10 @@ public class TaskService {
      * Returns true if the task was processed (newly missed), false if already processed.
      */
     @Transactional
-    public boolean processDeadlineMiss(Task task) {
+    public void processDeadlineMiss(Task task) {
         // Already processed - skip
         if (task.getStatus() == TaskStatus.MISSED || task.isPenaltyEmailSent()) {
-            return false;
+            return;
         }
 
         // Verify the deadline has actually passed in user's timezone
@@ -682,7 +697,7 @@ public class TaskService {
         ZonedDateTime nowInUserTz = ZonedDateTime.now(ZoneId.of(userTimezone));
         
         if (!task.getDeadline().isBefore(nowInUserTz.toLocalDateTime())) {
-            return false; // Deadline hasn't passed yet
+            return; // Deadline hasn't passed yet
         }
 
         // Mark Missed
@@ -694,8 +709,7 @@ public class TaskService {
         if (penalty != null && !penalty.isExposed()) {
             penalty.setExposed(true);
 
-            // Decrypt for delivery
-            String decryptedSecret = encryptionService.decrypt(penalty.getEncryptedContent());
+            String decryptedSecret = penalty.getContent();
 
             // Build attachments section for email
             StringBuilder attachmentsHtml = new StringBuilder();
@@ -722,7 +736,7 @@ public class TaskService {
                     "<hr/>" +
                     "<h3>The Penalty (Confidential):</h3>" +
                     "<div>" + decryptedSecret + "</div>" +
-                    attachmentsHtml.toString();
+                    attachmentsHtml;
 
             emailService.sendEmail(task.getVerifier().getEmail(), subject, htmlBody);
 
@@ -745,7 +759,6 @@ public class TaskService {
         handleRecurrence(task);
 
         taskRepository.save(task);
-        return true;
     }
 
     /**

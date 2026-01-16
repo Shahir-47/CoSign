@@ -1,6 +1,6 @@
 package com.cosign.backend.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.cosign.backend.converter.EncryptedStringConverter;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -16,16 +16,20 @@ public class Task {
     private Long id;
 
     @Column(nullable = false)
+    @Convert(converter = EncryptedStringConverter.class)
     private String title;
 
     @Column(length = 1000)
+    @Convert(converter = EncryptedStringConverter.class)
     private String description;
 
     @Column(nullable = false)
     private LocalDateTime deadline;
 
     // Customization
+    @Convert(converter = EncryptedStringConverter.class)
     private String location;
+
     private boolean isStarred = false;
     private String repeatPattern; // "DAILY", "WEEKLY"
 
@@ -46,6 +50,7 @@ public class Task {
     private User verifier;
 
     @Column(length = 500)
+    @Convert(converter = EncryptedStringConverter.class)
     private String tags;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -55,15 +60,18 @@ public class Task {
 
     // Proof Data
     @Column(columnDefinition = "TEXT")
+    @Convert(converter = EncryptedStringConverter.class)
     private String proofDescription;
 
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
     private java.util.List<ProofAttachment> proofAttachments = new java.util.ArrayList<>();
 
     @Column(columnDefinition = "TEXT")
+    @Convert(converter = EncryptedStringConverter.class)
     private String denialReason;
 
     @Column(columnDefinition = "TEXT")
+    @Convert(converter = EncryptedStringConverter.class)
     private String approvalComment;
 
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)

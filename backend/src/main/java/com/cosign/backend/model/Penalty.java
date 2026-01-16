@@ -1,5 +1,6 @@
 package com.cosign.backend.model;
 
+import com.cosign.backend.converter.EncryptedStringConverter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
@@ -17,8 +18,10 @@ public class Penalty {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Renamed from encryptedContent to content, now handled by converter
     @Column(nullable = false, columnDefinition = "TEXT")
-    private String encryptedContent;
+    @Convert(converter = EncryptedStringConverter.class)
+    private String content;
 
     @Column(nullable = false)
     private String contentHash; // To check reuse validity

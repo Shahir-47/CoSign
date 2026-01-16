@@ -42,6 +42,14 @@ export interface UserInfo {
 	profilePictureUrl?: string;
 }
 
+export interface TaskListInfo {
+	id: number;
+	name: string;
+	colorHex?: string;
+	icon?: string;
+	isDefault: boolean;
+}
+
 export interface NewTaskAssignedPayload {
 	taskId: number;
 	title: string;
@@ -58,6 +66,7 @@ export interface NewTaskAssignedPayload {
 	repeatPattern?: string;
 	creator: UserInfo;
 	verifier: UserInfo;
+	list?: TaskListInfo;
 }
 
 export interface VerifierAddedPayload {
