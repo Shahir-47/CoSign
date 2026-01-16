@@ -64,9 +64,13 @@ export interface Task {
 	proofDescription?: string;
 	denialReason?: string;
 	approvalComment?: string;
-	verifiedAt?: string;
-	completedAt?: string;
+	// Timestamps
 	createdAt: string;
+	updatedAt?: string;
+	submittedAt?: string; // When proof was submitted
+	verifiedAt?: string; // When verifier reviewed (approved or denied)
+	completedAt?: string; // When task was completed (approved)
+	rejectedAt?: string; // When proof was rejected
 }
 
 export interface ProofAttachment {

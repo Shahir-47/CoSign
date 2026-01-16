@@ -211,6 +211,37 @@
 	gap: 2px;
 }
 
+/* Success/Danger detail item highlights for timeline */
+.detailItem.detailSuccess {
+	background: rgba(16, 185, 129, 0.08);
+	border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.detailItem.detailSuccess .detailIcon {
+	background: rgba(16, 185, 129, 0.15);
+	color: #10b981;
+}
+
+.detailItem.detailSuccess .detailLabel,
+.detailItem.detailSuccess .detailValue {
+	color: #10b981;
+}
+
+.detailItem.detailDanger {
+	background: rgba(239, 68, 68, 0.08);
+	border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.detailItem.detailDanger .detailIcon {
+	background: rgba(239, 68, 68, 0.15);
+	color: #ef4444;
+}
+
+.detailItem.detailDanger .detailLabel,
+.detailItem.detailDanger .detailValue {
+	color: #ef4444;
+}
+
 .email {
 	font-size: 0.75rem;
 	font-weight: 400;

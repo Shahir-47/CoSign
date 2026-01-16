@@ -29,6 +29,7 @@ import {
 	UserX,
 	Send,
 	ClipboardCheck,
+	RotateCcw,
 } from "lucide-react";
 import type { Task } from "../../types";
 import { getUserTimezone, getTimeUntilDeadline } from "../../utils/timezone";
@@ -479,9 +480,39 @@ export default function TaskDetailModal({
 							</div>
 						</div>
 
+						{/* Proof Submitted At */}
+						{task.submittedAt && (
+							<div className={styles.detailItem}>
+								<div className={styles.detailIcon}>
+									<Send size={18} />
+								</div>
+								<div className={styles.detailContent}>
+									<span className={styles.detailLabel}>Proof Submitted</span>
+									<span className={styles.detailValue}>
+										{formatDateTime(task.submittedAt)}
+									</span>
+								</div>
+							</div>
+						)}
+
+						{/* Rejected At */}
+						{task.rejectedAt && (
+							<div className={`${styles.detailItem} ${styles.detailDanger}`}>
+								<div className={styles.detailIcon}>
+									<RotateCcw size={18} />
+								</div>
+								<div className={styles.detailContent}>
+									<span className={styles.detailLabel}>Proof Rejected</span>
+									<span className={styles.detailValue}>
+										{formatDateTime(task.rejectedAt)}
+									</span>
+								</div>
+							</div>
+						)}
+
 						{/* Completed At */}
 						{task.completedAt && (
-							<div className={styles.detailItem}>
+							<div className={`${styles.detailItem} ${styles.detailSuccess}`}>
 								<div className={styles.detailIcon}>
 									<CalendarCheck size={18} />
 								</div>

@@ -9,6 +9,9 @@ import {
 	User,
 	Pause,
 	UserX,
+	Calendar,
+	Send,
+	RotateCcw,
 } from "lucide-react";
 import type { Task } from "../../types";
 import { useWebSocket } from "../../context/useWebSocket";
@@ -69,6 +72,41 @@ const statusConfig: Record<
 	MISSED: { label: "Missed", icon: XCircle, color: "#ef4444" },
 	PAUSED: { label: "Paused - Needs Verifier", icon: Pause, color: "#f97316" },
 };
+
+// Format timestamp for timeline display
+function formatTimestamp(isoString: string): string {
+	return formatDeadlineDisplay(isoString, {
+		month: "short",
+		day: "numeric",
+		hour: "numeric",
+		minute: "2-digit",
+	});
+}
+
+// Get relative time description (e.g., "2 hours ago", "3 days ago")
+function getRelativeTime(isoString: string): string {
+	const now = new Date();
+	const date = new Date(isoString);
+	const diffMs = now.getTime() - date.getTime();
+	const diffSeconds = Math.floor(diffMs / 1000);
+	const diffMinutes = Math.floor(diffSeconds / 60);
+	const diffHours = Math.floor(diffMinutes / 60);
+	const diffDays = Math.floor(diffHours / 24);
+
+	if (diffDays > 7) {
+		return formatTimestamp(isoString);
+	}
+	if (diffDays > 0) {
+		return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+	}
+	if (diffHours > 0) {
+		return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+	}
+	if (diffMinutes > 0) {
+		return `${diffMinutes} min${diffMinutes > 1 ? "s" : ""} ago`;
+	}
+	return "Just now";
+}
 
 function formatDeadline(deadline: string): {
 	text: string;
@@ -259,6 +297,59 @@ export default function TaskCard({
 					})}
 				</div>
 			)}
+
+			{/* Timeline - show task lifecycle timestamps */}
+			<div className={styles.timeline}>
+				{/* Created */}
+				<div className={styles.timelineItem}>
+					<Calendar size={12} />
+					<span className={styles.timelineLabel}>Created</span>
+					<span className={styles.timelineTime}>
+						{getRelativeTime(task.createdAt)}
+					</span>
+				</div>
+
+				{/* Proof Submitted */}
+				{task.submittedAt && (
+					<div className={styles.timelineItem}>
+						<Send size={12} />
+						<span className={styles.timelineLabel}>Proof Submitted</span>
+						<span className={styles.timelineTime}>
+							{getRelativeTime(task.submittedAt)}
+						</span>
+					</div>
+				)}
+
+				{/* Verified/Rejected */}
+				{task.completedAt && (
+					<div className={`${styles.timelineItem} ${styles.timelineSuccess}`}>
+						<CheckCircle2 size={12} />
+						<span className={styles.timelineLabel}>Approved</span>
+						<span className={styles.timelineTime}>
+							{getRelativeTime(task.completedAt)}
+						</span>
+					</div>
+				)}
+
+				{task.rejectedAt && (
+					<div className={`${styles.timelineItem} ${styles.timelineDanger}`}>
+						<RotateCcw size={12} />
+						<span className={styles.timelineLabel}>Rejected</span>
+						<span className={styles.timelineTime}>
+							{getRelativeTime(task.rejectedAt)}
+						</span>
+					</div>
+				)}
+
+				{/* Missed */}
+				{task.status === "MISSED" && !task.completedAt && (
+					<div className={`${styles.timelineItem} ${styles.timelineDanger}`}>
+						<XCircle size={12} />
+						<span className={styles.timelineLabel}>Missed</span>
+						<span className={styles.timelineTime}>Deadline passed</span>
+					</div>
+				)}
+			</div>
 
 			<div className={styles.footer}>
 				<div className={styles.status} style={{ color: status.color }}>
