@@ -126,6 +126,28 @@ export interface TaskFilters {
 	deadlineTo?: string;
 }
 
+// Sorting types
+export type SortField =
+	| "deadline"
+	| "priority"
+	| "status"
+	| "title"
+	| "createdAt"
+	| "submittedAt";
+
+export type SortDirection = "asc" | "desc";
+
+export interface SortOption {
+	field: SortField;
+	direction: SortDirection;
+}
+
+export interface TaskSortConfig {
+	primary: SortOption;
+	secondary?: SortOption;
+	tiebreaker: "starred" | "title" | "createdAt";
+}
+
 export interface TaskListRequest {
 	name: string;
 	colorHex?: string;

@@ -1,0 +1,230 @@
+.sortBar {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.5rem 0;
+	flex-wrap: wrap;
+}
+
+.sortLabel {
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+	color: var(--text-muted);
+	font-size: 0.8125rem;
+	font-weight: 500;
+}
+
+.sortOptions {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+}
+
+.sortGroup {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+}
+
+.thenBy {
+	color: var(--text-muted);
+	font-size: 0.75rem;
+	font-style: italic;
+}
+
+.sortSelector {
+	display: flex;
+	align-items: center;
+	background: var(--bg-secondary);
+	border: 1px solid var(--border-color);
+	border-radius: 6px;
+	overflow: hidden;
+}
+
+.sortFieldBtn {
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+	padding: 0.375rem 0.625rem;
+	background: transparent;
+	border: none;
+	color: var(--text-primary);
+	font-size: 0.8125rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: background 0.15s ease;
+}
+
+.sortFieldBtn:hover {
+	background: var(--bg-tertiary);
+}
+
+.dragHandle {
+	color: var(--text-muted);
+	opacity: 0.5;
+}
+
+.directionBtn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.375rem 0.5rem;
+	background: transparent;
+	border: none;
+	border-left: 1px solid var(--border-color);
+	color: var(--accent-primary);
+	cursor: pointer;
+	transition: all 0.15s ease;
+}
+
+.directionBtn:hover {
+	background: var(--bg-tertiary);
+}
+
+.removeBtn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.375rem 0.5rem;
+	background: transparent;
+	border: none;
+	border-left: 1px solid var(--border-color);
+	color: var(--text-muted);
+	cursor: pointer;
+	transition: all 0.15s ease;
+}
+
+.removeBtn:hover {
+	background: rgba(239, 68, 68, 0.1);
+	color: #ef4444;
+}
+
+.addSecondary {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+	padding: 0.375rem 0.625rem;
+	background: transparent;
+	border: 1px dashed var(--border-color);
+	border-radius: 6px;
+	color: var(--text-muted);
+	font-size: 0.8125rem;
+	cursor: pointer;
+	transition: all 0.15s ease;
+}
+
+.addSecondary:hover {
+	border-color: var(--accent-primary);
+	color: var(--accent-primary);
+	background: var(--bg-secondary);
+}
+
+.tiebreakerGroup {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+	margin-left: 0.5rem;
+	padding-left: 0.75rem;
+	border-left: 1px solid var(--border-color);
+}
+
+.tiebreakerBtn {
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+	padding: 0.375rem 0.625rem;
+	background: var(--bg-secondary);
+	border: 1px solid var(--border-color);
+	border-radius: 6px;
+	color: var(--text-secondary);
+	font-size: 0.75rem;
+	cursor: pointer;
+	transition: all 0.15s ease;
+}
+
+.tiebreakerBtn:hover {
+	background: var(--bg-tertiary);
+	color: var(--text-primary);
+}
+
+/* Dropdown */
+.dropdown {
+	position: absolute;
+	top: calc(100% + 4px);
+	left: 0;
+	min-width: 200px;
+	background: var(--bg-primary);
+	border: 1px solid var(--border-color);
+	border-radius: 8px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	z-index: 100;
+	overflow: hidden;
+}
+
+.dropdownItem {
+	display: flex;
+	align-items: center;
+	gap: 0.625rem;
+	width: 100%;
+	padding: 0.625rem 0.875rem;
+	background: transparent;
+	border: none;
+	color: var(--text-secondary);
+	font-size: 0.8125rem;
+	text-align: left;
+	cursor: pointer;
+	transition: all 0.15s ease;
+}
+
+.dropdownItem:hover {
+	background: var(--bg-secondary);
+	color: var(--text-primary);
+}
+
+.dropdownItem.selected {
+	background: var(--accent-primary-alpha);
+	color: var(--accent-primary);
+}
+
+.dropdownItemText {
+	display: flex;
+	flex-direction: column;
+	gap: 0.125rem;
+}
+
+.dropdownItemDesc {
+	font-size: 0.6875rem;
+	color: var(--text-muted);
+}
+
+.dropdownItem.selected .dropdownItemDesc {
+	color: var(--accent-primary);
+	opacity: 0.7;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+	.sortBar {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.sortOptions {
+		width: 100%;
+	}
+
+	.tiebreakerGroup {
+		margin-left: 0;
+		margin-top: 0.5rem;
+		padding-left: 0;
+		border-left: none;
+		padding-top: 0.5rem;
+		border-top: 1px solid var(--border-color);
+		width: 100%;
+	}
+}

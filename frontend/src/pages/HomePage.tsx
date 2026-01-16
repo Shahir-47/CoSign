@@ -4,6 +4,7 @@ import { toast, type ToastOptions } from "react-toastify";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import TaskListComponent from "../components/dashboard/TaskList";
 import FilterBar from "../components/dashboard/FilterBar";
+import SortBar from "../components/dashboard/SortBar";
 import CreateTaskModal from "../components/dashboard/CreateTaskModal";
 import CreateListModal from "../components/dashboard/CreateListModal";
 import ReassignVerifierModal from "../components/dashboard/ReassignVerifierModal";
@@ -11,8 +12,9 @@ import VerifiersModal from "../components/dashboard/VerifiersModal";
 import SubmitProofModal from "../components/dashboard/SubmitProofModal";
 import ReviewProofModal from "../components/dashboard/ReviewProofModal";
 import SupervisingTab from "../components/dashboard/SupervisingTab";
-import type { Task, TaskFilters, TaskList } from "../types";
+import type { Task, TaskFilters, TaskList, TaskSortConfig } from "../types";
 import { api } from "../utils/api";
+import { getSortComparator } from "../utils/sortTasks";
 import { useWebSocket } from "../context/useWebSocket";
 import type {
 	SocketMessage,
@@ -52,6 +54,13 @@ const defaultFilters: TaskFilters = {
 	starred: null,
 	deadlineFrom: undefined,
 	deadlineTo: undefined,
+};
+
+// Default sort: deadline first (ascending), then priority (descending), starred as tiebreaker
+const defaultSortConfig: TaskSortConfig = {
+	primary: { field: "deadline", direction: "asc" },
+	secondary: { field: "priority", direction: "desc" },
+	tiebreaker: "starred",
 };
 
 // Helper to get task ID from modal type like "proof-123"
@@ -100,6 +109,10 @@ export default function HomePage() {
 	const [removedVerifierEmail, setRemovedVerifierEmail] = useState<
 		string | null
 	>(null);
+
+	// Sorting configuration state
+	const [sortConfig, setSortConfig] =
+		useState<TaskSortConfig>(defaultSortConfig);
 
 	// Selected task ID for task detail modal (lifted from TaskList for toast navigation)
 	const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
@@ -437,9 +450,9 @@ export default function HomePage() {
 		setSelectedListId(listId);
 	};
 
-	// Filter tasks based on current filters
+	// Filter and sort tasks based on current filters and sort config
 	const filteredTasks = useMemo(() => {
-		return tasks.filter((task) => {
+		const filtered = tasks.filter((task) => {
 			// Search filter - check title and description
 			if (filters.search) {
 				const search = filters.search.toLowerCase();
@@ -512,7 +525,11 @@ export default function HomePage() {
 
 			return true;
 		});
-	}, [tasks, filters]);
+
+		// Apply sorting
+		const sortedTasks = [...filtered].sort(getSortComparator(sortConfig));
+		return sortedTasks;
+	}, [tasks, filters, sortConfig]);
 
 	// Calculate stats from filtered tasks
 	const pendingProofCount = filteredTasks.filter(
@@ -595,6 +612,10 @@ export default function HomePage() {
 							filters={filters}
 							onFiltersChange={setFilters}
 						/>
+					)}
+
+					{!isLoading && tasks.length > 0 && (
+						<SortBar sortConfig={sortConfig} onSortChange={setSortConfig} />
 					)}
 
 					<TaskListComponent
