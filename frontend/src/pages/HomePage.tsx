@@ -20,6 +20,8 @@ import type {
 	SocketMessage,
 	TaskUpdatedPayload,
 	NewTaskAssignedPayload,
+	VerifierAddedPayload,
+	VerifierRemovedPayload,
 } from "../context/websocket.types";
 import {
 	parseURLState,
@@ -423,6 +425,23 @@ export default function HomePage() {
 						newTaskToastOptions
 					);
 				}
+			} else if (message.type === "VERIFIER_ADDED") {
+				const payload = message.payload as VerifierAddedPayload;
+
+				// Show notification that someone added you as their verifier
+				const toastOptions: ToastOptions = {
+					icon: false,
+					onClick: () => setActiveTab("supervising"),
+					style: { cursor: "pointer" },
+				};
+				toast.info(`🤝 ${payload.message}`, toastOptions);
+			} else if (message.type === "VERIFIER_REMOVED") {
+				const payload = message.payload as VerifierRemovedPayload;
+
+				// Show notification that someone removed you as their verifier
+				toast.warning(`👋 ${payload.message}`, {
+					icon: false,
+				});
 			}
 		};
 

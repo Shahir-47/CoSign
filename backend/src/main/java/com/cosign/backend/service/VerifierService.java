@@ -52,9 +52,23 @@ public class VerifierService {
             throw new RuntimeException("You cannot add yourself as a verifier.");
         }
 
+        // Check if already a verifier
+        boolean isNewVerifier = !currentUser.getSavedVerifiers().contains(verifier);
+
         // Add to set
         currentUser.getSavedVerifiers().add(verifier);
         userRepository.save(currentUser);
+
+        // Notify the verifier via WebSocket
+        if (isNewVerifier) {
+            socketService.sendToUser(verifier.getId(), "VERIFIER_ADDED", java.util.Map.of(
+                    "addedById", currentUser.getId(),
+                    "addedByName", currentUser.getFullName(),
+                    "addedByEmail", currentUser.getEmail(),
+                    "addedByProfilePicture", currentUser.getProfilePictureUrl() != null ? currentUser.getProfilePictureUrl() : "",
+                    "message", currentUser.getFullName() + " added you as their accountability partner"
+            ));
+        }
 
         return new VerifierResponse(
                 verifier.getId(),
@@ -116,6 +130,14 @@ public class VerifierService {
         // Remove the relationship
         currentUser.getSavedVerifiers().remove(verifierToRemove);
         userRepository.save(currentUser);
+
+        // Notify the removed verifier via WebSocket
+        socketService.sendToUser(verifierToRemove.getId(), "VERIFIER_REMOVED", java.util.Map.of(
+                "removedById", currentUser.getId(),
+                "removedByName", currentUser.getFullName(),
+                "removedByEmail", currentUser.getEmail(),
+                "message", currentUser.getFullName() + " removed you as their accountability partner"
+        ));
     }
 
     /**

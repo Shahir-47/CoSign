@@ -50,4 +50,19 @@ export interface NewTaskAssignedPayload {
 	verifier: UserInfo;
 }
 
+export interface VerifierAddedPayload {
+	addedById: number;
+	addedByName: string;
+	addedByEmail: string;
+	addedByProfilePicture?: string;
+	message: string;
+}
+
+export interface VerifierRemovedPayload {
+	removedById: number;
+	removedByName: string;
+	removedByEmail: string;
+	message: string;
+}
+
 export type MessageHandler = (message: SocketMessage) => void;
