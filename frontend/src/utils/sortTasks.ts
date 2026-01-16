@@ -18,25 +18,41 @@ const STATUS_ORDER: Record<string, number> = {
 };
 
 export function getSortComparator(
-	config: TaskSortConfig
+	config: TaskSortConfig | null | undefined
 ): (a: Task, b: Task) => number {
+	// Defensive: if no config, return no-op comparator
+	if (!config || !config.primary) {
+		return () => 0;
+	}
+
 	return (a: Task, b: Task) => {
-		// Primary sort
-		let result = compareByOption(a, b, config.primary);
-		if (result !== 0) return result;
-
-		// Secondary sort (if configured)
-		if (config.secondary) {
-			result = compareByOption(a, b, config.secondary);
+		try {
+			// Primary sort
+			let result = compareByOption(a, b, config.primary);
 			if (result !== 0) return result;
-		}
 
-		// Tiebreaker
-		return compareByTiebreaker(a, b, config.tiebreaker);
+			// Secondary sort (if configured)
+			if (config.secondary) {
+				result = compareByOption(a, b, config.secondary);
+				if (result !== 0) return result;
+			}
+
+			// Tiebreaker
+			return compareByTiebreaker(a, b, config.tiebreaker || "starred");
+		} catch {
+			// If anything goes wrong, don't crash - just don't sort
+			return 0;
+		}
 	};
 }
 
-function compareByOption(a: Task, b: Task, option: SortOption): number {
+function compareByOption(
+	a: Task,
+	b: Task,
+	option: SortOption | null | undefined
+): number {
+	if (!option || !option.field) return 0;
+
 	const { field, direction } = option;
 	let result = 0;
 
@@ -84,6 +100,9 @@ function compareByOption(a: Task, b: Task, option: SortOption): number {
 			result = titleA.localeCompare(titleB);
 			break;
 		}
+		default:
+			// Unknown field, don't sort
+			return 0;
 	}
 
 	// Apply direction

@@ -190,9 +190,15 @@ export default function SortBar({ sortConfig, onSortChange }: SortBarProps) {
 	const secondaryField = getSecondaryField();
 	const tiebreaker = getTiebreaker();
 
-	const PrimaryIcon = primaryField?.icon || ArrowUpDown;
-	const SecondaryIcon = secondaryField?.icon || Plus;
-	const TiebreakerIcon = tiebreaker?.icon || Star;
+	// Defensive: fallback to defaults if fields not found (bad URL state)
+	const PrimaryIcon = primaryField?.icon ?? ArrowUpDown;
+	const SecondaryIcon = secondaryField?.icon ?? Plus;
+	const TiebreakerIcon = tiebreaker?.icon ?? Star;
+
+	// If primary field is invalid, don't render (bad state)
+	if (!primaryField) {
+		return null;
+	}
 
 	return (
 		<div className={styles.sortBar}>
