@@ -259,6 +259,11 @@
 	border-color: var(--accent-primary);
 }
 
+.dateInput::-webkit-calendar-picker-indicator {
+	filter: invert(1);
+	cursor: pointer;
+}
+
 .countRow {
 	display: flex;
 	align-items: center;

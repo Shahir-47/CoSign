@@ -200,6 +200,11 @@
 	border-color: var(--accent-primary);
 }
 
+.dateInput::-webkit-calendar-picker-indicator {
+	filter: invert(1);
+	cursor: pointer;
+}
+
 .dateSeparator {
 	color: var(--text-muted);
 	font-size: 0.8125rem;
