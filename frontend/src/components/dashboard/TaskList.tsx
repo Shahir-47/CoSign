@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { ClipboardList, ChevronDown, Clock, CheckCircle2 } from "lucide-react";
 import type { Task } from "../../types";
 import TaskCard from "./TaskCard";
@@ -72,7 +72,21 @@ export default function TaskList({
 		return tasks.find((t) => t.id === selectedTaskId) || null;
 	}, [tasks, selectedTaskId]);
 
+	// Time trigger to re-evaluate overdue status every minute
+	// This ensures tasks actively move to the overdue section when their deadline passes
+	const [currentTime, setCurrentTime] = useState(Date.now());
+
+	useEffect(() => {
+		// Check every 30 seconds if any tasks have become overdue
+		const interval = setInterval(() => {
+			setCurrentTime(Date.now());
+		}, 30000); // 30 seconds
+
+		return () => clearInterval(interval);
+	}, []);
+
 	// Separate active, completed, and overdue tasks
+	// Re-evaluates when tasks change OR when currentTime updates (every 30s)
 	const { activeTasks, completedTasks, overdueTasks } = useMemo(() => {
 		const now = new Date();
 		const active: Task[] = [];
@@ -88,8 +102,13 @@ export default function TaskList({
 				return;
 			}
 
-			// Only consider PENDING_PROOF or PENDING_VERIFICATION tasks as overdue
-			// Missed and Paused tasks go to their natural position
+			// MISSED tasks always go to overdue section (no reassignment needed)
+			if (task.status === "MISSED") {
+				overdue.push(task);
+				return;
+			}
+
+			// PENDING_PROOF or PENDING_VERIFICATION tasks that are past deadline go to overdue
 			const isOverdue =
 				deadline < now &&
 				(task.status === "PENDING_PROOF" ||
@@ -119,7 +138,18 @@ export default function TaskList({
 			completedTasks: completed,
 			overdueTasks: overdue,
 		};
-	}, [tasks]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [tasks, currentTime]);
+
+	// Auto-expand overdue section when tasks first become overdue
+	const prevOverdueCountRef = useRef(overdueTasks.length);
+	useEffect(() => {
+		// If overdue count increased and section is collapsed, auto-expand it
+		if (overdueTasks.length > prevOverdueCountRef.current && !showOverdue) {
+			setShowOverdue(true);
+		}
+		prevOverdueCountRef.current = overdueTasks.length;
+	}, [overdueTasks.length, showOverdue, setShowOverdue]);
 
 	if (isLoading) {
 		return (
