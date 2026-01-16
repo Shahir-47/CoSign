@@ -570,7 +570,12 @@ export function clearListDraft(): void {
 }
 
 // Repeat Modal Draft
-export type RepeatFrequency = "none" | "daily" | "weekly" | "monthly" | "yearly";
+export type RepeatFrequency =
+	| "none"
+	| "daily"
+	| "weekly"
+	| "monthly"
+	| "yearly";
 export type RepeatEndType = "never" | "date" | "count";
 
 export interface RepeatDraft {

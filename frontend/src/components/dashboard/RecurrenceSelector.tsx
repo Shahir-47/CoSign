@@ -133,10 +133,13 @@ export default function RecurrenceSelector({
 	const [count, setCount] = useState(parsed.count);
 	const [internalIsOpen, setInternalIsOpen] = useState(false);
 	const [lastPropValue, setLastPropValue] = useState(value);
-	const saveDraftTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const saveDraftTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+		null
+	);
 
 	// Use controlled state if provided, otherwise use internal state
-	const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
+	const isOpen =
+		controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
 	const setIsOpen = (open: boolean) => {
 		if (onModalOpenChange) {
 			onModalOpenChange(open);
@@ -154,7 +157,7 @@ export default function RecurrenceSelector({
 		endDate: string;
 		count: number;
 	} | null>(null);
-	
+
 	// Track previous isOpen state for detecting open/close transitions
 	const [wasOpen, setWasOpen] = useState(false);
 	const [draftLoaded, setDraftLoaded] = useState(false);
@@ -204,7 +207,7 @@ export default function RecurrenceSelector({
 			});
 		}
 	}
-	
+
 	// Detect modal close transition
 	if (!isOpen && wasOpen) {
 		setWasOpen(false);
