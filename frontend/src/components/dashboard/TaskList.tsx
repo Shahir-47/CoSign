@@ -20,6 +20,7 @@ interface TaskListProps {
 		newListId: number | null,
 		newListName: string
 	) => void;
+	onRepeatPatternUpdated?: (task: Task) => void;
 	selectedTaskId?: number | null;
 	onSelectTask?: (taskId: number | null) => void;
 	// Scroll to a specific task card after navigation
@@ -43,6 +44,7 @@ export default function TaskList({
 	onReviewProof,
 	onTaskUpdated,
 	onTaskMoved,
+	onRepeatPatternUpdated,
 	selectedTaskId: controlledSelectedTaskId,
 	onSelectTask,
 	scrollToTaskId,
@@ -375,6 +377,7 @@ export default function TaskList({
 				onReviewProof={onReviewProof}
 				onTaskUpdated={onTaskUpdated}
 				onTaskMoved={onTaskMoved}
+				onRepeatPatternUpdated={onRepeatPatternUpdated}
 			/>
 		</>
 	);

@@ -651,6 +651,12 @@ export default function HomePage() {
 		);
 	};
 
+	// Handle repeat pattern updated - scroll to the task
+	const handleRepeatPatternUpdated = (updatedTask: Task) => {
+		// Scroll to the task to highlight it
+		setScrollToTaskId(updatedTask.id);
+	};
+
 	// Handle task moved to a different list - navigate and show toast
 	const handleTaskMoved = (
 		movedTask: Task,
@@ -877,6 +883,7 @@ export default function HomePage() {
 						onReviewProof={handleOpenReviewProof}
 						onTaskUpdated={handleTaskUpdated}
 						onTaskMoved={handleTaskMoved}
+						onRepeatPatternUpdated={handleRepeatPatternUpdated}
 						selectedTaskId={selectedTaskId}
 						onSelectTask={setSelectedTaskId}
 						scrollToTaskId={scrollToTaskId}

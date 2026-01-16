@@ -41,6 +41,7 @@ import {
 	Info,
 } from "lucide-react";
 import type { Task, TaskDetails, ProofAttachment, TaskList } from "../../types";
+import { toast } from "react-toastify";
 import { api } from "../../utils/api";
 import { formatRRuleDisplay } from "../../utils/formatters";
 import ViewAttachmentModal from "../shared/ViewAttachmentModal";
@@ -64,6 +65,7 @@ interface TaskDetailModalProps {
 		newListId: number | null,
 		newListName: string
 	) => void;
+	onRepeatPatternUpdated?: (task: Task) => void;
 }
 const LIST_ICON_MAP: Record<string, React.ComponentType<{ size?: number }>> = {
 	inbox: Inbox,
@@ -239,6 +241,7 @@ export default function TaskDetailModal({
 	onReviewProof,
 	onTaskUpdated,
 	onTaskMoved,
+	onRepeatPatternUpdated,
 }: TaskDetailModalProps) {
 	const [, setTick] = useState(0);
 	const { isUserOnline, subscribe } = useWebSocket();
@@ -426,8 +429,21 @@ export default function TaskDetailModal({
 			if (onTaskUpdated) {
 				onTaskUpdated(updatedTask);
 			}
+
+			// Notify parent for scroll and show toast
+			const patternText = newPattern ? "updated" : "removed";
+			toast.success(`🔄 Repeat pattern ${patternText}`, {
+				icon: false,
+				onClick: () => {
+					if (onRepeatPatternUpdated) {
+						onRepeatPatternUpdated(updatedTask);
+					}
+				},
+				style: { cursor: "pointer" },
+			});
 		} catch (error) {
 			console.error("Failed to update repeat pattern:", error);
+			toast.error("Failed to update repeat pattern");
 		} finally {
 			setIsSavingRepeat(false);
 		}
