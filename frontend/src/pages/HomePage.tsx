@@ -161,10 +161,61 @@ export default function HomePage() {
 	const isModalOpen = modalStack.includes("create-task");
 	const isListModalOpen = modalStack.includes("create-list");
 	const isVerifiersModalOpen = modalStack.includes("verifiers");
+	const isRepeatModalOpen = modalStack.includes("repeat");
 
 	// Mark as initialized after first render
 	useEffect(() => {
 		initializedRef.current = true;
+	}, []);
+
+	// Handle browser back/forward navigation (popstate event)
+	useEffect(() => {
+		const handlePopState = () => {
+			const urlState = parseURLState();
+
+			// Sync modal stack from URL
+			setModalStack(urlState.modalStack);
+
+			// Sync tab
+			if (urlState.tab) {
+				setActiveTab(urlState.tab);
+			}
+
+			// Sync selected list
+			if (urlState.list !== undefined) {
+				setSelectedListId(urlState.list);
+			}
+
+			// Sync filters
+			if (urlState.filters) {
+				setFilters((prev) => ({ ...prev, ...urlState.filters }));
+			}
+
+			// Sync sort config
+			if (urlState.sortConfig) {
+				setSortConfig(urlState.sortConfig);
+			}
+
+			// Sync section visibility
+			if (urlState.showOverdue !== undefined) {
+				setShowOverdue(urlState.showOverdue);
+			}
+			if (urlState.showCompleted !== undefined) {
+				setShowCompleted(urlState.showCompleted);
+			}
+
+			// Sync selected task from modal stack
+			const taskModal = urlState.modalStack.find((m) => m.startsWith("task-"));
+			if (taskModal) {
+				const id = parseInt(taskModal.split("-")[1], 10);
+				setSelectedTaskId(isNaN(id) ? null : id);
+			} else {
+				setSelectedTaskId(null);
+			}
+		};
+
+		window.addEventListener("popstate", handlePopState);
+		return () => window.removeEventListener("popstate", handlePopState);
 	}, []);
 
 	// Sync URL when tab changes
@@ -506,6 +557,17 @@ export default function HomePage() {
 		closeModal("create-task");
 	};
 
+	const handleRepeatModalOpenChange = useCallback(
+		(open: boolean) => {
+			if (open) {
+				openModal("repeat");
+			} else {
+				closeModal("repeat");
+			}
+		},
+		[openModal, closeModal]
+	);
+
 	const handleOpenCreateList = () => {
 		openModal("create-list");
 	};
@@ -817,6 +879,8 @@ export default function HomePage() {
 				refreshListsKey={refreshListsKey}
 				newlyAddedVerifierEmail={newlyAddedVerifierEmail}
 				removedVerifierEmail={removedVerifierEmail}
+				isRepeatModalOpen={isRepeatModalOpen}
+				onRepeatModalOpenChange={handleRepeatModalOpenChange}
 			/>
 
 			<CreateListModal

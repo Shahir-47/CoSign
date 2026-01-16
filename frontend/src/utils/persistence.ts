@@ -14,6 +14,7 @@ const STORAGE_KEYS = {
 	TASK_DRAFT: "cosign_task_draft",
 	PROOF_DRAFT: "cosign_proof_draft_", // + taskId
 	LIST_DRAFT: "cosign_list_draft",
+	REPEAT_DRAFT: "cosign_repeat_draft",
 } as const;
 
 // ============ URL State Management ============
@@ -22,6 +23,7 @@ export type ModalType =
 	| "create-task"
 	| "create-list"
 	| "verifiers"
+	| "repeat"
 	| `proof-${number}`
 	| `review-${number}`
 	| `reassign-${number}`
@@ -211,7 +213,8 @@ function isValidModalType(modal: string): boolean {
 	if (
 		modal === "create-task" ||
 		modal === "create-list" ||
-		modal === "verifiers"
+		modal === "verifiers" ||
+		modal === "repeat"
 	) {
 		return true;
 	}
@@ -563,5 +566,53 @@ export function clearListDraft(): void {
 		localStorage.removeItem(STORAGE_KEYS.LIST_DRAFT);
 	} catch (e) {
 		console.warn("Failed to clear list draft:", e);
+	}
+}
+
+// Repeat Modal Draft
+export type RepeatFrequency = "none" | "daily" | "weekly" | "monthly" | "yearly";
+export type RepeatEndType = "never" | "date" | "count";
+
+export interface RepeatDraft {
+	frequency: RepeatFrequency;
+	interval: number;
+	weekdays: string[];
+	endType: RepeatEndType;
+	endDate: string;
+	count: number;
+	savedAt: number;
+}
+
+export function saveRepeatDraft(draft: Omit<RepeatDraft, "savedAt">): void {
+	try {
+		const data: RepeatDraft = { ...draft, savedAt: Date.now() };
+		localStorage.setItem(STORAGE_KEYS.REPEAT_DRAFT, JSON.stringify(data));
+	} catch (e) {
+		console.warn("Failed to save repeat draft:", e);
+	}
+}
+
+export function loadRepeatDraft(): RepeatDraft | null {
+	try {
+		const data = localStorage.getItem(STORAGE_KEYS.REPEAT_DRAFT);
+		if (!data) return null;
+		const draft = JSON.parse(data) as RepeatDraft;
+		// Expire drafts after 1 hour (repeat modal is transient)
+		if (Date.now() - draft.savedAt > 60 * 60 * 1000) {
+			clearRepeatDraft();
+			return null;
+		}
+		return draft;
+	} catch (e) {
+		console.warn("Failed to load repeat draft:", e);
+		return null;
+	}
+}
+
+export function clearRepeatDraft(): void {
+	try {
+		localStorage.removeItem(STORAGE_KEYS.REPEAT_DRAFT);
+	} catch (e) {
+		console.warn("Failed to clear repeat draft:", e);
 	}
 }

@@ -1,16 +1,26 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Repeat, X, Calendar, Hash } from "lucide-react";
 import { RRule, Weekday } from "rrule";
+import {
+	saveRepeatDraft,
+	loadRepeatDraft,
+	clearRepeatDraft,
+	type RepeatFrequency,
+	type RepeatEndType,
+} from "../../utils/persistence";
 import styles from "./RecurrenceSelector.module.css";
 
 interface RecurrenceSelectorProps {
 	value?: string; // Current RRULE string
 	onChange: (rrule: string | undefined) => void;
 	disabled?: boolean;
+	// URL tracking props
+	isModalOpen?: boolean; // Controlled from parent via URL
+	onModalOpenChange?: (open: boolean) => void; // Notify parent of open state changes
 }
 
-type Frequency = "none" | "daily" | "weekly" | "monthly" | "yearly";
-type EndType = "never" | "date" | "count";
+type Frequency = RepeatFrequency;
+type EndType = RepeatEndType;
 
 const WEEKDAYS = [
 	{ key: "MO", label: "Mon", rrule: RRule.MO },
@@ -110,6 +120,8 @@ export default function RecurrenceSelector({
 	value,
 	onChange,
 	disabled = false,
+	isModalOpen: controlledIsOpen,
+	onModalOpenChange,
 }: RecurrenceSelectorProps) {
 	const parsed = useMemo(() => parseRRule(value), [value]);
 
@@ -119,8 +131,33 @@ export default function RecurrenceSelector({
 	const [endType, setEndType] = useState<EndType>(parsed.endType);
 	const [endDate, setEndDate] = useState(parsed.endDate);
 	const [count, setCount] = useState(parsed.count);
-	const [isOpen, setIsOpen] = useState(false);
+	const [internalIsOpen, setInternalIsOpen] = useState(false);
 	const [lastPropValue, setLastPropValue] = useState(value);
+	const saveDraftTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	// Use controlled state if provided, otherwise use internal state
+	const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
+	const setIsOpen = (open: boolean) => {
+		if (onModalOpenChange) {
+			onModalOpenChange(open);
+		} else {
+			setInternalIsOpen(open);
+		}
+	};
+
+	// Store state when modal opens so we can revert on cancel
+	const [savedState, setSavedState] = useState<{
+		frequency: Frequency;
+		intervalVal: number;
+		weekdays: string[];
+		endType: EndType;
+		endDate: string;
+		count: number;
+	} | null>(null);
+	
+	// Track previous isOpen state for detecting open/close transitions
+	const [wasOpen, setWasOpen] = useState(false);
+	const [draftLoaded, setDraftLoaded] = useState(false);
 
 	// Sync state when value prop changes (e.g., editing existing task)
 	if (value !== lastPropValue) {
@@ -133,6 +170,102 @@ export default function RecurrenceSelector({
 		setCount(p.count);
 		setLastPropValue(value);
 	}
+
+	// Detect modal open transition in controlled mode and load draft
+	if (isOpen && controlledIsOpen !== undefined && !wasOpen && !draftLoaded) {
+		setWasOpen(true);
+		setDraftLoaded(true);
+		const draft = loadRepeatDraft();
+		if (draft) {
+			setFrequency(draft.frequency);
+			setIntervalVal(draft.interval);
+			setWeekdays(draft.weekdays);
+			setEndType(draft.endType);
+			setEndDate(draft.endDate);
+			setCount(draft.count);
+			// Save the original state for cancel
+			setSavedState({
+				frequency: parsed.frequency,
+				intervalVal: parsed.interval,
+				weekdays: [...parsed.weekdays],
+				endType: parsed.endType,
+				endDate: parsed.endDate,
+				count: parsed.count,
+			});
+		} else {
+			// No draft, save current state for cancel
+			setSavedState({
+				frequency,
+				intervalVal,
+				weekdays: [...weekdays],
+				endType,
+				endDate,
+				count,
+			});
+		}
+	}
+	
+	// Detect modal close transition
+	if (!isOpen && wasOpen) {
+		setWasOpen(false);
+		setDraftLoaded(false);
+	}
+
+	// Auto-save draft on state changes when modal is open (debounced)
+	useEffect(() => {
+		if (!isOpen) return;
+
+		if (saveDraftTimeoutRef.current) {
+			clearTimeout(saveDraftTimeoutRef.current);
+		}
+
+		saveDraftTimeoutRef.current = setTimeout(() => {
+			saveRepeatDraft({
+				frequency,
+				interval: intervalVal,
+				weekdays,
+				endType,
+				endDate,
+				count,
+			});
+		}, 300); // Save after 300ms of inactivity
+
+		return () => {
+			if (saveDraftTimeoutRef.current) {
+				clearTimeout(saveDraftTimeoutRef.current);
+			}
+		};
+	}, [isOpen, frequency, intervalVal, weekdays, endType, endDate, count]);
+
+	// Save state when modal opens
+	const handleOpen = () => {
+		if (!disabled) {
+			setSavedState({
+				frequency,
+				intervalVal,
+				weekdays: [...weekdays],
+				endType,
+				endDate,
+				count,
+			});
+			setIsOpen(true);
+		}
+	};
+
+	// Cancel and revert to saved state
+	const handleCancel = () => {
+		if (savedState) {
+			setFrequency(savedState.frequency);
+			setIntervalVal(savedState.intervalVal);
+			setWeekdays(savedState.weekdays);
+			setEndType(savedState.endType);
+			setEndDate(savedState.endDate);
+			setCount(savedState.count);
+		}
+		setSavedState(null);
+		clearRepeatDraft();
+		setIsOpen(false);
+	};
 
 	// Build RRULE string from current state
 	const buildRRule = (): string | undefined => {
@@ -187,6 +320,8 @@ export default function RecurrenceSelector({
 	const handleApply = () => {
 		const rrule = buildRRule();
 		onChange(rrule);
+		setSavedState(null);
+		clearRepeatDraft();
 		setIsOpen(false);
 	};
 
@@ -198,6 +333,8 @@ export default function RecurrenceSelector({
 		setEndDate("");
 		setCount(10);
 		onChange(undefined);
+		setSavedState(null);
+		clearRepeatDraft();
 		setIsOpen(false);
 	};
 
@@ -273,7 +410,7 @@ export default function RecurrenceSelector({
 			<button
 				type="button"
 				className={`${styles.trigger} ${value ? styles.hasValue : ""}`}
-				onClick={() => !disabled && setIsOpen(true)}
+				onClick={handleOpen}
 				disabled={disabled}
 			>
 				<Repeat size={18} />
@@ -294,7 +431,7 @@ export default function RecurrenceSelector({
 			</button>
 
 			{isOpen && (
-				<div className={styles.overlay} onClick={() => setIsOpen(false)}>
+				<div className={styles.overlay} onClick={handleCancel}>
 					<div className={styles.modal} onClick={(e) => e.stopPropagation()}>
 						<div className={styles.header}>
 							<h3>
@@ -304,7 +441,7 @@ export default function RecurrenceSelector({
 							<button
 								type="button"
 								className={styles.closeButton}
-								onClick={() => setIsOpen(false)}
+								onClick={handleCancel}
 							>
 								<X size={20} />
 							</button>

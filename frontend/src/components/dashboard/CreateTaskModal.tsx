@@ -53,6 +53,9 @@ interface CreateTaskModalProps {
 	refreshListsKey?: number;
 	newlyAddedVerifierEmail?: string | null;
 	removedVerifierEmail?: string | null;
+	// Repeat modal URL tracking
+	isRepeatModalOpen?: boolean;
+	onRepeatModalOpenChange?: (open: boolean) => void;
 }
 
 interface FormErrors {
@@ -80,6 +83,8 @@ export default function CreateTaskModal({
 	refreshListsKey,
 	newlyAddedVerifierEmail,
 	removedVerifierEmail,
+	isRepeatModalOpen,
+	onRepeatModalOpenChange,
 }: CreateTaskModalProps) {
 	const { isUserOnline, subscribe } = useWebSocket();
 	const draftLoadedRef = useRef(false);
@@ -679,6 +684,8 @@ export default function CreateTaskModal({
 							value={formData.repeatPattern}
 							onChange={(rrule) => handleChange("repeatPattern", rrule)}
 							disabled={isLoading}
+							isModalOpen={isRepeatModalOpen}
+							onModalOpenChange={onRepeatModalOpenChange}
 						/>
 					</div>
 
