@@ -46,6 +46,43 @@ public class TaskService {
         this.socketService = socketService;
     }
 
+    private Map<String, Object> buildTaskPayload(Task task) {
+        Map<String, Object> taskPayload = new java.util.HashMap<>();
+        taskPayload.put("taskId", task.getId());
+        taskPayload.put("title", task.getTitle());
+        taskPayload.put("creatorName", task.getCreator().getFullName());
+        taskPayload.put("description", task.getDescription());
+        taskPayload.put("deadline", task.getDeadline().toString());
+        taskPayload.put("priority", task.getPriority().toString());
+        taskPayload.put("status", task.getStatus().toString());
+        taskPayload.put("starred", task.isStarred());
+        taskPayload.put("location", task.getLocation());
+        taskPayload.put("tags", task.getTags());
+        taskPayload.put("createdAt", task.getCreatedAt().toString());
+
+        if (task.getSubmittedAt() != null) {
+            taskPayload.put("submittedAt", task.getSubmittedAt().toString());
+        }
+
+        // Include creator info
+        Map<String, Object> creatorInfo = new java.util.HashMap<>();
+        creatorInfo.put("id", task.getCreator().getId());
+        creatorInfo.put("fullName", task.getCreator().getFullName());
+        creatorInfo.put("email", task.getCreator().getEmail());
+        creatorInfo.put("timezone", task.getCreator().getTimezone());
+        taskPayload.put("creator", creatorInfo);
+
+        // Include verifier info
+        Map<String, Object> verifierInfo = new java.util.HashMap<>();
+        verifierInfo.put("id", task.getVerifier().getId());
+        verifierInfo.put("fullName", task.getVerifier().getFullName());
+        verifierInfo.put("email", task.getVerifier().getEmail());
+        verifierInfo.put("timezone", task.getVerifier().getTimezone());
+        taskPayload.put("verifier", verifierInfo);
+
+        return taskPayload;
+    }
+
     @Transactional
     public Task createTask(TaskRequest request) {
         User creator = getCurrentUser();
@@ -88,32 +125,7 @@ public class TaskService {
         Task savedTask = taskRepository.save(task);
 
         // Notify verifier about the new task with full task data for real-time UI update
-        Map<String, Object> taskPayload = new java.util.HashMap<>();
-        taskPayload.put("taskId", savedTask.getId());
-        taskPayload.put("title", savedTask.getTitle());
-        taskPayload.put("creatorName", savedTask.getCreator().getFullName());
-        taskPayload.put("description", savedTask.getDescription());
-        taskPayload.put("deadline", savedTask.getDeadline().toString());
-        taskPayload.put("priority", savedTask.getPriority().toString());
-        taskPayload.put("status", savedTask.getStatus().toString());
-        taskPayload.put("starred", savedTask.isStarred());
-        taskPayload.put("location", savedTask.getLocation());
-        taskPayload.put("tags", savedTask.getTags());
-        taskPayload.put("createdAt", savedTask.getCreatedAt().toString());
-        // Include creator info for the verifier's view
-        Map<String, Object> creatorInfo = new java.util.HashMap<>();
-        creatorInfo.put("id", savedTask.getCreator().getId());
-        creatorInfo.put("fullName", savedTask.getCreator().getFullName());
-        creatorInfo.put("email", savedTask.getCreator().getEmail());
-        creatorInfo.put("timezone", savedTask.getCreator().getTimezone());
-        taskPayload.put("creator", creatorInfo);
-        // Include verifier info
-        Map<String, Object> verifierInfo = new java.util.HashMap<>();
-        verifierInfo.put("id", savedTask.getVerifier().getId());
-        verifierInfo.put("fullName", savedTask.getVerifier().getFullName());
-        verifierInfo.put("email", savedTask.getVerifier().getEmail());
-        verifierInfo.put("timezone", savedTask.getVerifier().getTimezone());
-        taskPayload.put("verifier", verifierInfo);
+        Map<String, Object> taskPayload = buildTaskPayload(savedTask);
 
         // Notify verifier about the new task
         socketService.sendToUser(savedTask.getVerifier().getId(), "NEW_TASK_ASSIGNED", taskPayload);
@@ -189,35 +201,7 @@ public class TaskService {
         Task savedTask = taskRepository.save(task);
 
         // Notify new verifier with full task data for real-time UI update
-        Map<String, Object> taskPayload = new java.util.HashMap<>();
-        taskPayload.put("taskId", savedTask.getId());
-        taskPayload.put("title", savedTask.getTitle());
-        taskPayload.put("creatorName", savedTask.getCreator().getFullName());
-        taskPayload.put("description", savedTask.getDescription());
-        taskPayload.put("deadline", savedTask.getDeadline().toString());
-        taskPayload.put("priority", savedTask.getPriority().toString());
-        taskPayload.put("status", savedTask.getStatus().toString());
-        taskPayload.put("starred", savedTask.isStarred());
-        taskPayload.put("location", savedTask.getLocation());
-        taskPayload.put("tags", savedTask.getTags());
-        taskPayload.put("createdAt", savedTask.getCreatedAt().toString());
-        if (savedTask.getSubmittedAt() != null) {
-            taskPayload.put("submittedAt", savedTask.getSubmittedAt().toString());
-        }
-        // Include creator info
-        Map<String, Object> creatorInfo = new java.util.HashMap<>();
-        creatorInfo.put("id", savedTask.getCreator().getId());
-        creatorInfo.put("fullName", savedTask.getCreator().getFullName());
-        creatorInfo.put("email", savedTask.getCreator().getEmail());
-        creatorInfo.put("timezone", savedTask.getCreator().getTimezone());
-        taskPayload.put("creator", creatorInfo);
-        // Include verifier info
-        Map<String, Object> verifierInfo = new java.util.HashMap<>();
-        verifierInfo.put("id", savedTask.getVerifier().getId());
-        verifierInfo.put("fullName", savedTask.getVerifier().getFullName());
-        verifierInfo.put("email", savedTask.getVerifier().getEmail());
-        verifierInfo.put("timezone", savedTask.getVerifier().getTimezone());
-        taskPayload.put("verifier", verifierInfo);
+        Map<String, Object> taskPayload = buildTaskPayload(savedTask);
 
         socketService.sendToUser(savedTask.getVerifier().getId(), "NEW_TASK_ASSIGNED", taskPayload);
 
@@ -234,7 +218,7 @@ public class TaskService {
         creatorPayload.put("status", savedTask.getStatus().toString());
         creatorPayload.put("message", "Verifier reassigned for: " + savedTask.getTitle());
         // Include new verifier info so UI can update
-        creatorPayload.put("verifier", verifierInfo);
+        creatorPayload.put("verifier", taskPayload.get("verifier"));
         creatorPayload.put("triggeredByEmail", user.getEmail());
 
         socketService.sendToUser(savedTask.getCreator().getId(), "TASK_UPDATED", creatorPayload);
@@ -283,23 +267,7 @@ public class TaskService {
         if (nextDeadline == null) return;
 
         // Create the Next Instance
-        Task nextTask = new Task();
-        nextTask.setTitle(finishedTask.getTitle());
-        nextTask.setDescription(finishedTask.getDescription());
-        nextTask.setDeadline(nextDeadline);
-        nextTask.setPriority(finishedTask.getPriority());
-        nextTask.setLocation(finishedTask.getLocation());
-        nextTask.setTags(finishedTask.getTags());
-        nextTask.setStarred(finishedTask.isStarred());
-
-        // Copy the rule so the chain continues indefinitely or until end date
-        nextTask.setRepeatPattern(rrule);
-
-        nextTask.setCreator(finishedTask.getCreator());
-        nextTask.setVerifier(finishedTask.getVerifier());
-        nextTask.setList(finishedTask.getList());
-
-        nextTask.setStatus(TaskStatus.PENDING_PROOF);
+        Task nextTask = createNextTaskInstance(finishedTask, nextDeadline, rrule);
 
         Task savedTask = taskRepository.save(nextTask);
 
@@ -310,6 +278,27 @@ public class TaskService {
                 "message", "Recurring task created: " + savedTask.getTitle(),
                 "deadline", savedTask.getDeadline().toString()
         ));
+    }
+
+    private Task createNextTaskInstance(Task previousTask, LocalDateTime nextDeadline, String rrule) {
+        Task nextTask = new Task();
+        nextTask.setTitle(previousTask.getTitle());
+        nextTask.setDescription(previousTask.getDescription());
+        nextTask.setDeadline(nextDeadline);
+        nextTask.setPriority(previousTask.getPriority());
+        nextTask.setLocation(previousTask.getLocation());
+        nextTask.setTags(previousTask.getTags());
+        nextTask.setStarred(previousTask.isStarred());
+
+        // Copy the rule so the chain continues indefinitely or until end date
+        nextTask.setRepeatPattern(rrule);
+
+        nextTask.setCreator(previousTask.getCreator());
+        nextTask.setVerifier(previousTask.getVerifier());
+        nextTask.setList(previousTask.getList());
+
+        nextTask.setStatus(TaskStatus.PENDING_PROOF);
+        return nextTask;
     }
 
     // Submit Proof

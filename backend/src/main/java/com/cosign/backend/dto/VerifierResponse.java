@@ -14,13 +14,4 @@ public class VerifierResponse {
     
     @JsonProperty("isOnline")
     private boolean isOnline;
-
-    // Constructor without isOnline for backward compatibility
-    public VerifierResponse(Long id, String fullName, String email, String profilePictureUrl) {
-        this.id = id;
-        this.fullName = fullName;
-        this.email = email;
-        this.profilePictureUrl = profilePictureUrl;
-        this.isOnline = false;
-    }
 }
