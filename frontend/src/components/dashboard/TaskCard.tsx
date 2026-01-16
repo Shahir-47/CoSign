@@ -311,57 +311,97 @@ export default function TaskCard({
 				</div>
 			)}
 
-			{/* Timeline - show task lifecycle timestamps */}
+			{/* Timeline - show task lifecycle timestamps sorted chronologically */}
 			<div className={styles.timeline}>
-				{/* Created */}
-				<div className={styles.timelineItem}>
-					<Calendar size={12} />
-					<span className={styles.timelineLabel}>Created</span>
-					<span className={styles.timelineTime}>
-						{getRelativeTime(task.createdAt)}
-					</span>
-				</div>
+				{(() => {
+					// Build array of timeline events with their timestamps
+					type TimelineEvent = {
+						key: string;
+						timestamp: string;
+						label: string;
+						icon: typeof Calendar;
+						className?: string;
+						displayTime: string;
+					};
 
-				{/* Proof Submitted */}
-				{task.submittedAt && (
-					<div className={styles.timelineItem}>
-						<Send size={12} />
-						<span className={styles.timelineLabel}>Proof Submitted</span>
-						<span className={styles.timelineTime}>
-							{getRelativeTime(task.submittedAt)}
-						</span>
-					</div>
-				)}
+					const events: TimelineEvent[] = [];
 
-				{/* Verified/Rejected */}
-				{task.completedAt && (
-					<div className={`${styles.timelineItem} ${styles.timelineSuccess}`}>
-						<CheckCircle2 size={12} />
-						<span className={styles.timelineLabel}>Approved</span>
-						<span className={styles.timelineTime}>
-							{getRelativeTime(task.completedAt)}
-						</span>
-					</div>
-				)}
+					// Created is always first
+					events.push({
+						key: "created",
+						timestamp: task.createdAt,
+						label: "Created",
+						icon: Calendar,
+						displayTime: getRelativeTime(task.createdAt),
+					});
 
-				{task.rejectedAt && (
-					<div className={`${styles.timelineItem} ${styles.timelineDanger}`}>
-						<RotateCcw size={12} />
-						<span className={styles.timelineLabel}>Rejected</span>
-						<span className={styles.timelineTime}>
-							{getRelativeTime(task.rejectedAt)}
-						</span>
-					</div>
-				)}
+					// Proof Submitted
+					if (task.submittedAt) {
+						events.push({
+							key: "submitted",
+							timestamp: task.submittedAt,
+							label: "Proof Submitted",
+							icon: Send,
+							displayTime: getRelativeTime(task.submittedAt),
+						});
+					}
 
-				{/* Missed */}
-				{task.status === "MISSED" && !task.completedAt && (
-					<div className={`${styles.timelineItem} ${styles.timelineDanger}`}>
-						<XCircle size={12} />
-						<span className={styles.timelineLabel}>Missed</span>
-						<span className={styles.timelineTime}>Deadline passed</span>
-					</div>
-				)}
+					// Approved/Completed
+					if (task.completedAt) {
+						events.push({
+							key: "approved",
+							timestamp: task.completedAt,
+							label: "Approved",
+							icon: CheckCircle2,
+							className: styles.timelineSuccess,
+							displayTime: getRelativeTime(task.completedAt),
+						});
+					}
+
+					// Rejected
+					if (task.rejectedAt) {
+						events.push({
+							key: "rejected",
+							timestamp: task.rejectedAt,
+							label: "Rejected",
+							icon: RotateCcw,
+							className: styles.timelineDanger,
+							displayTime: getRelativeTime(task.rejectedAt),
+						});
+					}
+
+					// Missed (no specific timestamp, use deadline)
+					if (task.status === "MISSED" && !task.completedAt) {
+						events.push({
+							key: "missed",
+							timestamp: task.deadline, // Use deadline as reference
+							label: "Missed",
+							icon: XCircle,
+							className: styles.timelineDanger,
+							displayTime: "Deadline passed",
+						});
+					}
+
+					// Sort by timestamp chronologically (oldest first)
+					events.sort(
+						(a, b) =>
+							new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+					);
+
+					return events.map((event) => {
+						const Icon = event.icon;
+						return (
+							<div
+								key={event.key}
+								className={`${styles.timelineItem} ${event.className || ""}`}
+							>
+								<Icon size={12} />
+								<span className={styles.timelineLabel}>{event.label}</span>
+								<span className={styles.timelineTime}>{event.displayTime}</span>
+							</div>
+						);
+					});
+				})()}
 			</div>
 
 			<div className={styles.footer}>

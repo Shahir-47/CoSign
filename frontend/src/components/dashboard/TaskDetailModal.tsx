@@ -495,50 +495,81 @@ export default function TaskDetailModal({
 							</div>
 						</div>
 
-						{/* Proof Submitted At */}
-						{task.submittedAt && (
-							<div className={styles.detailItem}>
-								<div className={styles.detailIcon}>
-									<Send size={18} />
-								</div>
-								<div className={styles.detailContent}>
-									<span className={styles.detailLabel}>Proof Submitted</span>
-									<span className={styles.detailValue}>
-										{formatDateTime(task.submittedAt)}
-									</span>
-								</div>
-							</div>
-						)}
+						{/* Timeline Events - sorted chronologically after Created */}
+						{(() => {
+							type TimelineEvent = {
+								key: string;
+								timestamp: string;
+								label: string;
+								icon: typeof Send;
+								className?: string;
+								displayTime: string;
+							};
 
-						{/* Rejected At */}
-						{task.rejectedAt && (
-							<div className={`${styles.detailItem} ${styles.detailDanger}`}>
-								<div className={styles.detailIcon}>
-									<RotateCcw size={18} />
-								</div>
-								<div className={styles.detailContent}>
-									<span className={styles.detailLabel}>Proof Rejected</span>
-									<span className={styles.detailValue}>
-										{formatDateTime(task.rejectedAt)}
-									</span>
-								</div>
-							</div>
-						)}
+							const events: TimelineEvent[] = [];
 
-						{/* Completed At */}
-						{task.completedAt && (
-							<div className={`${styles.detailItem} ${styles.detailSuccess}`}>
-								<div className={styles.detailIcon}>
-									<CalendarCheck size={18} />
-								</div>
-								<div className={styles.detailContent}>
-									<span className={styles.detailLabel}>Completed</span>
-									<span className={styles.detailValue}>
-										{formatDateTime(task.completedAt)}
-									</span>
-								</div>
-							</div>
-						)}
+							// Proof Submitted
+							if (task.submittedAt) {
+								events.push({
+									key: "submitted",
+									timestamp: task.submittedAt,
+									label: "Proof Submitted",
+									icon: Send,
+									displayTime: formatDateTime(task.submittedAt),
+								});
+							}
+
+							// Rejected
+							if (task.rejectedAt) {
+								events.push({
+									key: "rejected",
+									timestamp: task.rejectedAt,
+									label: "Proof Rejected",
+									icon: RotateCcw,
+									className: styles.detailDanger,
+									displayTime: formatDateTime(task.rejectedAt),
+								});
+							}
+
+							// Completed
+							if (task.completedAt) {
+								events.push({
+									key: "completed",
+									timestamp: task.completedAt,
+									label: "Completed",
+									icon: CalendarCheck,
+									className: styles.detailSuccess,
+									displayTime: formatDateTime(task.completedAt),
+								});
+							}
+
+							// Sort by timestamp chronologically (oldest first)
+							events.sort(
+								(a, b) =>
+									new Date(a.timestamp).getTime() -
+									new Date(b.timestamp).getTime()
+							);
+
+							return events.map((event) => {
+								const Icon = event.icon;
+								return (
+									<div
+										key={event.key}
+										className={`${styles.detailItem} ${event.className || ""}`}
+									>
+										<div className={styles.detailIcon}>
+											<Icon size={18} />
+										</div>
+										<div className={styles.detailContent}>
+											<span className={styles.detailLabel}>{event.label}</span>
+											<span className={styles.detailValue}>
+												{event.displayTime}
+											</span>
+										</div>
+									</div>
+								);
+							});
+						})()}
 					</div>
 
 					{/* Tags */}
