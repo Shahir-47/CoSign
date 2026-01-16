@@ -1,5 +1,6 @@
 package com.cosign.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -25,6 +26,7 @@ public class User {
     private String email;
 
     @Column(nullable = false)
+    @JsonIgnore
     private String passwordHash;
 
     @Column(nullable = false)
@@ -34,7 +36,9 @@ public class User {
 
     // Verification
     private boolean isEmailVerified = false;
+    @JsonIgnore
     private String emailVerificationToken;
+    @JsonIgnore
     private LocalDateTime emailVerificationTokenExpiry;
 
     @ManyToMany
@@ -45,6 +49,7 @@ public class User {
     )
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
+    @JsonIgnore
     private Set<User> savedVerifiers = new HashSet<>();
 
 

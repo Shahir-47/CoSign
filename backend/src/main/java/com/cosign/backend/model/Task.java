@@ -1,5 +1,7 @@
 package com.cosign.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
@@ -35,10 +37,12 @@ public class Task {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "creator_id", nullable = false)
+    @JsonIgnoreProperties({"savedVerifiers", "passwordHash", "emailVerificationToken", "emailVerificationTokenExpiry"})
     private User creator;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "verifier_id", nullable = false)
+    @JsonIgnoreProperties({"savedVerifiers", "passwordHash", "emailVerificationToken", "emailVerificationTokenExpiry"})
     private User verifier;
 
     @Column(length = 500)
@@ -46,6 +50,7 @@ public class Task {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "list_id")
+    @JsonIgnoreProperties({"tasks", "user"})
     private TaskList list;
 
     // Proof Data
@@ -63,6 +68,7 @@ public class Task {
 
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JoinColumn(name = "penalty_id", referencedColumnName = "id")
+    @JsonIgnoreProperties({"task", "user"})
     private Penalty penalty;
 
     @Column(nullable = false, updatable = false)
