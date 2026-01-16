@@ -84,12 +84,39 @@ public class TaskService {
 
         Task savedTask = taskRepository.save(task);
 
+        // Notify verifier about the new task with full task data for real-time UI update
+        Map<String, Object> taskPayload = new java.util.HashMap<>();
+        taskPayload.put("taskId", savedTask.getId());
+        taskPayload.put("title", savedTask.getTitle());
+        taskPayload.put("creatorName", savedTask.getCreator().getFullName());
+        taskPayload.put("description", savedTask.getDescription());
+        taskPayload.put("deadline", savedTask.getDeadline().toString());
+        taskPayload.put("priority", savedTask.getPriority().toString());
+        taskPayload.put("status", savedTask.getStatus().toString());
+        taskPayload.put("starred", savedTask.isStarred());
+        taskPayload.put("location", savedTask.getLocation());
+        taskPayload.put("tags", savedTask.getTags());
+        taskPayload.put("createdAt", savedTask.getCreatedAt().toString());
+        // Include creator info for the verifier's view
+        Map<String, Object> creatorInfo = new java.util.HashMap<>();
+        creatorInfo.put("id", savedTask.getCreator().getId());
+        creatorInfo.put("fullName", savedTask.getCreator().getFullName());
+        creatorInfo.put("email", savedTask.getCreator().getEmail());
+        creatorInfo.put("timezone", savedTask.getCreator().getTimezone());
+        taskPayload.put("creator", creatorInfo);
+        // Include verifier info
+        Map<String, Object> verifierInfo = new java.util.HashMap<>();
+        verifierInfo.put("id", savedTask.getVerifier().getId());
+        verifierInfo.put("fullName", savedTask.getVerifier().getFullName());
+        verifierInfo.put("email", savedTask.getVerifier().getEmail());
+        verifierInfo.put("timezone", savedTask.getVerifier().getTimezone());
+        taskPayload.put("verifier", verifierInfo);
+
         // Notify verifier about the new task
-        socketService.sendToUser(savedTask.getVerifier().getId(), "NEW_TASK_ASSIGNED", Map.of(
-                "taskId", savedTask.getId(),
-                "title", savedTask.getTitle(),
-                "creatorName", savedTask.getCreator().getFullName()
-        ));
+        socketService.sendToUser(savedTask.getVerifier().getId(), "NEW_TASK_ASSIGNED", taskPayload);
+        
+        // Also notify the creator so their UI updates in real-time
+        socketService.sendToUser(savedTask.getCreator().getId(), "NEW_TASK_ASSIGNED", taskPayload);
 
         return savedTask;
     }
@@ -139,6 +166,9 @@ public class TaskService {
             throw new RuntimeException("Cannot assign yourself as verifier");
         }
 
+        // Store old verifier to notify them
+        User oldVerifier = task.getVerifier();
+
         // Update Task
         task.setVerifier(newVerifier);
 
@@ -155,12 +185,55 @@ public class TaskService {
 
         Task savedTask = taskRepository.save(task);
 
-        // Notify new verifier
-        socketService.sendToUser(savedTask.getVerifier().getId(), "NEW_TASK_ASSIGNED", Map.of(
-                "taskId", savedTask.getId(),
-                "title", savedTask.getTitle(),
-                "creatorName", savedTask.getCreator().getFullName()
-        ));
+        // Notify new verifier with full task data for real-time UI update
+        Map<String, Object> taskPayload = new java.util.HashMap<>();
+        taskPayload.put("taskId", savedTask.getId());
+        taskPayload.put("title", savedTask.getTitle());
+        taskPayload.put("creatorName", savedTask.getCreator().getFullName());
+        taskPayload.put("description", savedTask.getDescription());
+        taskPayload.put("deadline", savedTask.getDeadline().toString());
+        taskPayload.put("priority", savedTask.getPriority().toString());
+        taskPayload.put("status", savedTask.getStatus().toString());
+        taskPayload.put("starred", savedTask.isStarred());
+        taskPayload.put("location", savedTask.getLocation());
+        taskPayload.put("tags", savedTask.getTags());
+        taskPayload.put("createdAt", savedTask.getCreatedAt().toString());
+        if (savedTask.getSubmittedAt() != null) {
+            taskPayload.put("submittedAt", savedTask.getSubmittedAt().toString());
+        }
+        // Include creator info
+        Map<String, Object> creatorInfo = new java.util.HashMap<>();
+        creatorInfo.put("id", savedTask.getCreator().getId());
+        creatorInfo.put("fullName", savedTask.getCreator().getFullName());
+        creatorInfo.put("email", savedTask.getCreator().getEmail());
+        creatorInfo.put("timezone", savedTask.getCreator().getTimezone());
+        taskPayload.put("creator", creatorInfo);
+        // Include verifier info
+        Map<String, Object> verifierInfo = new java.util.HashMap<>();
+        verifierInfo.put("id", savedTask.getVerifier().getId());
+        verifierInfo.put("fullName", savedTask.getVerifier().getFullName());
+        verifierInfo.put("email", savedTask.getVerifier().getEmail());
+        verifierInfo.put("timezone", savedTask.getVerifier().getTimezone());
+        taskPayload.put("verifier", verifierInfo);
+
+        socketService.sendToUser(savedTask.getVerifier().getId(), "NEW_TASK_ASSIGNED", taskPayload);
+
+        // Notify the old verifier so they can remove the task from their list
+        Map<String, Object> oldVerifierPayload = new java.util.HashMap<>();
+        oldVerifierPayload.put("taskId", savedTask.getId());
+        oldVerifierPayload.put("status", "REASSIGNED");
+        oldVerifierPayload.put("message", "Task reassigned to another verifier: " + savedTask.getTitle());
+        socketService.sendToUser(oldVerifier.getId(), "TASK_UPDATED", oldVerifierPayload);
+
+        // Also notify the creator with verifier update so they see the change without refresh
+        Map<String, Object> creatorPayload = new java.util.HashMap<>();
+        creatorPayload.put("taskId", savedTask.getId());
+        creatorPayload.put("status", savedTask.getStatus().toString());
+        creatorPayload.put("message", "Verifier reassigned for: " + savedTask.getTitle());
+        // Include new verifier info so UI can update
+        creatorPayload.put("verifier", verifierInfo);
+
+        socketService.sendToUser(savedTask.getCreator().getId(), "TASK_UPDATED", creatorPayload);
 
         return savedTask;
     }
@@ -202,7 +275,7 @@ public class TaskService {
         task.setSubmittedAt(LocalDateTime.now());
         Task savedTask = taskRepository.save(task);
 
-        // notify verifier with full update data
+        // Build payload for TASK_UPDATED
         Map<String, Object> payload = new java.util.HashMap<>();
         payload.put("taskId", savedTask.getId());
         payload.put("status", "PENDING_VERIFICATION");
@@ -212,7 +285,11 @@ public class TaskService {
             payload.put("submittedAt", savedTask.getSubmittedAt().toString());
         }
 
+        // Notify verifier
         socketService.sendToUser(savedTask.getVerifier().getId(), "TASK_UPDATED", payload);
+
+        // Also notify creator so they see the update without refresh
+        socketService.sendToUser(savedTask.getCreator().getId(), "TASK_UPDATED", payload);
 
         return savedTask;
     }
@@ -274,7 +351,11 @@ public class TaskService {
             payload.put("rejectedAt", savedTask.getRejectedAt().toString());
         }
 
+        // Notify Creator
         socketService.sendToUser(savedTask.getCreator().getId(), "TASK_UPDATED", payload);
+
+        // Also notify Verifier so they see the update without refresh
+        socketService.sendToUser(savedTask.getVerifier().getId(), "TASK_UPDATED", payload);
 
         return savedTask;
     }

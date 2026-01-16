@@ -97,11 +97,21 @@ public class VerifierService {
                 LocalDateTime.now()
         );
 
-        // Pause them
+        // Pause them and notify via WebSocket
         for (Task task : activeTasks) {
             task.setStatus(TaskStatus.PAUSED);
         }
         taskRepository.saveAll(activeTasks);
+
+        // Send WebSocket notifications for each paused task
+        for (Task task : activeTasks) {
+            java.util.Map<String, Object> payload = new java.util.HashMap<>();
+            payload.put("taskId", task.getId());
+            payload.put("status", TaskStatus.PAUSED.toString());
+            payload.put("message", "Task paused - verifier removed: " + task.getTitle());
+
+            socketService.sendToUser(currentUser.getId(), "TASK_UPDATED", payload);
+        }
 
         // Remove the relationship
         currentUser.getSavedVerifiers().remove(verifierToRemove);

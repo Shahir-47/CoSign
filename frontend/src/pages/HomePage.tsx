@@ -189,6 +189,18 @@ export default function HomePage() {
 		const handleSocketMessage = (message: SocketMessage) => {
 			if (message.type === "TASK_UPDATED") {
 				const payload = message.payload as TaskUpdatedPayload;
+
+				// If the task was reassigned away from this user, remove it from their list
+				if (payload.status === "REASSIGNED") {
+					setTasks((prevTasks) =>
+						prevTasks.filter((task) => task.id !== payload.taskId)
+					);
+					toast.info(`🔄 ${payload.message}`, {
+						icon: false,
+					});
+					return;
+				}
+
 				setTasks((prevTasks) =>
 					prevTasks.map((task) =>
 						task.id === payload.taskId
@@ -201,6 +213,8 @@ export default function HomePage() {
 									completedAt: payload.completedAt,
 									rejectedAt: payload.rejectedAt,
 									submittedAt: payload.submittedAt,
+									// Update verifier if included (for reassign)
+									...(payload.verifier && { verifier: payload.verifier }),
 							  }
 							: task
 					)
@@ -219,13 +233,41 @@ export default function HomePage() {
 					toast.info(`📋 ${payload.message}`, {
 						icon: false,
 					});
+				} else if (payload.status === "PAUSED") {
+					toast.warning(`⏸️ ${payload.message}`, {
+						icon: false,
+					});
 				}
 			} else if (message.type === "NEW_TASK_ASSIGNED") {
 				const payload = message.payload as NewTaskAssignedPayload;
-				// If we're on verification-requests tab, refresh to get the new task
-				if (activeTab === "verification-requests") {
-					fetchTasks();
-				}
+				// Build the new task object from the payload
+				const newTask: Task = {
+					id: payload.taskId,
+					title: payload.title,
+					description: payload.description,
+					deadline: payload.deadline,
+					priority: payload.priority as Task["priority"],
+					status: payload.status as Task["status"],
+					starred: payload.starred,
+					location: payload.location,
+					tags: payload.tags,
+					createdAt: payload.createdAt,
+					submittedAt: payload.submittedAt,
+					creator: payload.creator,
+					verifier: payload.verifier,
+				};
+
+				// Add to the task list for real-time update (applies to both tabs)
+				// The correct tasks will be shown based on the active tab's API fetch
+				setTasks((prevTasks) => {
+					// Only add if not already in the list
+					if (prevTasks.some((t) => t.id === newTask.id)) {
+						return prevTasks;
+					}
+					return [newTask, ...prevTasks];
+				});
+
+				// Show toast notification
 				toast.info(
 					`📥 New task: "${payload.title}" from ${payload.creatorName}`,
 					{
@@ -237,7 +279,7 @@ export default function HomePage() {
 
 		const unsubscribe = subscribe(handleSocketMessage);
 		return unsubscribe;
-	}, [subscribe, activeTab, fetchTasks]);
+	}, [subscribe]);
 
 	const handleTabChange = (tab: TabType) => {
 		setActiveTab(tab);
@@ -330,7 +372,7 @@ export default function HomePage() {
 	};
 
 	const handleTaskCreated = () => {
-		fetchTasks();
+		// No need to fetchTasks - WebSocket NEW_TASK_ASSIGNED will add the task to state
 		setRefreshListsKey((k) => k + 1);
 	};
 
@@ -542,7 +584,7 @@ export default function HomePage() {
 				onClose={handleCloseReassign}
 				onSuccess={() => {
 					handleCloseReassign();
-					fetchTasks();
+					// No need to fetchTasks - WebSocket TASK_UPDATED will update the state
 				}}
 				onOpenVerifiersModal={handleOpenVerifiers}
 				refreshVerifiersKey={refreshVerifiersKey}
@@ -562,7 +604,7 @@ export default function HomePage() {
 					setRefreshVerifiersKey((k) => k + 1);
 					setRemovedVerifierEmail(email);
 					setNewlyAddedVerifierEmail(null);
-					fetchTasks(); // Refresh tasks when verifier is removed
+					// No need to fetchTasks - WebSocket TASK_UPDATED will update paused tasks
 				}}
 			/>
 
@@ -572,7 +614,7 @@ export default function HomePage() {
 				onClose={handleCloseSubmitProof}
 				onSuccess={() => {
 					handleCloseSubmitProof();
-					fetchTasks();
+					// No need to fetchTasks - WebSocket TASK_UPDATED will update the state
 				}}
 			/>
 
@@ -582,7 +624,7 @@ export default function HomePage() {
 				onClose={handleCloseReviewProof}
 				onSuccess={() => {
 					handleCloseReviewProof();
-					fetchTasks();
+					// No need to fetchTasks - WebSocket TASK_UPDATED will update the state
 				}}
 			/>
 		</DashboardLayout>
