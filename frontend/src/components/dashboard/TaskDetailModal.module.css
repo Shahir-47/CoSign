@@ -472,6 +472,16 @@
 	margin-bottom: 12px;
 }
 
+.penaltyInfo {
+	color: var(--text-secondary);
+	font-size: 0.875rem;
+	font-style: italic;
+	margin-bottom: 12px;
+	padding: 8px 12px;
+	background: rgba(255, 255, 255, 0.05);
+	border-radius: var(--radius-sm);
+}
+
 .penaltyContent {
 	color: var(--text-primary);
 	font-size: 0.9375rem;

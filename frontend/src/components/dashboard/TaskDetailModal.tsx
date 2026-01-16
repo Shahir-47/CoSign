@@ -267,13 +267,16 @@ export default function TaskDetailModal({
 	);
 
 	// Determine if we should fetch task details (proof, penalty, etc.)
+	// For my-tasks view: always fetch so creator can see their penalty
+	// For verification-requests view: fetch when proof submitted or task missed
 	const shouldFetchDetails =
 		isOpen &&
 		task &&
-		(task.submittedAt ||
+		(viewMode === "my-tasks" || // Creator can always see their penalty
+			task.submittedAt ||
 			task.status === "PENDING_VERIFICATION" ||
 			task.status === "COMPLETED" ||
-			task.status === "MISSED"); // Include MISSED to fetch penalty content
+			task.status === "MISSED");
 	const currentTaskId = task?.id ?? null;
 	const currentTaskStatus = task?.status ?? null;
 
@@ -601,7 +604,7 @@ export default function TaskDetailModal({
 						</div>
 					)}
 
-					{/* Penalty Exposed Banner - for MISSED tasks */}
+					{/* Penalty Exposed Banner - only for MISSED tasks */}
 					{task.status === "MISSED" &&
 						(taskDetails?.penaltyContent ||
 							(taskDetails?.penaltyAttachments &&
@@ -619,18 +622,30 @@ export default function TaskDetailModal({
 							</div>
 						)}
 
-					{/* Penalty Content - shown to both creator and verifier for MISSED tasks */}
-					{task.status === "MISSED" &&
-						(taskDetails?.penaltyContent ||
-							(taskDetails?.penaltyAttachments &&
-								taskDetails.penaltyAttachments.length > 0)) && (
+					{/* Penalty Content Section
+					    - Creator can ALWAYS see their penalty (my-tasks view)
+					    - Verifier can only see it when task is MISSED (exposed) */}
+					{(taskDetails?.penaltyContent ||
+						(taskDetails?.penaltyAttachments &&
+							taskDetails.penaltyAttachments.length > 0)) &&
+						(viewMode === "my-tasks" || task.status === "MISSED") && (
 							<div className={styles.penaltySection}>
 								<h3 className={styles.sectionTitle}>
 									<AlertCircle size={16} />
-									{viewMode === "my-tasks"
-										? "Your Exposed Penalty"
-										: "Exposed Penalty/Secret"}
+									{task.status === "MISSED"
+										? viewMode === "my-tasks"
+											? "Your Exposed Penalty"
+											: "Exposed Penalty/Secret"
+										: "Your Penalty (Not Yet Revealed)"}
 								</h3>
+
+								{/* Info text for creator when not exposed */}
+								{viewMode === "my-tasks" && task.status !== "MISSED" && (
+									<p className={styles.penaltyInfo}>
+										This penalty will be revealed to {task.verifier.fullName} if
+										you miss your deadline.
+									</p>
+								)}
 
 								{/* Penalty Text Content */}
 								{taskDetails?.penaltyContent && (

@@ -617,7 +617,13 @@ public class TaskService {
         response.setDenialReason(task.getDenialReason());
         response.setApprovalComment(task.getApprovalComment());
 
-        if (task.getPenalty() != null && task.getPenalty().isExposed()) {
+        // Return penalty content:
+        // - Creator can ALWAYS see their own penalty (it's their content)
+        // - Verifier can only see it after it's exposed (task missed)
+        if (task.getPenalty() != null && (isCreator || task.getPenalty().isExposed())) {
+            // Force initialize lazy-loaded penalty attachments
+            Hibernate.initialize(task.getPenalty().getAttachments());
+            
             response.setPenaltyContent(task.getPenalty().getContent());
 
             // Include penalty attachments with presigned URLs
@@ -711,15 +717,18 @@ public class TaskService {
         // Mark Missed
         task.setStatus(TaskStatus.MISSED);
         task.setPenaltyEmailSent(true); // Prevent duplicate emails
-        
-        // Save immediately to ensure the flag is persisted
-        taskRepository.save(task);
 
-        // EXPOSE PENALTY
+        // EXPOSE PENALTY (before saving to persist both changes)
         Penalty penalty = task.getPenalty();
         if (penalty != null && !penalty.isExposed()) {
             penalty.setExposed(true);
+        }
+        
+        // Save task with penalty exposed flag persisted
+        taskRepository.save(task);
 
+        // Send notifications if penalty was exposed
+        if (penalty != null && penalty.isExposed()) {
             String decryptedSecret = penalty.getContent();
 
             // Build attachments section for email
