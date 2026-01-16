@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
 	X,
 	Clock,
@@ -30,8 +30,17 @@ import {
 	Send,
 	ClipboardCheck,
 	RotateCcw,
+	File,
+	Image,
+	Film,
+	Music,
+	Eye,
+	Loader2,
+	Paperclip,
 } from "lucide-react";
-import type { Task } from "../../types";
+import type { Task, TaskDetails, ProofAttachment } from "../../types";
+import { api } from "../../utils/api";
+import ViewAttachmentModal from "../shared/ViewAttachmentModal";
 import { getUserTimezone, getTimeUntilDeadline } from "../../utils/timezone";
 import { useWebSocket } from "../../context/useWebSocket";
 import OnlineStatusIndicator from "../shared/OnlineStatusIndicator";
@@ -62,6 +71,16 @@ const LIST_ICON_MAP: Record<string, React.ComponentType<{ size?: number }>> = {
 function getListIconComponent(iconName?: string) {
 	if (!iconName) return List;
 	return LIST_ICON_MAP[iconName.toLowerCase()] || List;
+}
+
+// Helper to get appropriate file icon based on mime type
+function getFileIcon(mimeType: string) {
+	if (mimeType.startsWith("image/")) return Image;
+	if (mimeType.startsWith("video/")) return Film;
+	if (mimeType.startsWith("audio/")) return Music;
+	if (mimeType.includes("pdf") || mimeType.includes("document"))
+		return FileText;
+	return File;
 }
 
 const priorityConfig: Record<
@@ -213,6 +232,75 @@ export default function TaskDetailModal({
 	const [, setTick] = useState(0);
 	const { isUserOnline, subscribe } = useWebSocket();
 
+	// State for fetching proof details (attachments)
+	const [taskDetails, setTaskDetails] = useState<TaskDetails | null>(null);
+	const [fetchingTaskId, setFetchingTaskId] = useState<number | null>(null);
+	const [viewingAttachment, setViewingAttachment] =
+		useState<ProofAttachment | null>(null);
+
+	// Track the last fetched task ID to avoid re-fetching
+	const lastFetchedTaskIdRef = useRef<number | null>(null);
+
+	// Determine if we should fetch proof details
+	const shouldFetchProof =
+		isOpen &&
+		task &&
+		(task.submittedAt ||
+			task.status === "PENDING_VERIFICATION" ||
+			task.status === "COMPLETED");
+	const currentTaskId = task?.id ?? null;
+
+	// Derive loading state from fetchingTaskId
+	const isLoadingProof =
+		fetchingTaskId !== null && fetchingTaskId === currentTaskId;
+
+	// Fetch task details with proof attachments when modal opens
+	useEffect(() => {
+		// Reset ref when task changes
+		if (currentTaskId !== lastFetchedTaskIdRef.current) {
+			lastFetchedTaskIdRef.current = null;
+		}
+
+		if (!shouldFetchProof || !currentTaskId) {
+			return;
+		}
+
+		// Skip if we already fetched for this task
+		if (lastFetchedTaskIdRef.current === currentTaskId) {
+			return;
+		}
+
+		let cancelled = false;
+		lastFetchedTaskIdRef.current = currentTaskId;
+
+		// Use queueMicrotask to set loading state outside synchronous effect body
+		queueMicrotask(() => {
+			if (!cancelled) {
+				setFetchingTaskId(currentTaskId);
+			}
+		});
+
+		api
+			.get<TaskDetails>(`/tasks/${currentTaskId}`)
+			.then((data) => {
+				if (!cancelled) {
+					setTaskDetails(data);
+				}
+			})
+			.catch(() => {
+				// Silently fail - we'll just not show proof details
+			})
+			.finally(() => {
+				if (!cancelled) {
+					setFetchingTaskId(null);
+				}
+			});
+
+		return () => {
+			cancelled = true;
+		};
+	}, [shouldFetchProof, currentTaskId]);
+
 	// Update every second for live countdown
 	useEffect(() => {
 		if (!isOpen) return;
@@ -351,8 +439,11 @@ export default function TaskDetailModal({
 						<div className={styles.denialBanner}>
 							<XCircle size={18} />
 							<div>
-								<strong>Previous proof was not accepted</strong>
-								<p>{task.denialReason}</p>
+								<strong>Rejected by {task.verifier.fullName}</strong>
+								<p>
+									<span className={styles.reasonLabel}>Reason:</span>{" "}
+									{task.denialReason}
+								</p>
 							</div>
 						</div>
 					)}
@@ -362,11 +453,105 @@ export default function TaskDetailModal({
 						<div className={styles.approvalBanner}>
 							<CheckCircle2 size={18} />
 							<div>
-								<strong>Verifier's Comment</strong>
+								<strong>Approved by {task.verifier.fullName}</strong>
 								<p>{task.approvalComment}</p>
 							</div>
 						</div>
 					)}
+
+					{/* Submitted Proof Section - shown to task creator */}
+					{viewMode === "my-tasks" &&
+						task.submittedAt &&
+						(taskDetails?.proofDescription ||
+							(taskDetails?.attachments &&
+								taskDetails.attachments.length > 0)) && (
+							<div className={styles.section}>
+								<h3 className={styles.sectionTitle}>
+									<Paperclip size={16} />
+									Your Submitted Proof
+								</h3>
+
+								{isLoadingProof ? (
+									<div className={styles.proofLoading}>
+										<Loader2 size={18} className={styles.spinner} />
+										<span>Loading proof...</span>
+									</div>
+								) : (
+									<>
+										{/* Proof Description */}
+										{taskDetails?.proofDescription && (
+											<div
+												className={styles.proofDescription}
+												dangerouslySetInnerHTML={{
+													__html: taskDetails.proofDescription,
+												}}
+											/>
+										)}
+
+										{/* Proof Attachments */}
+										{taskDetails?.attachments &&
+											taskDetails.attachments.length > 0 && (
+												<div className={styles.proofAttachments}>
+													<span className={styles.attachmentsLabel}>
+														Attachments ({taskDetails.attachments.length})
+													</span>
+													<div className={styles.attachmentsList}>
+														{taskDetails.attachments.map(
+															(attachment, index) => {
+																const FileIcon = getFileIcon(
+																	attachment.mimeType
+																);
+																const isImage =
+																	attachment.mimeType.startsWith("image/");
+
+																return (
+																	<div
+																		key={index}
+																		className={styles.attachmentItem}
+																	>
+																		{isImage ? (
+																			<button
+																				type="button"
+																				className={styles.attachmentPreview}
+																				onClick={() =>
+																					setViewingAttachment(attachment)
+																				}
+																			>
+																				<img
+																					src={attachment.url}
+																					alt={attachment.filename}
+																				/>
+																				<div
+																					className={styles.attachmentOverlay}
+																				>
+																					<Eye size={16} />
+																				</div>
+																			</button>
+																		) : (
+																			<button
+																				type="button"
+																				className={styles.attachmentPreview}
+																				onClick={() =>
+																					setViewingAttachment(attachment)
+																				}
+																			>
+																				<FileIcon size={24} />
+																			</button>
+																		)}
+																		<span className={styles.attachmentName}>
+																			{attachment.filename}
+																		</span>
+																	</div>
+																);
+															}
+														)}
+													</div>
+												</div>
+											)}
+									</>
+								)}
+							</div>
+						)}
 
 					{/* Description */}
 					{task.description && (
@@ -613,6 +798,13 @@ export default function TaskDetailModal({
 					</div>
 				</div>
 			</div>
+
+			{/* Attachment Viewer Modal */}
+			<ViewAttachmentModal
+				attachment={viewingAttachment}
+				isOpen={viewingAttachment !== null}
+				onClose={() => setViewingAttachment(null)}
+			/>
 		</div>
 	);
 }

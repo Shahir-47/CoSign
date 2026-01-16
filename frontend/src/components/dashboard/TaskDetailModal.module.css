@@ -396,6 +396,11 @@
 	line-height: 1.5;
 }
 
+.reasonLabel {
+	color: #ef4444;
+	font-weight: 600;
+}
+
 .approvalBanner {
 	display: flex;
 	gap: 12px;
@@ -422,4 +427,125 @@
 	color: var(--text-secondary);
 	font-size: 0.875rem;
 	line-height: 1.5;
+}
+
+/* Proof Section Styles */
+.proofLoading {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--text-secondary);
+	font-size: 0.875rem;
+}
+
+.spinner {
+	animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.proofDescription {
+	padding: 12px 16px;
+	background: var(--bg-tertiary);
+	border-radius: var(--radius-md);
+	font-size: 0.875rem;
+	line-height: 1.6;
+	color: var(--text-primary);
+	word-wrap: break-word;
+}
+
+.proofDescription p {
+	margin: 0 0 8px;
+}
+
+.proofDescription p:last-child {
+	margin-bottom: 0;
+}
+
+.proofAttachments {
+	margin-top: 12px;
+}
+
+.attachmentsLabel {
+	display: block;
+	font-size: 0.8125rem;
+	color: var(--text-secondary);
+	margin-bottom: 8px;
+	font-weight: 500;
+}
+
+.attachmentsList {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+	gap: 12px;
+}
+
+.attachmentItem {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 6px;
+}
+
+.attachmentPreview {
+	width: 80px;
+	height: 80px;
+	border-radius: var(--radius-md);
+	overflow: hidden;
+	cursor: pointer;
+	border: 1px solid var(--border-primary);
+	background: var(--bg-tertiary);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	position: relative;
+	transition: all 0.2s ease;
+}
+
+.attachmentPreview:hover {
+	border-color: var(--accent-primary);
+	transform: scale(1.02);
+}
+
+.attachmentPreview img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.attachmentPreview svg {
+	color: var(--text-secondary);
+}
+
+.attachmentOverlay {
+	position: absolute;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.5);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	opacity: 0;
+	transition: opacity 0.2s ease;
+	color: white;
+}
+
+.attachmentPreview:hover .attachmentOverlay {
+	opacity: 1;
+}
+
+.attachmentName {
+	font-size: 0.6875rem;
+	color: var(--text-secondary);
+	text-align: center;
+	max-width: 80px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
