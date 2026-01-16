@@ -326,10 +326,10 @@ export default function SortBar({ sortConfig, onSortChange }: SortBarProps) {
 						)}
 					</div>
 				) : (
-					<div ref={secondaryRef}>
+					<div ref={secondaryRef} className={styles.sortGroup}>
 						<button
 							className={styles.addSecondary}
-							onClick={() => setShowSecondaryDropdown(true)}
+							onClick={() => setShowSecondaryDropdown(!showSecondaryDropdown)}
 						>
 							<Plus size={14} />
 							<span>Add sort</span>
