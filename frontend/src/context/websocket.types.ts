@@ -21,7 +21,7 @@ export interface TaskUpdatedPayload {
 	completedAt?: string;
 	rejectedAt?: string;
 	submittedAt?: string;
-	updatedBy?: string;
+	triggeredByEmail?: string; // Email of the user who triggered the update
 	verifier?: UserInfo; // For reassign updates
 }
 

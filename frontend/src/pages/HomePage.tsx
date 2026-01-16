@@ -218,11 +218,15 @@ export default function HomePage() {
 			if (message.type === "TASK_UPDATED") {
 				const payload = message.payload as TaskUpdatedPayload;
 
+				// Check if current user triggered this update (skip toast if so)
+				const isSelfTriggered = payload.triggeredByEmail === currentUserEmail;
+
 				// If the task was reassigned away from this user, remove it from their list
 				if (payload.status === "REASSIGNED") {
 					setTasks((prevTasks) =>
 						prevTasks.filter((task) => task.id !== payload.taskId)
 					);
+					// Always show reassign notification since it affects the user
 					toast.info(`🔄 ${payload.message}`, {
 						icon: false,
 					});
@@ -251,30 +255,38 @@ export default function HomePage() {
 					);
 				});
 
-				// Determine which tab to navigate to based on user's role
-				const isCreator = taskForNavigation?.creator.email === currentUserEmail;
-				const targetTab: TabType = isCreator
-					? "my-tasks"
-					: "verification-requests";
+				// Only show toast to the OTHER user, not the one who triggered the action
+				if (!isSelfTriggered) {
+					// Determine which tab to navigate to based on user's role
+					const isCreator =
+						taskForNavigation?.creator.email === currentUserEmail;
+					const targetTab: TabType = isCreator
+						? "my-tasks"
+						: "verification-requests";
 
-				// Show clickable toast notification based on status
-				const toastOptions: ToastOptions = {
-					icon: false,
-					onClick: () => navigateToTask(payload.taskId, targetTab),
-					style: { cursor: "pointer" },
-				};
+					// Show clickable toast notification based on status
+					const toastOptions: ToastOptions = {
+						icon: false,
+						onClick: () => navigateToTask(payload.taskId, targetTab),
+						style: { cursor: "pointer" },
+					};
 
-				if (payload.approved === true) {
-					toast.success(`✅ ${payload.message}`, toastOptions);
-				} else if (payload.approved === false) {
-					toast.warning(`❌ ${payload.message}`, toastOptions);
-				} else if (payload.status === "PENDING_VERIFICATION") {
-					toast.info(`📋 ${payload.message}`, toastOptions);
-				} else if (payload.status === "PAUSED") {
-					toast.warning(`⏸️ ${payload.message}`, toastOptions);
+					if (payload.approved === true) {
+						toast.success(`✅ ${payload.message}`, toastOptions);
+					} else if (payload.approved === false) {
+						toast.warning(`❌ ${payload.message}`, toastOptions);
+					} else if (payload.status === "PENDING_VERIFICATION") {
+						toast.info(`📋 ${payload.message}`, toastOptions);
+					} else if (payload.status === "PAUSED") {
+						toast.warning(`⏸️ ${payload.message}`, toastOptions);
+					}
 				}
 			} else if (message.type === "NEW_TASK_ASSIGNED") {
 				const payload = message.payload as NewTaskAssignedPayload;
+
+				// Check if current user is the creator (they created the task, skip toast)
+				const isCreator = payload.creator.email === currentUserEmail;
+
 				// Build the new task object from the payload
 				const newTask: Task = {
 					id: payload.taskId,
@@ -293,7 +305,6 @@ export default function HomePage() {
 				};
 
 				// Add to the task list for real-time update (applies to both tabs)
-				// The correct tasks will be shown based on the active tab's API fetch
 				setTasks((prevTasks) => {
 					// Only add if not already in the list
 					if (prevTasks.some((t) => t.id === newTask.id)) {
@@ -302,22 +313,19 @@ export default function HomePage() {
 					return [newTask, ...prevTasks];
 				});
 
-				// Determine which tab to navigate to based on user's role
-				const isCreator = payload.creator.email === currentUserEmail;
-				const targetTab: TabType = isCreator
-					? "my-tasks"
-					: "verification-requests";
-
-				// Show clickable toast notification
-				const newTaskToastOptions: ToastOptions = {
-					icon: false,
-					onClick: () => navigateToTask(payload.taskId, targetTab),
-					style: { cursor: "pointer" },
-				};
-				toast.info(
-					`📥 New task: "${payload.title}" from ${payload.creatorName}`,
-					newTaskToastOptions
-				);
+				// Only show toast to verifier, not the creator who just created the task
+				if (!isCreator) {
+					const newTaskToastOptions: ToastOptions = {
+						icon: false,
+						onClick: () =>
+							navigateToTask(payload.taskId, "verification-requests"),
+						style: { cursor: "pointer" },
+					};
+					toast.info(
+						`📥 New task: "${payload.title}" from ${payload.creatorName}`,
+						newTaskToastOptions
+					);
+				}
 			}
 		};
 

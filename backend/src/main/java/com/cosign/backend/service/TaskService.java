@@ -232,6 +232,7 @@ public class TaskService {
         creatorPayload.put("message", "Verifier reassigned for: " + savedTask.getTitle());
         // Include new verifier info so UI can update
         creatorPayload.put("verifier", verifierInfo);
+        creatorPayload.put("triggeredByEmail", user.getEmail());
 
         socketService.sendToUser(savedTask.getCreator().getId(), "TASK_UPDATED", creatorPayload);
 
@@ -280,7 +281,7 @@ public class TaskService {
         payload.put("taskId", savedTask.getId());
         payload.put("status", "PENDING_VERIFICATION");
         payload.put("message", "Proof submitted for: " + savedTask.getTitle());
-        payload.put("updatedBy", savedTask.getCreator().getFullName());
+        payload.put("triggeredByEmail", savedTask.getCreator().getEmail());
         if (savedTask.getSubmittedAt() != null) {
             payload.put("submittedAt", savedTask.getSubmittedAt().toString());
         }
@@ -350,6 +351,7 @@ public class TaskService {
         if (savedTask.getRejectedAt() != null) {
             payload.put("rejectedAt", savedTask.getRejectedAt().toString());
         }
+        payload.put("triggeredByEmail", verifier.getEmail());
 
         // Notify Creator
         socketService.sendToUser(savedTask.getCreator().getId(), "TASK_UPDATED", payload);
