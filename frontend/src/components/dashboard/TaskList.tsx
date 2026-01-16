@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { ClipboardList, ChevronDown, Clock } from "lucide-react";
+import { ClipboardList, ChevronDown, Clock, CheckCircle2 } from "lucide-react";
 import type { Task } from "../../types";
 import TaskCard from "./TaskCard";
 import TaskDetailModal from "./TaskDetailModal";
@@ -35,6 +35,7 @@ export default function TaskList({
 		number | null
 	>(null);
 	const [showOverdue, setShowOverdue] = useState(false);
+	const [showCompleted, setShowCompleted] = useState(false);
 
 	// Use controlled value if provided, otherwise use internal state
 	const selectedTaskId =
@@ -50,16 +51,24 @@ export default function TaskList({
 		return tasks.find((t) => t.id === selectedTaskId) || null;
 	}, [tasks, selectedTaskId]);
 
-	// Separate active and overdue tasks
-	const { activeTasks, overdueTasks } = useMemo(() => {
+	// Separate active, completed, and overdue tasks
+	const { activeTasks, completedTasks, overdueTasks } = useMemo(() => {
 		const now = new Date();
 		const active: Task[] = [];
+		const completed: Task[] = [];
 		const overdue: Task[] = [];
 
 		tasks.forEach((task) => {
 			const deadline = new Date(task.deadline);
+
+			// Completed tasks go to their own section
+			if (task.status === "COMPLETED") {
+				completed.push(task);
+				return;
+			}
+
 			// Only consider PENDING_PROOF or PENDING_VERIFICATION tasks as overdue
-			// Completed, Missed, and Paused tasks go to their natural position
+			// Missed and Paused tasks go to their natural position
 			const isOverdue =
 				deadline < now &&
 				(task.status === "PENDING_PROOF" ||
@@ -77,7 +86,18 @@ export default function TaskList({
 			(a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
 		);
 
-		return { activeTasks: active, overdueTasks: overdue };
+		// Sort completed by completion date (most recent first) - using submittedAt as proxy
+		completed.sort(
+			(a, b) =>
+				new Date(b.submittedAt || b.deadline).getTime() -
+				new Date(a.submittedAt || a.deadline).getTime()
+		);
+
+		return {
+			activeTasks: active,
+			completedTasks: completed,
+			overdueTasks: overdue,
+		};
 	}, [tasks]);
 
 	if (isLoading) {
@@ -137,15 +157,23 @@ export default function TaskList({
 				</div>
 			)}
 
-			{/* Empty state when no active tasks but there are overdue */}
-			{activeTasks.length === 0 && overdueTasks.length > 0 && (
-				<div className={styles.noActiveTasks}>
-					<p>
-						No active tasks. You have {overdueTasks.length} overdue task
-						{overdueTasks.length > 1 ? "s" : ""} below.
-					</p>
-				</div>
-			)}
+			{/* Empty state when no active tasks but there are overdue or completed */}
+			{activeTasks.length === 0 &&
+				(overdueTasks.length > 0 || completedTasks.length > 0) && (
+					<div className={styles.noActiveTasks}>
+						<p>
+							No active tasks.
+							{overdueTasks.length > 0 &&
+								` You have ${overdueTasks.length} overdue task${
+									overdueTasks.length > 1 ? "s" : ""
+								}.`}
+							{completedTasks.length > 0 &&
+								` ${completedTasks.length} completed task${
+									completedTasks.length > 1 ? "s" : ""
+								} below.`}
+						</p>
+					</div>
+				)}
 
 			{/* Overdue Tasks Section */}
 			{overdueTasks.length > 0 && (
@@ -170,6 +198,47 @@ export default function TaskList({
 					{showOverdue && (
 						<div className={styles.overdueList}>
 							{overdueTasks.map((task) => (
+								<TaskCard
+									key={task.id}
+									task={task}
+									viewMode={viewMode}
+									searchTerm={searchTerm}
+									onClick={() => setSelectedTaskId(task.id)}
+									onReassign={
+										onReassignTask ? () => onReassignTask(task) : undefined
+									}
+								/>
+							))}
+						</div>
+					)}
+				</div>
+			)}
+
+			{/* Completed Tasks Section */}
+			{completedTasks.length > 0 && (
+				<div className={styles.completedSection}>
+					<button
+						className={styles.completedHeader}
+						onClick={() => setShowCompleted(!showCompleted)}
+					>
+						<div className={styles.completedTitle}>
+							<CheckCircle2 size={18} />
+							<span>Completed</span>
+							<span className={styles.completedCount}>
+								{completedTasks.length}
+							</span>
+						</div>
+						<ChevronDown
+							size={18}
+							className={`${styles.chevron} ${styles.completedChevron} ${
+								showCompleted ? styles.expanded : ""
+							}`}
+						/>
+					</button>
+
+					{showCompleted && (
+						<div className={styles.completedList}>
+							{completedTasks.map((task) => (
 								<TaskCard
 									key={task.id}
 									task={task}
