@@ -312,7 +312,9 @@ export default function RecurrenceSelector({
 
 		// Handle end condition
 		if (endType === "date" && endDate) {
-			options.until = new Date(endDate + "T23:59:59Z");
+			// Parse the date as local time to avoid timezone shifts
+			const [year, month, day] = endDate.split("-").map(Number);
+			options.until = new Date(Date.UTC(year, month - 1, day, 23, 59, 59));
 		} else if (endType === "count" && count > 0) {
 			options.count = count;
 		}
