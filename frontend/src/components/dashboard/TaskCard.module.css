@@ -96,7 +96,8 @@
 }
 
 .deadline,
-.location {
+.location,
+.repeat {
 	display: flex;
 	align-items: center;
 	gap: 6px;
@@ -105,8 +106,13 @@
 }
 
 .deadline svg,
-.location svg {
+.location svg,
+.repeat svg {
 	flex-shrink: 0;
+}
+
+.repeat {
+	color: var(--accent-primary);
 }
 
 .deadline.urgent {

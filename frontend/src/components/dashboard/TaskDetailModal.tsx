@@ -38,10 +38,10 @@ import {
 	Loader2,
 	Paperclip,
 	ChevronDown,
-	Pencil,
 } from "lucide-react";
 import type { Task, TaskDetails, ProofAttachment, TaskList } from "../../types";
 import { api } from "../../utils/api";
+import { formatRRuleDisplay } from "../../utils/formatters";
 import ViewAttachmentModal from "../shared/ViewAttachmentModal";
 import RecurrenceSelector from "./RecurrenceSelector";
 import { getUserTimezone, getTimeUntilDeadline } from "../../utils/timezone";
@@ -149,98 +149,6 @@ const statusConfig: Record<
 	},
 };
 
-// Helper to format RRULE string for display
-function formatRRuleDisplay(rruleStr: string): string {
-	if (!rruleStr) return "Does not repeat";
-
-	try {
-		const cleanRule = rruleStr.toUpperCase().startsWith("RRULE:")
-			? rruleStr.substring(6)
-			: rruleStr;
-
-		const parts: Record<string, string> = {};
-		cleanRule.split(";").forEach((part) => {
-			const [key, value] = part.split("=");
-			if (key && value) parts[key] = value;
-		});
-
-		let result = "";
-		const freq = parts["FREQ"];
-		const interval = parseInt(parts["INTERVAL"] || "1");
-
-		// Frequency
-		if (interval === 1) {
-			switch (freq) {
-				case "DAILY":
-					result = "Daily";
-					break;
-				case "WEEKLY":
-					result = "Weekly";
-					break;
-				case "MONTHLY":
-					result = "Monthly";
-					break;
-				case "YEARLY":
-					result = "Yearly";
-					break;
-				default:
-					result = freq || "Custom";
-			}
-		} else {
-			switch (freq) {
-				case "DAILY":
-					result = `Every ${interval} days`;
-					break;
-				case "WEEKLY":
-					result = `Every ${interval} weeks`;
-					break;
-				case "MONTHLY":
-					result = `Every ${interval} months`;
-					break;
-				case "YEARLY":
-					result = `Every ${interval} years`;
-					break;
-				default:
-					result = `Every ${interval} ${freq?.toLowerCase() || "intervals"}`;
-			}
-		}
-
-		// Weekdays
-		if (parts["BYDAY"]) {
-			const dayMap: Record<string, string> = {
-				MO: "Mon",
-				TU: "Tue",
-				WE: "Wed",
-				TH: "Thu",
-				FR: "Fri",
-				SA: "Sat",
-				SU: "Sun",
-			};
-			const days = parts["BYDAY"].split(",").map((d) => dayMap[d] || d);
-			if (days.length > 0 && days.length < 7) {
-				result += ` on ${days.join(", ")}`;
-			}
-		}
-
-		// End condition
-		if (parts["UNTIL"]) {
-			const until = parts["UNTIL"];
-			// Parse UNTIL date (format: YYYYMMDDTHHmmssZ or YYYYMMDD)
-			const year = until.substring(0, 4);
-			const month = until.substring(4, 6);
-			const day = until.substring(6, 8);
-			const date = new Date(`${year}-${month}-${day}`);
-			result += `, until ${date.toLocaleDateString()}`;
-		} else if (parts["COUNT"]) {
-			result += `, ${parts["COUNT"]} times`;
-		}
-
-		return result;
-	} catch {
-		return rruleStr;
-	}
-}
-
 function formatDateTime(dateString: string): string {
 	const userTimezone = getUserTimezone();
 	const date = new Date(dateString);
@@ -347,7 +255,6 @@ export default function TaskDetailModal({
 	const listDropdownRef = useRef<HTMLDivElement>(null);
 
 	// State for editing repeat pattern
-	const [isEditingRepeat, setIsEditingRepeat] = useState(false);
 	const [isSavingRepeat, setIsSavingRepeat] = useState(false);
 
 	// Track the last fetched task ID to avoid re-fetching
@@ -525,8 +432,6 @@ export default function TaskDetailModal({
 			if (onTaskUpdated) {
 				onTaskUpdated(updatedTask);
 			}
-
-			setIsEditingRepeat(false);
 		} catch (error) {
 			console.error("Failed to update repeat pattern:", error);
 		} finally {
@@ -929,40 +834,18 @@ export default function TaskDetailModal({
 								</div>
 								<div className={styles.detailContent}>
 									<span className={styles.detailLabel}>Repeats</span>
-									{isEditingRepeat ? (
-										<div className={styles.repeatEditWrapper}>
-											<RecurrenceSelector
-												value={task.repeatPattern}
-												onChange={handleUpdateRepeatPattern}
-												disabled={isSavingRepeat}
-											/>
-											<button
-												type="button"
-												className={styles.cancelEditButton}
-												onClick={() => setIsEditingRepeat(false)}
-												disabled={isSavingRepeat}
-											>
-												Cancel
-											</button>
-										</div>
+									{canEditTask ? (
+										<RecurrenceSelector
+											value={task.repeatPattern}
+											onChange={handleUpdateRepeatPattern}
+											disabled={isSavingRepeat}
+										/>
 									) : (
-										<div className={styles.repeatDisplayRow}>
-											<span className={styles.detailValue}>
-												{task.repeatPattern
-													? formatRRuleDisplay(task.repeatPattern)
-													: "Does not repeat"}
-											</span>
-											{canEditTask && (
-												<button
-													type="button"
-													className={styles.editRepeatButton}
-													onClick={() => setIsEditingRepeat(true)}
-													title="Edit repeat pattern"
-												>
-													<Pencil size={14} />
-												</button>
-											)}
-										</div>
+										<span className={styles.detailValue}>
+											{task.repeatPattern
+												? formatRRuleDisplay(task.repeatPattern)
+												: "Does not repeat"}
+										</span>
 									)}
 								</div>
 							</div>

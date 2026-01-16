@@ -12,6 +12,7 @@ import {
 	Calendar,
 	Send,
 	RotateCcw,
+	Repeat,
 } from "lucide-react";
 import type { Task } from "../../types";
 import { useWebSocket } from "../../context/useWebSocket";
@@ -21,6 +22,7 @@ import {
 	getTimeUntilDeadline,
 	formatDeadlineDisplay,
 } from "../../utils/timezone";
+import { formatRRuleShort } from "../../utils/formatters";
 
 interface TaskCardProps {
 	task: Task;
@@ -293,6 +295,13 @@ export default function TaskCard({
 					<div className={styles.location}>
 						<MapPin size={14} />
 						<span>{task.location}</span>
+					</div>
+				)}
+
+				{task.repeatPattern && (
+					<div className={styles.repeat}>
+						<Repeat size={14} />
+						<span>{formatRRuleShort(task.repeatPattern)}</span>
 					</div>
 				)}
 			</div>
