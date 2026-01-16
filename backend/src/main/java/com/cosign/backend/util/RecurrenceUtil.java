@@ -16,8 +16,13 @@ public class RecurrenceUtil {
     /**
      * Calculates the next deadline based on the RRULE string.
      * Supports: Indefinite (FREQ=WEEKLY), End Date (UNTIL=...), and Count (COUNT=...)
+     * 
+     * @param rruleStr The RRULE string
+     * @param currentDeadline The current deadline in the user's timezone (stored as LocalDateTime)
+     * @param userTimezone The user's timezone (e.g., "America/New_York")
+     * @return The next occurrence as LocalDateTime in the user's timezone, or null if no more occurrences
      */
-    public static LocalDateTime getNextOccurrence(String rruleStr, LocalDateTime currentDeadline) {
+    public static LocalDateTime getNextOccurrence(String rruleStr, LocalDateTime currentDeadline, String userTimezone) {
         if (rruleStr == null || rruleStr.isEmpty()) return null;
 
         try {
@@ -28,8 +33,11 @@ public class RecurrenceUtil {
 
             Recur recur = new Recur(cleanRule);
 
-            // Convert Java LocalDateTime to ical DateTime
-            DateTime seedDate = toIcalDateTime(currentDeadline);
+            // Use user's timezone for date calculations
+            ZoneId zoneId = ZoneId.of(userTimezone);
+
+            // Convert Java LocalDateTime to ical DateTime using user's timezone
+            DateTime seedDate = toIcalDateTime(currentDeadline, zoneId);
 
             // Get next date strictly AFTER the current deadline
             Date nextDate = recur.getNextDate(seedDate, seedDate);
@@ -39,7 +47,7 @@ public class RecurrenceUtil {
                 return null;
             }
 
-            return toLocalDateTime((DateTime) nextDate);
+            return toLocalDateTime((DateTime) nextDate, zoneId);
 
         } catch (Exception e) {
             logger.error("Failed to parse recurrence rule: {}", rruleStr, e);
@@ -47,12 +55,21 @@ public class RecurrenceUtil {
         }
     }
 
-    private static DateTime toIcalDateTime(LocalDateTime ldt) {
-        Date date = Date.from(ldt.atZone(ZoneId.systemDefault()).toInstant());
+    /**
+     * Overload for backward compatibility - uses system default timezone
+     * @deprecated Use getNextOccurrence(String, LocalDateTime, String) with explicit timezone
+     */
+    @Deprecated
+    public static LocalDateTime getNextOccurrence(String rruleStr, LocalDateTime currentDeadline) {
+        return getNextOccurrence(rruleStr, currentDeadline, ZoneId.systemDefault().getId());
+    }
+
+    private static DateTime toIcalDateTime(LocalDateTime ldt, ZoneId zoneId) {
+        Date date = Date.from(ldt.atZone(zoneId).toInstant());
         return new DateTime(date);
     }
 
-    private static LocalDateTime toLocalDateTime(DateTime dt) {
-        return dt.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+    private static LocalDateTime toLocalDateTime(DateTime dt, ZoneId zoneId) {
+        return dt.toInstant().atZone(zoneId).toLocalDateTime();
     }
 }

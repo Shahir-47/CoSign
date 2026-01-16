@@ -15,6 +15,8 @@ import com.cosign.backend.dto.ReviewTaskRequest;
 import com.cosign.backend.dto.TaskDetailResponse;
 import com.cosign.backend.model.ProofAttachment;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import com.cosign.backend.util.RecurrenceUtil;
 import org.hibernate.Hibernate;
 
@@ -45,6 +47,14 @@ public class TaskService {
         this.taskListService = taskListService;
         this.s3Service = s3Service;
         this.socketService = socketService;
+    }
+
+    /**
+     * Get current time as LocalDateTime in the specified user's timezone.
+     * This ensures all user-facing timestamps are consistent with the user's preferred timezone.
+     */
+    private LocalDateTime getNowInUserTimezone(User user) {
+        return ZonedDateTime.now(ZoneId.of(user.getTimezone())).toLocalDateTime();
     }
 
     private Map<String, Object> buildTaskPayload(Task task) {
@@ -302,8 +312,9 @@ public class TaskService {
         // If no pattern, stop.
         if (rrule == null || rrule.isEmpty()) return;
 
-        // Calculate next date
-        LocalDateTime nextDeadline = RecurrenceUtil.getNextOccurrence(rrule, finishedTask.getDeadline());
+        // Calculate next date using the task creator's timezone
+        String userTimezone = finishedTask.getCreator().getTimezone();
+        LocalDateTime nextDeadline = RecurrenceUtil.getNextOccurrence(rrule, finishedTask.getDeadline(), userTimezone);
 
         // If null, the schedule is over
         if (nextDeadline == null) return;
@@ -378,7 +389,8 @@ public class TaskService {
         }
 
         task.setStatus(TaskStatus.PENDING_VERIFICATION);
-        task.setSubmittedAt(LocalDateTime.now());
+        // Use creator's timezone for the submission timestamp
+        task.setSubmittedAt(getNowInUserTimezone(task.getCreator()));
         Task savedTask = taskRepository.save(task);
 
         // Build payload for TASK_UPDATED
@@ -418,7 +430,8 @@ public class TaskService {
         if (request.getApproved()) {
             // ACCEPT
             task.setStatus(TaskStatus.COMPLETED);
-            LocalDateTime now = LocalDateTime.now();
+            // Use creator's timezone for consistency (timestamps should be in task owner's timezone)
+            LocalDateTime now = getNowInUserTimezone(task.getCreator());
             task.setVerifiedAt(now);
             task.setCompletedAt(now);
             task.setApprovalComment(request.getComment());
@@ -431,7 +444,8 @@ public class TaskService {
             }
             task.setStatus(TaskStatus.PENDING_PROOF); // Send back to user
             task.setDenialReason(request.getComment());
-            task.setRejectedAt(LocalDateTime.now());
+            // Use creator's timezone for consistency
+            task.setRejectedAt(getNowInUserTimezone(task.getCreator()));
         }
 
         Task savedTask = taskRepository.save(task);
@@ -544,27 +558,34 @@ public class TaskService {
     @Scheduled(fixedRate = 60000) // Runs every minute
     @Transactional
     public void processMissedTasks() {
-        LocalDateTime now = LocalDateTime.now();
-
-        // Find active tasks past deadline
-        List<Task> overdueTasks = taskRepository.findOverdueTasks(now,
+        // Find all active tasks that might be overdue
+        // We need to check each task individually against its creator's timezone
+        List<Task> activeTasks = taskRepository.findByStatusIn(
                 List.of(TaskStatus.PENDING_PROOF, TaskStatus.PENDING_VERIFICATION));
 
-        for (Task task : overdueTasks) {
-            // Mark as Missed
-            task.setStatus(TaskStatus.MISSED);
+        for (Task task : activeTasks) {
+            // Get current time in the task creator's timezone
+            String userTimezone = task.getCreator().getTimezone();
+            ZonedDateTime nowInUserTz = ZonedDateTime.now(ZoneId.of(userTimezone));
+            LocalDateTime nowLocal = nowInUserTz.toLocalDateTime();
+            
+            // Check if deadline has passed in user's timezone
+            if (task.getDeadline().isBefore(nowLocal)) {
+                // Mark as Missed
+                task.setStatus(TaskStatus.MISSED);
 
-            // Trigger Penalty Notification
-            socketService.sendToUser(task.getCreator().getId(), "TASK_MISSED", Map.of(
-                    "taskId", task.getId(),
-                    "title", task.getTitle(),
-                    "message", "Deadline missed! Penalty applied."
-            ));
+                // Trigger Penalty Notification
+                socketService.sendToUser(task.getCreator().getId(), "TASK_MISSED", Map.of(
+                        "taskId", task.getId(),
+                        "title", task.getTitle(),
+                        "message", "Deadline missed! Penalty applied."
+                ));
 
-            // GENERATE NEXT TASK
-            handleRecurrence(task);
+                // GENERATE NEXT TASK
+                handleRecurrence(task);
 
-            taskRepository.save(task);
+                taskRepository.save(task);
+            }
         }
     }
 }
