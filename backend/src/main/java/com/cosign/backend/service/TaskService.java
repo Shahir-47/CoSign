@@ -59,6 +59,7 @@ public class TaskService {
         taskPayload.put("location", task.getLocation());
         taskPayload.put("tags", task.getTags());
         taskPayload.put("createdAt", task.getCreatedAt().toString());
+        taskPayload.put("repeatPattern", task.getRepeatPattern());
 
         if (task.getSubmittedAt() != null) {
             taskPayload.put("submittedAt", task.getSubmittedAt().toString());
@@ -251,7 +252,31 @@ public class TaskService {
         // Save the new RRULE string
         task.setRepeatPattern(request.getRepeatPattern());
 
-        return taskRepository.save(task);
+        Task savedTask = taskRepository.save(task);
+
+        // Build update payload with full task data
+        Map<String, Object> payload = new java.util.HashMap<>();
+        payload.put("taskId", savedTask.getId());
+        payload.put("status", savedTask.getStatus().toString());
+        payload.put("message", "Task updated: " + savedTask.getTitle());
+        payload.put("triggeredByEmail", user.getEmail());
+        // Include updated fields
+        payload.put("title", savedTask.getTitle());
+        payload.put("description", savedTask.getDescription());
+        payload.put("deadline", savedTask.getDeadline().toString());
+        payload.put("priority", savedTask.getPriority().toString());
+        payload.put("starred", savedTask.isStarred());
+        payload.put("location", savedTask.getLocation());
+        payload.put("tags", savedTask.getTags());
+        payload.put("repeatPattern", savedTask.getRepeatPattern());
+
+        // Notify creator (themselves, for multi-device sync and same-browser reactivity)
+        socketService.sendToUser(savedTask.getCreator().getId(), "TASK_UPDATED", payload);
+        
+        // Notify verifier so they see updated task details
+        socketService.sendToUser(savedTask.getVerifier().getId(), "TASK_UPDATED", payload);
+
+        return savedTask;
     }
 
     private void handleRecurrence(Task finishedTask) {
@@ -271,13 +296,14 @@ public class TaskService {
 
         Task savedTask = taskRepository.save(nextTask);
 
-        // Notify User
-        socketService.sendToUser(savedTask.getCreator().getId(), "NEW_TASK_ASSIGNED", Map.of(
-                "taskId", savedTask.getId(),
-                "title", savedTask.getTitle(),
-                "message", "Recurring task created: " + savedTask.getTitle(),
-                "deadline", savedTask.getDeadline().toString()
-        ));
+        // Build full task payload for real-time UI update
+        Map<String, Object> taskPayload = buildTaskPayload(savedTask);
+
+        // Notify creator about the new recurring task instance
+        socketService.sendToUser(savedTask.getCreator().getId(), "NEW_TASK_ASSIGNED", taskPayload);
+        
+        // Notify verifier about the new recurring task instance
+        socketService.sendToUser(savedTask.getVerifier().getId(), "NEW_TASK_ASSIGNED", taskPayload);
     }
 
     private Task createNextTaskInstance(Task previousTask, LocalDateTime nextDeadline, String rrule) {

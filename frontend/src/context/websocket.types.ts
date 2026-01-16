@@ -23,6 +23,15 @@ export interface TaskUpdatedPayload {
 	submittedAt?: string;
 	triggeredByEmail?: string; // Email of the user who triggered the update
 	verifier?: UserInfo; // For reassign updates
+	// Full task data for general updates
+	title?: string;
+	description?: string;
+	deadline?: string;
+	priority?: string;
+	starred?: boolean;
+	location?: string;
+	tags?: string;
+	repeatPattern?: string;
 }
 
 export interface UserInfo {
@@ -46,6 +55,7 @@ export interface NewTaskAssignedPayload {
 	tags?: string;
 	createdAt: string;
 	submittedAt?: string;
+	repeatPattern?: string;
 	creator: UserInfo;
 	verifier: UserInfo;
 }

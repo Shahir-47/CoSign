@@ -411,6 +411,27 @@ export default function HomePage() {
 									}),
 									// Update verifier if included (for reassign)
 									...(payload.verifier && { verifier: payload.verifier }),
+									// Update editable fields if included (for task updates)
+									...(payload.title !== undefined && { title: payload.title }),
+									...(payload.description !== undefined && {
+										description: payload.description,
+									}),
+									...(payload.deadline !== undefined && {
+										deadline: payload.deadline,
+									}),
+									...(payload.priority !== undefined && {
+										priority: payload.priority as Task["priority"],
+									}),
+									...(payload.starred !== undefined && {
+										starred: payload.starred,
+									}),
+									...(payload.location !== undefined && {
+										location: payload.location,
+									}),
+									...(payload.tags !== undefined && { tags: payload.tags }),
+									...(payload.repeatPattern !== undefined && {
+										repeatPattern: payload.repeatPattern,
+									}),
 							  }
 							: task
 					);
@@ -466,6 +487,7 @@ export default function HomePage() {
 					tags: payload.tags,
 					createdAt: payload.createdAt,
 					submittedAt: payload.submittedAt,
+					repeatPattern: payload.repeatPattern,
 					creator: payload.creator,
 					verifier: payload.verifier,
 				};
