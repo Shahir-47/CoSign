@@ -16,6 +16,11 @@ interface TaskListProps {
 	onReviewProof?: (task: Task) => void;
 	selectedTaskId?: number | null;
 	onSelectTask?: (taskId: number | null) => void;
+	// Section visibility (controlled for URL persistence)
+	showOverdue?: boolean;
+	onShowOverdueChange?: (show: boolean) => void;
+	showCompleted?: boolean;
+	onShowCompletedChange?: (show: boolean) => void;
 }
 
 export default function TaskList({
@@ -29,20 +34,36 @@ export default function TaskList({
 	onReviewProof,
 	selectedTaskId: controlledSelectedTaskId,
 	onSelectTask,
+	showOverdue: controlledShowOverdue,
+	onShowOverdueChange,
+	showCompleted: controlledShowCompleted,
+	onShowCompletedChange,
 }: TaskListProps) {
 	// Use internal state if not controlled externally
 	const [internalSelectedTaskId, setInternalSelectedTaskId] = useState<
 		number | null
 	>(null);
-	const [showOverdue, setShowOverdue] = useState(false);
-	const [showCompleted, setShowCompleted] = useState(false);
+	const [internalShowOverdue, setInternalShowOverdue] = useState(false);
+	const [internalShowCompleted, setInternalShowCompleted] = useState(false);
 
-	// Use controlled value if provided, otherwise use internal state
+	// Use controlled values if provided, otherwise use internal state
 	const selectedTaskId =
 		controlledSelectedTaskId !== undefined
 			? controlledSelectedTaskId
 			: internalSelectedTaskId;
 	const setSelectedTaskId = onSelectTask || setInternalSelectedTaskId;
+
+	const showOverdue =
+		controlledShowOverdue !== undefined
+			? controlledShowOverdue
+			: internalShowOverdue;
+	const setShowOverdue = onShowOverdueChange || setInternalShowOverdue;
+
+	const showCompleted =
+		controlledShowCompleted !== undefined
+			? controlledShowCompleted
+			: internalShowCompleted;
+	const setShowCompleted = onShowCompletedChange || setInternalShowCompleted;
 
 	// Get the selected task from the tasks array (so it stays in sync with updates)
 	// Returns null if task is no longer in the list (was deleted or filtered out)

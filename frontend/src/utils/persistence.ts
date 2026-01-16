@@ -1,6 +1,15 @@
 // Utility for persisting app state across page refreshes
 // Uses URL params for navigation state and localStorage for drafts
 
+import type {
+	TaskFilters,
+	TaskPriority,
+	TaskStatus,
+	TaskSortConfig,
+	SortField,
+	SortDirection,
+} from "../types";
+
 const STORAGE_KEYS = {
 	TASK_DRAFT: "cosign_task_draft",
 	PROOF_DRAFT: "cosign_proof_draft_", // + taskId
@@ -15,13 +24,39 @@ export type ModalType =
 	| "verifiers"
 	| `proof-${number}`
 	| `review-${number}`
-	| `reassign-${number}`;
+	| `reassign-${number}`
+	| `task-${number}`; // Added for task detail modal
 
 export interface URLState {
 	tab?: "my-tasks" | "verification-requests" | "supervising";
 	list?: number | null;
 	modalStack: ModalType[]; // Stack of modals, last one is on top
+	// Filter and sort state
+	filters?: Partial<TaskFilters>;
+	sortConfig?: TaskSortConfig;
+	// Section visibility
+	showOverdue?: boolean;
+	showCompleted?: boolean;
 }
+
+// Valid sort fields for validation
+const VALID_SORT_FIELDS: SortField[] = [
+	"deadline",
+	"priority",
+	"status",
+	"title",
+	"createdAt",
+	"submittedAt",
+];
+
+const VALID_PRIORITIES: TaskPriority[] = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
+const VALID_STATUSES: TaskStatus[] = [
+	"PENDING_PROOF",
+	"PENDING_VERIFICATION",
+	"COMPLETED",
+	"MISSED",
+	"PAUSED",
+];
 
 export function parseURLState(): URLState {
 	const params = new URLSearchParams(window.location.search);
@@ -48,6 +83,117 @@ export function parseURLState(): URLState {
 		state.list = isNaN(listId) ? null : listId;
 	}
 
+	// Parse filters
+	const filters: Partial<TaskFilters> = {};
+	let hasFilters = false;
+
+	// Search
+	const search = params.get("search");
+	if (search) {
+		filters.search = search;
+		hasFilters = true;
+	}
+
+	// Tags (comma-separated)
+	const tags = params.get("tags");
+	if (tags) {
+		filters.tags = tags.split(",").filter(Boolean);
+		hasFilters = true;
+	}
+
+	// Priorities (comma-separated)
+	const priorities = params.get("priorities");
+	if (priorities) {
+		const parsed = priorities
+			.split(",")
+			.filter((p) => VALID_PRIORITIES.includes(p as TaskPriority));
+		if (parsed.length > 0) {
+			filters.priorities = parsed as TaskPriority[];
+			hasFilters = true;
+		}
+	}
+
+	// Statuses (comma-separated)
+	const statuses = params.get("statuses");
+	if (statuses) {
+		const parsed = statuses
+			.split(",")
+			.filter((s) => VALID_STATUSES.includes(s as TaskStatus));
+		if (parsed.length > 0) {
+			filters.statuses = parsed as TaskStatus[];
+			hasFilters = true;
+		}
+	}
+
+	// Starred filter
+	const starred = params.get("starred");
+	if (starred === "true") {
+		filters.starred = true;
+		hasFilters = true;
+	}
+
+	// Date range
+	const deadlineFrom = params.get("from");
+	if (deadlineFrom) {
+		filters.deadlineFrom = deadlineFrom;
+		hasFilters = true;
+	}
+	const deadlineTo = params.get("to");
+	if (deadlineTo) {
+		filters.deadlineTo = deadlineTo;
+		hasFilters = true;
+	}
+
+	if (hasFilters) {
+		state.filters = filters;
+	}
+
+	// Parse sort config
+	const sortPrimary = params.get("sort");
+	if (sortPrimary && VALID_SORT_FIELDS.includes(sortPrimary as SortField)) {
+		const sortDir = params.get("dir") as SortDirection | null;
+		const sortConfig: TaskSortConfig = {
+			primary: {
+				field: sortPrimary as SortField,
+				direction: sortDir === "desc" ? "desc" : "asc",
+			},
+			tiebreaker: "starred",
+		};
+
+		// Secondary sort
+		const sortSecondary = params.get("sort2");
+		if (
+			sortSecondary &&
+			VALID_SORT_FIELDS.includes(sortSecondary as SortField) &&
+			sortSecondary !== sortPrimary
+		) {
+			const sortDir2 = params.get("dir2") as SortDirection | null;
+			sortConfig.secondary = {
+				field: sortSecondary as SortField,
+				direction: sortDir2 === "desc" ? "desc" : "asc",
+			};
+		}
+
+		// Tiebreaker
+		const tiebreaker = params.get("tie");
+		if (tiebreaker === "title" || tiebreaker === "createdAt") {
+			sortConfig.tiebreaker = tiebreaker;
+		}
+
+		state.sortConfig = sortConfig;
+	}
+
+	// Parse section visibility
+	const showOverdue = params.get("overdue");
+	if (showOverdue === "1") {
+		state.showOverdue = true;
+	}
+
+	const showCompleted = params.get("completed");
+	if (showCompleted === "1") {
+		state.showCompleted = true;
+	}
+
 	// Parse modal stack from hash (comma-separated)
 	if (hash) {
 		const modals = hash.split(",").filter(Boolean);
@@ -72,7 +218,8 @@ function isValidModalType(modal: string): boolean {
 	if (
 		modal.startsWith("proof-") ||
 		modal.startsWith("review-") ||
-		modal.startsWith("reassign-")
+		modal.startsWith("reassign-") ||
+		modal.startsWith("task-")
 	) {
 		const id = modal.split("-")[1];
 		return !isNaN(parseInt(id, 10));
@@ -101,6 +248,100 @@ export function updateURLState(
 			params.set("list", String(updates.list));
 		} else {
 			params.delete("list");
+		}
+	}
+
+	// Handle filters
+	if (updates.filters !== undefined) {
+		const f = updates.filters;
+
+		// Search
+		if (f.search) {
+			params.set("search", f.search);
+		} else {
+			params.delete("search");
+		}
+
+		// Tags
+		if (f.tags && f.tags.length > 0) {
+			params.set("tags", f.tags.join(","));
+		} else {
+			params.delete("tags");
+		}
+
+		// Priorities
+		if (f.priorities && f.priorities.length > 0) {
+			params.set("priorities", f.priorities.join(","));
+		} else {
+			params.delete("priorities");
+		}
+
+		// Statuses
+		if (f.statuses && f.statuses.length > 0) {
+			params.set("statuses", f.statuses.join(","));
+		} else {
+			params.delete("statuses");
+		}
+
+		// Starred
+		if (f.starred === true) {
+			params.set("starred", "true");
+		} else {
+			params.delete("starred");
+		}
+
+		// Date range
+		if (f.deadlineFrom) {
+			params.set("from", f.deadlineFrom);
+		} else {
+			params.delete("from");
+		}
+		if (f.deadlineTo) {
+			params.set("to", f.deadlineTo);
+		} else {
+			params.delete("to");
+		}
+	}
+
+	// Handle sort config
+	if (updates.sortConfig !== undefined) {
+		const s = updates.sortConfig;
+
+		// Primary sort
+		params.set("sort", s.primary.field);
+		params.set("dir", s.primary.direction);
+
+		// Secondary sort
+		if (s.secondary) {
+			params.set("sort2", s.secondary.field);
+			params.set("dir2", s.secondary.direction);
+		} else {
+			params.delete("sort2");
+			params.delete("dir2");
+		}
+
+		// Tiebreaker (only store if not default "starred")
+		if (s.tiebreaker !== "starred") {
+			params.set("tie", s.tiebreaker);
+		} else {
+			params.delete("tie");
+		}
+	}
+
+	// Handle section visibility
+	if (updates.showOverdue !== undefined) {
+		if (updates.showOverdue) {
+			params.set("overdue", "1");
+		} else {
+			params.delete("overdue");
+		}
+	}
+
+	if (updates.showCompleted !== undefined) {
+		if (updates.showCompleted) {
+			params.set("completed", "1");
+		} else {
+			params.delete("completed");
 		}
 	}
 

@@ -98,7 +98,13 @@ export default function HomePage() {
 	);
 	const [selectedListName, setSelectedListName] = useState<string | null>(null);
 	const [refreshListsKey, setRefreshListsKey] = useState(0);
-	const [filters, setFilters] = useState<TaskFilters>(defaultFilters);
+
+	// Initialize filters from URL or use defaults
+	const [filters, setFilters] = useState<TaskFilters>(() => ({
+		...defaultFilters,
+		...initialState?.filters,
+	}));
+
 	const [refreshVerifiersKey, setRefreshVerifiersKey] = useState(0);
 	const [newlyCreatedListId, setNewlyCreatedListId] = useState<number | null>(
 		null
@@ -110,12 +116,34 @@ export default function HomePage() {
 		string | null
 	>(null);
 
-	// Sorting configuration state
-	const [sortConfig, setSortConfig] =
-		useState<TaskSortConfig>(defaultSortConfig);
+	// Initialize sort config from URL or use defaults
+	const [sortConfig, setSortConfig] = useState<TaskSortConfig>(
+		initialState?.sortConfig || defaultSortConfig
+	);
+
+	// Section visibility state (lifted from TaskList for URL persistence)
+	const [showOverdue, setShowOverdue] = useState(
+		initialState?.showOverdue ?? false
+	);
+	const [showCompleted, setShowCompleted] = useState(
+		initialState?.showCompleted ?? false
+	);
 
 	// Selected task ID for task detail modal (lifted from TaskList for toast navigation)
-	const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
+	// Check URL for task-{id} modal
+	const getInitialSelectedTaskId = (): number | null => {
+		const taskModal = initialState?.modalStack.find((m) =>
+			m.startsWith("task-")
+		);
+		if (taskModal) {
+			const id = parseInt(taskModal.split("-")[1], 10);
+			return isNaN(id) ? null : id;
+		}
+		return null;
+	};
+	const [selectedTaskId, setSelectedTaskId] = useState<number | null>(
+		getInitialSelectedTaskId
+	);
 
 	// Task objects for task-specific modals (resolved from IDs after fetch)
 	const [submitProofTask, setSubmitProofTask] = useState<Task | null>(null);
@@ -147,6 +175,59 @@ export default function HomePage() {
 			updateURLState({ list: selectedListId }, true);
 		}
 	}, [selectedListId]);
+
+	// Sync URL when filters change
+	useEffect(() => {
+		if (initializedRef.current) {
+			updateURLState({ filters }, true);
+		}
+	}, [filters]);
+
+	// Sync URL when sort config changes
+	useEffect(() => {
+		if (initializedRef.current) {
+			updateURLState({ sortConfig }, true);
+		}
+	}, [sortConfig]);
+
+	// Sync URL when section visibility changes
+	useEffect(() => {
+		if (initializedRef.current) {
+			updateURLState({ showOverdue, showCompleted }, true);
+		}
+	}, [showOverdue, showCompleted]);
+
+	// Sync URL when selected task changes (task detail modal)
+	useEffect(() => {
+		if (!initializedRef.current) return;
+
+		const currentStack = [...modalStack];
+		const taskModalIndex = currentStack.findIndex((m) => m.startsWith("task-"));
+
+		if (selectedTaskId !== null) {
+			const newTaskModal: ModalType = `task-${selectedTaskId}`;
+			// If there's already a task modal, replace it; otherwise push
+			if (taskModalIndex >= 0) {
+				currentStack[taskModalIndex] = newTaskModal;
+			} else {
+				currentStack.push(newTaskModal);
+			}
+		} else {
+			// Remove task modal if present
+			if (taskModalIndex >= 0) {
+				currentStack.splice(taskModalIndex, 1);
+			}
+		}
+
+		// Update URL hash with new stack
+		const params = new URLSearchParams(window.location.search);
+		const queryString = params.toString();
+		const newHash = currentStack.length > 0 ? `#${currentStack.join(",")}` : "";
+		const newURL = `${window.location.pathname}${
+			queryString ? `?${queryString}` : ""
+		}${newHash}`;
+		window.history.replaceState(null, "", newURL);
+	}, [selectedTaskId, modalStack]);
 
 	// Check if user is authenticated
 	useEffect(() => {
@@ -629,6 +710,10 @@ export default function HomePage() {
 						onReviewProof={handleOpenReviewProof}
 						selectedTaskId={selectedTaskId}
 						onSelectTask={setSelectedTaskId}
+						showOverdue={showOverdue}
+						onShowOverdueChange={setShowOverdue}
+						showCompleted={showCompleted}
+						onShowCompletedChange={setShowCompleted}
 					/>
 				</div>
 			)}
