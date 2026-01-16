@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import type { TaskList } from "../../types";
 import { api } from "../../utils/api";
+import EditListModal from "./EditListModal";
 import styles from "./ListsSidebar.module.css";
 
 interface ListsSidebarProps {
@@ -53,6 +54,7 @@ export default function ListsSidebar({
 	const [lists, setLists] = useState<TaskList[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
+	const [editingList, setEditingList] = useState<TaskList | null>(null);
 
 	const fetchLists = async () => {
 		try {
@@ -186,7 +188,7 @@ export default function ListsSidebar({
 											<button
 												className={styles.menuItem}
 												onClick={() => {
-													// TODO: Implement edit
+													setEditingList(list);
 													setMenuOpenId(null);
 												}}
 											>
@@ -208,6 +210,23 @@ export default function ListsSidebar({
 					);
 				})}
 			</nav>
+
+			<EditListModal
+				isOpen={editingList !== null}
+				list={editingList}
+				onClose={() => setEditingList(null)}
+				onSuccess={(updatedList) => {
+					// Update list in local state
+					setLists((prev) =>
+						prev.map((l) => (l.id === updatedList.id ? updatedList : l))
+					);
+					// Update selected list name if this is the selected list
+					if (selectedListId === updatedList.id) {
+						onSelectedListNameChange?.(updatedList.name);
+					}
+					setEditingList(null);
+				}}
+			/>
 		</aside>
 	);
 }
