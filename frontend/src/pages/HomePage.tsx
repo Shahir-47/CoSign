@@ -555,6 +555,15 @@ export default function HomePage() {
 			} else if (message.type === "PENALTY_UNLOCKED") {
 				const payload = message.payload as PenaltyUnlockedPayload;
 
+				// Update task status to MISSED in local state (for supervising tab)
+				setTasks((prevTasks) =>
+					prevTasks.map((task) =>
+						task.id === payload.taskId
+							? { ...task, status: "MISSED" as Task["status"] }
+							: task
+					)
+				);
+
 				// Show notification to verifier that a penalty has been revealed
 				const toastOptions: ToastOptions = {
 					icon: false,
@@ -564,7 +573,7 @@ export default function HomePage() {
 					autoClose: false, // Don't auto-close this important notification
 				};
 				toast.warning(
-					`🔓 Penalty revealed! ${payload.creatorName} missed their deadline. Check your email for details.`,
+					`🔓 Penalty revealed! ${payload.creatorName} missed their deadline. Click to view.`,
 					toastOptions
 				);
 			}

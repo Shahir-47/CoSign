@@ -261,40 +261,51 @@ export default function TaskDetailModal({
 	// State for editing repeat pattern
 	const [isSavingRepeat, setIsSavingRepeat] = useState(false);
 
-	// Track the last fetched task ID to avoid re-fetching
-	const lastFetchedTaskIdRef = useRef<number | null>(null);
+	// Track the last fetched task ID and status to avoid re-fetching unless status changes
+	const lastFetchedTaskRef = useRef<{ id: number; status: string } | null>(
+		null
+	);
 
-	// Determine if we should fetch proof details
-	const shouldFetchProof =
+	// Determine if we should fetch task details (proof, penalty, etc.)
+	const shouldFetchDetails =
 		isOpen &&
 		task &&
 		(task.submittedAt ||
 			task.status === "PENDING_VERIFICATION" ||
-			task.status === "COMPLETED");
+			task.status === "COMPLETED" ||
+			task.status === "MISSED"); // Include MISSED to fetch penalty content
 	const currentTaskId = task?.id ?? null;
+	const currentTaskStatus = task?.status ?? null;
 
 	// Derive loading state from fetchingTaskId
 	const isLoadingProof =
 		fetchingTaskId !== null && fetchingTaskId === currentTaskId;
 
-	// Fetch task details with proof attachments when modal opens
+	// Fetch task details with proof attachments and penalty when modal opens or status changes
 	useEffect(() => {
 		// Reset ref when task changes
-		if (currentTaskId !== lastFetchedTaskIdRef.current) {
-			lastFetchedTaskIdRef.current = null;
+		if (currentTaskId !== lastFetchedTaskRef.current?.id) {
+			lastFetchedTaskRef.current = null;
 		}
 
-		if (!shouldFetchProof || !currentTaskId) {
+		if (!shouldFetchDetails || !currentTaskId || !currentTaskStatus) {
 			return;
 		}
 
-		// Skip if we already fetched for this task
-		if (lastFetchedTaskIdRef.current === currentTaskId) {
+		// Skip if we already fetched for this task AND status hasn't changed
+		// (status change to MISSED means we need to re-fetch to get penalty)
+		if (
+			lastFetchedTaskRef.current?.id === currentTaskId &&
+			lastFetchedTaskRef.current?.status === currentTaskStatus
+		) {
 			return;
 		}
 
 		let cancelled = false;
-		lastFetchedTaskIdRef.current = currentTaskId;
+		lastFetchedTaskRef.current = {
+			id: currentTaskId,
+			status: currentTaskStatus,
+		};
 
 		// Use queueMicrotask to set loading state outside synchronous effect body
 		queueMicrotask(() => {
@@ -322,7 +333,7 @@ export default function TaskDetailModal({
 		return () => {
 			cancelled = true;
 		};
-	}, [shouldFetchProof, currentTaskId]);
+	}, [shouldFetchDetails, currentTaskId, currentTaskStatus]);
 
 	// Fetch available lists when dropdown is opened
 	useEffect(() => {
@@ -597,87 +608,85 @@ export default function TaskDetailModal({
 							<div>
 								<strong>⚠️ Penalty Revealed</strong>
 								<p>
-									Your deadline was missed and your penalty has been sent to{" "}
-									{task.verifier.fullName}.
+									{viewMode === "my-tasks"
+										? `Your deadline was missed and your penalty has been sent to ${task.verifier.fullName}.`
+										: `${task.creator.fullName} missed their deadline. Their penalty has been revealed below.`}
 								</p>
 							</div>
 						</div>
 					)}
 
-					{/* Penalty Content - shown to verifier for MISSED tasks */}
-					{task.status === "MISSED" &&
-						viewMode === "verification-requests" &&
-						taskDetails?.penaltyContent && (
-							<div className={styles.penaltySection}>
-								<h3 className={styles.sectionTitle}>
-									<AlertCircle size={16} />
-									Exposed Penalty/Secret
-								</h3>
-								<div
-									className={styles.penaltyContent}
-									dangerouslySetInnerHTML={{
-										__html: taskDetails.penaltyContent,
-									}}
-								/>
+					{/* Penalty Content - shown to both creator and verifier for MISSED tasks */}
+					{task.status === "MISSED" && taskDetails?.penaltyContent && (
+						<div className={styles.penaltySection}>
+							<h3 className={styles.sectionTitle}>
+								<AlertCircle size={16} />
+								{viewMode === "my-tasks"
+									? "Your Exposed Penalty"
+									: "Exposed Penalty/Secret"}
+							</h3>
+							<div
+								className={styles.penaltyContent}
+								dangerouslySetInnerHTML={{
+									__html: taskDetails.penaltyContent,
+								}}
+							/>
 
-								{/* Penalty Attachments */}
-								{taskDetails?.penaltyAttachments &&
-									taskDetails.penaltyAttachments.length > 0 && (
-										<div className={styles.penaltyAttachmentsSection}>
-											<span className={styles.attachmentsLabel}>
-												Attachments ({taskDetails.penaltyAttachments.length})
-											</span>
-											<div className={styles.attachmentsList}>
-												{taskDetails.penaltyAttachments.map(
-													(attachment, index) => {
-														const FileIcon = getFileIcon(attachment.mimeType);
-														const isImage =
-															attachment.mimeType.startsWith("image/");
+							{/* Penalty Attachments */}
+							{taskDetails?.penaltyAttachments &&
+								taskDetails.penaltyAttachments.length > 0 && (
+									<div className={styles.penaltyAttachmentsSection}>
+										<span className={styles.attachmentsLabel}>
+											Attachments ({taskDetails.penaltyAttachments.length})
+										</span>
+										<div className={styles.attachmentsList}>
+											{taskDetails.penaltyAttachments.map(
+												(attachment, index) => {
+													const FileIcon = getFileIcon(attachment.mimeType);
+													const isImage =
+														attachment.mimeType.startsWith("image/");
 
-														return (
-															<div
-																key={index}
-																className={styles.attachmentItem}
-															>
-																{isImage ? (
-																	<button
-																		type="button"
-																		className={styles.attachmentPreview}
-																		onClick={() =>
-																			setViewingAttachment(attachment)
-																		}
-																	>
-																		<img
-																			src={attachment.url}
-																			alt={attachment.filename}
-																		/>
-																		<div className={styles.attachmentOverlay}>
-																			<Eye size={16} />
-																		</div>
-																	</button>
-																) : (
-																	<button
-																		type="button"
-																		className={styles.attachmentPreview}
-																		onClick={() =>
-																			setViewingAttachment(attachment)
-																		}
-																	>
-																		<FileIcon size={24} />
-																	</button>
-																)}
-																<span className={styles.attachmentName}>
-																	{attachment.filename}
-																</span>
-															</div>
-														);
-													}
-												)}
-											</div>
+													return (
+														<div key={index} className={styles.attachmentItem}>
+															{isImage ? (
+																<button
+																	type="button"
+																	className={styles.attachmentPreview}
+																	onClick={() =>
+																		setViewingAttachment(attachment)
+																	}
+																>
+																	<img
+																		src={attachment.url}
+																		alt={attachment.filename}
+																	/>
+																	<div className={styles.attachmentOverlay}>
+																		<Eye size={16} />
+																	</div>
+																</button>
+															) : (
+																<button
+																	type="button"
+																	className={styles.attachmentPreview}
+																	onClick={() =>
+																		setViewingAttachment(attachment)
+																	}
+																>
+																	<FileIcon size={24} />
+																</button>
+															)}
+															<span className={styles.attachmentName}>
+																{attachment.filename}
+															</span>
+														</div>
+													);
+												}
+											)}
 										</div>
-									)}
-							</div>
-						)}
+									</div>
+								)}
+						</div>
+					)}
 
 					{/* Submitted Proof Section - shown to task creator */}
 					{viewMode === "my-tasks" &&
