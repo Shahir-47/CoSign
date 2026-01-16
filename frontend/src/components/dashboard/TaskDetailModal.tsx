@@ -602,91 +602,104 @@ export default function TaskDetailModal({
 					)}
 
 					{/* Penalty Exposed Banner - for MISSED tasks */}
-					{task.status === "MISSED" && taskDetails?.penaltyContent && (
-						<div className={styles.penaltyBanner}>
-							<AlertCircle size={18} />
-							<div>
-								<strong>⚠️ Penalty Revealed</strong>
-								<p>
-									{viewMode === "my-tasks"
-										? `Your deadline was missed and your penalty has been sent to ${task.verifier.fullName}.`
-										: `${task.creator.fullName} missed their deadline. Their penalty has been revealed below.`}
-								</p>
+					{task.status === "MISSED" &&
+						(taskDetails?.penaltyContent ||
+							(taskDetails?.penaltyAttachments &&
+								taskDetails.penaltyAttachments.length > 0)) && (
+							<div className={styles.penaltyBanner}>
+								<AlertCircle size={18} />
+								<div>
+									<strong>⚠️ Penalty Revealed</strong>
+									<p>
+										{viewMode === "my-tasks"
+											? `Your deadline was missed and your penalty has been sent to ${task.verifier.fullName}.`
+											: `${task.creator.fullName} missed their deadline. Their penalty has been revealed below.`}
+									</p>
+								</div>
 							</div>
-						</div>
-					)}
+						)}
 
 					{/* Penalty Content - shown to both creator and verifier for MISSED tasks */}
-					{task.status === "MISSED" && taskDetails?.penaltyContent && (
-						<div className={styles.penaltySection}>
-							<h3 className={styles.sectionTitle}>
-								<AlertCircle size={16} />
-								{viewMode === "my-tasks"
-									? "Your Exposed Penalty"
-									: "Exposed Penalty/Secret"}
-							</h3>
-							<div
-								className={styles.penaltyContent}
-								dangerouslySetInnerHTML={{
-									__html: taskDetails.penaltyContent,
-								}}
-							/>
+					{task.status === "MISSED" &&
+						(taskDetails?.penaltyContent ||
+							(taskDetails?.penaltyAttachments &&
+								taskDetails.penaltyAttachments.length > 0)) && (
+							<div className={styles.penaltySection}>
+								<h3 className={styles.sectionTitle}>
+									<AlertCircle size={16} />
+									{viewMode === "my-tasks"
+										? "Your Exposed Penalty"
+										: "Exposed Penalty/Secret"}
+								</h3>
 
-							{/* Penalty Attachments */}
-							{taskDetails?.penaltyAttachments &&
-								taskDetails.penaltyAttachments.length > 0 && (
-									<div className={styles.penaltyAttachmentsSection}>
-										<span className={styles.attachmentsLabel}>
-											Attachments ({taskDetails.penaltyAttachments.length})
-										</span>
-										<div className={styles.attachmentsList}>
-											{taskDetails.penaltyAttachments.map(
-												(attachment, index) => {
-													const FileIcon = getFileIcon(attachment.mimeType);
-													const isImage =
-														attachment.mimeType.startsWith("image/");
-
-													return (
-														<div key={index} className={styles.attachmentItem}>
-															{isImage ? (
-																<button
-																	type="button"
-																	className={styles.attachmentPreview}
-																	onClick={() =>
-																		setViewingAttachment(attachment)
-																	}
-																>
-																	<img
-																		src={attachment.url}
-																		alt={attachment.filename}
-																	/>
-																	<div className={styles.attachmentOverlay}>
-																		<Eye size={16} />
-																	</div>
-																</button>
-															) : (
-																<button
-																	type="button"
-																	className={styles.attachmentPreview}
-																	onClick={() =>
-																		setViewingAttachment(attachment)
-																	}
-																>
-																	<FileIcon size={24} />
-																</button>
-															)}
-															<span className={styles.attachmentName}>
-																{attachment.filename}
-															</span>
-														</div>
-													);
-												}
-											)}
-										</div>
-									</div>
+								{/* Penalty Text Content */}
+								{taskDetails?.penaltyContent && (
+									<div
+										className={styles.penaltyContent}
+										dangerouslySetInnerHTML={{
+											__html: taskDetails.penaltyContent,
+										}}
+									/>
 								)}
-						</div>
-					)}
+
+								{/* Penalty Attachments */}
+								{taskDetails?.penaltyAttachments &&
+									taskDetails.penaltyAttachments.length > 0 && (
+										<div className={styles.penaltyAttachmentsSection}>
+											<span className={styles.attachmentsLabel}>
+												Attachments ({taskDetails.penaltyAttachments.length})
+											</span>
+											<div className={styles.attachmentsList}>
+												{taskDetails.penaltyAttachments.map(
+													(attachment, index) => {
+														const FileIcon = getFileIcon(attachment.mimeType);
+														const isImage =
+															attachment.mimeType.startsWith("image/");
+
+														return (
+															<div
+																key={index}
+																className={styles.attachmentItem}
+															>
+																{isImage ? (
+																	<button
+																		type="button"
+																		className={styles.attachmentPreview}
+																		onClick={() =>
+																			setViewingAttachment(attachment)
+																		}
+																	>
+																		<img
+																			src={attachment.url}
+																			alt={attachment.filename}
+																		/>
+																		<div className={styles.attachmentOverlay}>
+																			<Eye size={16} />
+																		</div>
+																	</button>
+																) : (
+																	<button
+																		type="button"
+																		className={styles.attachmentPreview}
+																		onClick={() =>
+																			setViewingAttachment(attachment)
+																		}
+																	>
+																		<FileIcon size={24} />
+																	</button>
+																)}
+																<span className={styles.attachmentName}>
+																	{attachment.filename}
+																</span>
+															</div>
+														);
+													}
+												)}
+											</div>
+										</div>
+									)}
+							</div>
+						)}
 
 					{/* Submitted Proof Section - shown to task creator */}
 					{viewMode === "my-tasks" &&
