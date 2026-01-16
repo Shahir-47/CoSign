@@ -695,8 +695,15 @@ export default function CreateTaskModal({
 							checked={formData.starred}
 							onChange={(e) => handleChange("starred", e.target.checked)}
 							disabled={isLoading}
+							className={styles.hiddenCheckbox}
 						/>
-						<Star size={16} />
+						<Star
+							size={20}
+							className={`${styles.starIcon} ${
+								formData.starred ? styles.starFilled : styles.starOutline
+							}`}
+							fill={formData.starred ? "#f59e0b" : "none"}
+						/>
 						<span>Mark as starred (high importance)</span>
 					</label>
 

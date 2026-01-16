@@ -254,15 +254,37 @@
 	border-color: var(--border-secondary);
 }
 
-.checkbox input[type="checkbox"] {
-	width: 18px;
-	height: 18px;
-	accent-color: var(--accent-primary);
+.hiddenCheckbox {
+	position: absolute;
+	opacity: 0;
+	width: 0;
+	height: 0;
+	pointer-events: none;
+}
+
+.starIcon {
+	flex-shrink: 0;
+	transition: all 0.2s ease;
 	cursor: pointer;
 }
 
-.checkbox svg {
+.starOutline {
 	color: var(--text-muted);
+	stroke-width: 1.5;
+}
+
+.starFilled {
+	color: #f59e0b;
+	filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.5));
+}
+
+.checkbox:hover .starOutline {
+	color: #f59e0b;
+	filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.6));
+}
+
+.checkbox:hover .starFilled {
+	filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.8));
 }
 
 .checkbox:has(input:checked) {
@@ -272,10 +294,6 @@
 		var(--bg-tertiary) 0%,
 		rgba(245, 158, 11, 0.05) 100%
 	);
-}
-
-.checkbox:has(input:checked) svg {
-	color: #f59e0b;
 }
 
 .actions {
