@@ -38,6 +38,7 @@ import {
 	Loader2,
 	Paperclip,
 	ChevronDown,
+	Info,
 } from "lucide-react";
 import type { Task, TaskDetails, ProofAttachment, TaskList } from "../../types";
 import { api } from "../../utils/api";
@@ -418,14 +419,7 @@ export default function TaskDetailModal({
 		setIsSavingRepeat(true);
 		try {
 			const updatedTask = await api.put<Task>(`/tasks/${task.id}`, {
-				title: task.title,
-				description: task.description,
-				deadline: task.deadline,
-				priority: task.priority,
-				tags: task.tags,
-				location: task.location,
 				repeatPattern: newPattern,
-				starred: task.starred,
 			});
 
 			// Update the task in the parent state
@@ -682,6 +676,18 @@ export default function TaskDetailModal({
 								Description
 							</h3>
 							<p className={styles.description}>{task.description}</p>
+						</div>
+					)}
+
+					{/* Edit Info Notice - only show for task owners */}
+					{viewMode === "my-tasks" && canEditTask && (
+						<div className={styles.editInfoNotice}>
+							<Info size={16} />
+							<span>
+								To maintain accountability, task details cannot be edited after
+								creation. You can change the <strong>repeat pattern</strong> and{" "}
+								<strong>move to a different list</strong> below.
+							</span>
 						</div>
 					)}
 

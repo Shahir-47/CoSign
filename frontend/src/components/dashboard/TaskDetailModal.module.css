@@ -680,3 +680,32 @@
 	opacity: 0.5;
 	cursor: not-allowed;
 }
+
+/* Edit Info Notice */
+.editInfoNotice {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	padding: 12px 14px;
+	background: color-mix(in srgb, var(--accent-primary) 8%, transparent);
+	border: 1px solid color-mix(in srgb, var(--accent-primary) 25%, transparent);
+	border-radius: var(--radius-md);
+	margin-bottom: 16px;
+}
+
+.editInfoNotice svg {
+	flex-shrink: 0;
+	color: var(--accent-primary);
+	margin-top: 1px;
+}
+
+.editInfoNotice span {
+	font-size: 0.8125rem;
+	color: var(--text-secondary);
+	line-height: 1.5;
+}
+
+.editInfoNotice strong {
+	color: var(--text-primary);
+	font-weight: 500;
+}

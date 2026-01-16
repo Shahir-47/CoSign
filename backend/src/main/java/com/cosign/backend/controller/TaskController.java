@@ -4,6 +4,7 @@ import com.cosign.backend.dto.ProofSubmissionRequest;
 import com.cosign.backend.dto.ReviewTaskRequest;
 import com.cosign.backend.dto.TaskDetailResponse;
 import com.cosign.backend.dto.TaskRequest;
+import com.cosign.backend.dto.TaskUpdateRequest;
 import com.cosign.backend.model.Task;
 import com.cosign.backend.service.TaskService;
 import jakarta.validation.Valid;
@@ -81,7 +82,7 @@ public class TaskController {
 
     @PutMapping("/{taskId}")
     public ResponseEntity<Task> updateTask(@PathVariable Long taskId,
-                                           @RequestBody @Valid TaskRequest request) {
+                                           @RequestBody TaskUpdateRequest request) {
         return ResponseEntity.ok(taskService.updateTask(taskId, request));
     }
 }

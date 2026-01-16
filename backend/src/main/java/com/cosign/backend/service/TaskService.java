@@ -1,6 +1,7 @@
 package com.cosign.backend.service;
 
 import com.cosign.backend.dto.TaskRequest;
+import com.cosign.backend.dto.TaskUpdateRequest;
 import com.cosign.backend.model.*;
 import com.cosign.backend.repository.TaskListRepository;
 import com.cosign.backend.repository.TaskRepository;
@@ -228,7 +229,7 @@ public class TaskService {
     }
 
     @Transactional
-    public Task updateTask(Long taskId, TaskRequest request) {
+    public Task updateTask(Long taskId, TaskUpdateRequest request) {
         User user = getCurrentUser();
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
@@ -242,14 +243,30 @@ public class TaskService {
             throw new RuntimeException("Cannot edit a completed or missed task.");
         }
 
-        task.setTitle(request.getTitle());
-        task.setDescription(request.getDescription());
-        task.setDeadline(request.getDeadline());
-        task.setPriority(request.getPriority());
-        task.setTags(request.getTags());
+        // Only update fields that are provided (non-null)
+        if (request.getTitle() != null) {
+            task.setTitle(request.getTitle());
+        }
+        if (request.getDescription() != null) {
+            task.setDescription(request.getDescription());
+        }
+        if (request.getDeadline() != null) {
+            task.setDeadline(request.getDeadline());
+        }
+        if (request.getPriority() != null) {
+            task.setPriority(request.getPriority());
+        }
+        if (request.getTags() != null) {
+            task.setTags(request.getTags());
+        }
+        if (request.getLocation() != null) {
+            task.setLocation(request.getLocation());
+        }
+        if (request.getStarred() != null) {
+            task.setStarred(request.getStarred());
+        }
 
-
-        // Save the new RRULE string
+        // repeatPattern can be set to null to clear it, so always update
         task.setRepeatPattern(request.getRepeatPattern());
 
         Task savedTask = taskRepository.save(task);
