@@ -342,6 +342,9 @@ public class TaskService {
         payload.put("approved", request.getApproved());
         payload.put("denialReason", savedTask.getDenialReason() != null ? savedTask.getDenialReason() : "");
         payload.put("approvalComment", savedTask.getApprovalComment() != null ? savedTask.getApprovalComment() : "");
+        if (savedTask.getSubmittedAt() != null) {
+            payload.put("submittedAt", savedTask.getSubmittedAt().toString());
+        }
         if (savedTask.getVerifiedAt() != null) {
             payload.put("verifiedAt", savedTask.getVerifiedAt().toString());
         }

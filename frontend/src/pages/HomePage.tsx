@@ -336,12 +336,25 @@ export default function HomePage() {
 							? {
 									...task,
 									status: payload.status as Task["status"],
-									denialReason: payload.denialReason,
-									approvalComment: payload.approvalComment,
-									verifiedAt: payload.verifiedAt,
-									completedAt: payload.completedAt,
-									rejectedAt: payload.rejectedAt,
-									submittedAt: payload.submittedAt,
+									// Only update optional fields if they're defined in the payload
+									...(payload.denialReason !== undefined && {
+										denialReason: payload.denialReason,
+									}),
+									...(payload.approvalComment !== undefined && {
+										approvalComment: payload.approvalComment,
+									}),
+									...(payload.verifiedAt !== undefined && {
+										verifiedAt: payload.verifiedAt,
+									}),
+									...(payload.completedAt !== undefined && {
+										completedAt: payload.completedAt,
+									}),
+									...(payload.rejectedAt !== undefined && {
+										rejectedAt: payload.rejectedAt,
+									}),
+									...(payload.submittedAt !== undefined && {
+										submittedAt: payload.submittedAt,
+									}),
 									// Update verifier if included (for reassign)
 									...(payload.verifier && { verifier: payload.verifier }),
 							  }
