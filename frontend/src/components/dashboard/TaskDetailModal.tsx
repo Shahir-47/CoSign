@@ -839,6 +839,7 @@ export default function TaskDetailModal({
 											value={task.repeatPattern}
 											onChange={handleUpdateRepeatPattern}
 											disabled={isSavingRepeat}
+											showClearButton={false}
 										/>
 									) : (
 										<span className={styles.detailValue}>

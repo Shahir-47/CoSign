@@ -14,6 +14,7 @@ interface RecurrenceSelectorProps {
 	value?: string; // Current RRULE string
 	onChange: (rrule: string | undefined) => void;
 	disabled?: boolean;
+	showClearButton?: boolean; // Show/hide the X button to clear the value
 	// URL tracking props
 	isModalOpen?: boolean; // Controlled from parent via URL
 	onModalOpenChange?: (open: boolean) => void; // Notify parent of open state changes
@@ -120,6 +121,7 @@ export default function RecurrenceSelector({
 	value,
 	onChange,
 	disabled = false,
+	showClearButton = true,
 	isModalOpen: controlledIsOpen,
 	onModalOpenChange,
 }: RecurrenceSelectorProps) {
@@ -418,7 +420,7 @@ export default function RecurrenceSelector({
 			>
 				<Repeat size={18} />
 				<span className={styles.summary}>{getSummary()}</span>
-				{value && (
+				{value && showClearButton && (
 					<button
 						type="button"
 						className={styles.clearButton}
