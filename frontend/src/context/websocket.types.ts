@@ -75,4 +75,16 @@ export interface VerifierRemovedPayload {
 	message: string;
 }
 
+export interface TaskMissedPayload {
+	taskId: number;
+	title: string;
+	message: string;
+}
+
+export interface PenaltyUnlockedPayload {
+	taskId: number;
+	creatorName: string;
+	penaltyContent: string; // Decrypted HTML content
+}
+
 export type MessageHandler = (message: SocketMessage) => void;

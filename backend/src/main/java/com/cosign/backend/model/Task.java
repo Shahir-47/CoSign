@@ -61,6 +61,10 @@ public class Task {
     @Column(columnDefinition = "TEXT")
     private String approvalComment;
 
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JoinColumn(name = "penalty_id", referencedColumnName = "id")
+    private Penalty penalty;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 

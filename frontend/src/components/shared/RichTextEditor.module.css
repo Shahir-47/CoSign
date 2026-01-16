@@ -5,6 +5,11 @@
 	overflow: hidden;
 }
 
+.editor.disabled {
+	opacity: 0.6;
+	pointer-events: none;
+}
+
 .toolbar {
 	display: flex;
 	align-items: center;
@@ -154,4 +159,44 @@
 .bubbleButton.active {
 	background: var(--accent-primary-alpha);
 	color: var(--accent-primary);
+}
+
+/* Image styles */
+.image {
+	max-width: 100%;
+	height: auto;
+	border-radius: var(--radius-sm);
+	margin: 0.5em 0;
+}
+
+.content :global(.tiptap img) {
+	max-width: 100%;
+	height: auto;
+	border-radius: var(--radius-sm);
+	margin: 0.5em 0;
+	cursor: pointer;
+	transition: opacity 0.2s ease;
+}
+
+.content :global(.tiptap img:hover) {
+	opacity: 0.9;
+}
+
+.content :global(.tiptap img.ProseMirror-selectednode) {
+	outline: 2px solid var(--accent-primary);
+	outline-offset: 2px;
+}
+
+/* Spinning animation for upload */
+.spinning {
+	animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
 }

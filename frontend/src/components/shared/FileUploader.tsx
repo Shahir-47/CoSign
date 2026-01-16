@@ -17,6 +17,7 @@ export interface UploadedFile {
 	s3Key: string;
 	originalFilename: string;
 	mimeType: string;
+	contentHash: string; // SHA-256 hash of file content
 	previewUrl?: string;
 }
 
@@ -32,6 +33,16 @@ interface UploadingFile {
 	file: File;
 	progress: number;
 	error?: string;
+}
+
+/**
+ * Compute SHA-256 hash of a file using Web Crypto API
+ */
+async function computeFileHash(file: File): Promise<string> {
+	const buffer = await file.arrayBuffer();
+	const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+	const hashArray = Array.from(new Uint8Array(hashBuffer));
+	return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 function getFileIcon(mimeType: string) {
@@ -75,6 +86,13 @@ export default function FileUploader({
 			setUploading((prev) => [...prev, { id: uploadId, file, progress: 0 }]);
 
 			try {
+				// Compute file content hash for duplicate detection
+				const contentHash = await computeFileHash(file);
+
+				setUploading((prev) =>
+					prev.map((u) => (u.id === uploadId ? { ...u, progress: 15 } : u))
+				);
+
 				// Get presigned URL
 				const presignResponse = await api.post<{ url: string; key: string }>(
 					"/uploads/presign",
@@ -116,6 +134,7 @@ export default function FileUploader({
 					s3Key: presignResponse.key,
 					originalFilename: file.name,
 					mimeType: file.type,
+					contentHash,
 					previewUrl,
 				};
 

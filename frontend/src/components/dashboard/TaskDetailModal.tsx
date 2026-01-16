@@ -590,6 +590,95 @@ export default function TaskDetailModal({
 						</div>
 					)}
 
+					{/* Penalty Exposed Banner - for MISSED tasks */}
+					{task.status === "MISSED" && taskDetails?.penaltyContent && (
+						<div className={styles.penaltyBanner}>
+							<AlertCircle size={18} />
+							<div>
+								<strong>⚠️ Penalty Revealed</strong>
+								<p>
+									Your deadline was missed and your penalty has been sent to{" "}
+									{task.verifier.fullName}.
+								</p>
+							</div>
+						</div>
+					)}
+
+					{/* Penalty Content - shown to verifier for MISSED tasks */}
+					{task.status === "MISSED" &&
+						viewMode === "verification-requests" &&
+						taskDetails?.penaltyContent && (
+							<div className={styles.penaltySection}>
+								<h3 className={styles.sectionTitle}>
+									<AlertCircle size={16} />
+									Exposed Penalty/Secret
+								</h3>
+								<div
+									className={styles.penaltyContent}
+									dangerouslySetInnerHTML={{
+										__html: taskDetails.penaltyContent,
+									}}
+								/>
+
+								{/* Penalty Attachments */}
+								{taskDetails?.penaltyAttachments &&
+									taskDetails.penaltyAttachments.length > 0 && (
+										<div className={styles.penaltyAttachmentsSection}>
+											<span className={styles.attachmentsLabel}>
+												Attachments ({taskDetails.penaltyAttachments.length})
+											</span>
+											<div className={styles.attachmentsList}>
+												{taskDetails.penaltyAttachments.map(
+													(attachment, index) => {
+														const FileIcon = getFileIcon(attachment.mimeType);
+														const isImage =
+															attachment.mimeType.startsWith("image/");
+
+														return (
+															<div
+																key={index}
+																className={styles.attachmentItem}
+															>
+																{isImage ? (
+																	<button
+																		type="button"
+																		className={styles.attachmentPreview}
+																		onClick={() =>
+																			setViewingAttachment(attachment)
+																		}
+																	>
+																		<img
+																			src={attachment.url}
+																			alt={attachment.filename}
+																		/>
+																		<div className={styles.attachmentOverlay}>
+																			<Eye size={16} />
+																		</div>
+																	</button>
+																) : (
+																	<button
+																		type="button"
+																		className={styles.attachmentPreview}
+																		onClick={() =>
+																			setViewingAttachment(attachment)
+																		}
+																	>
+																		<FileIcon size={24} />
+																	</button>
+																)}
+																<span className={styles.attachmentName}>
+																	{attachment.filename}
+																</span>
+															</div>
+														);
+													}
+												)}
+											</div>
+										</div>
+									)}
+							</div>
+						)}
+
 					{/* Submitted Proof Section - shown to task creator */}
 					{viewMode === "my-tasks" &&
 						task.submittedAt &&

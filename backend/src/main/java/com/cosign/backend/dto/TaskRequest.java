@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class TaskRequest {
@@ -28,4 +29,17 @@ public class TaskRequest {
     private String location;
     private String repeatPattern;
     private boolean starred;
+
+    // Either penaltyContent OR penaltyAttachments must be provided (validated in service)
+    private String penaltyContent;
+
+    private List<AttachmentDto> penaltyAttachments;
+
+    @Data
+    public static class AttachmentDto {
+        private String s3Key;
+        private String originalFilename;
+        private String mimeType;
+        private String contentHash; // SHA-256 hash of file content for duplicate detection
+    }
 }

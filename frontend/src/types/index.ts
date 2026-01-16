@@ -87,6 +87,8 @@ export interface TaskDetails {
 	denialReason?: string;
 	approvalComment?: string;
 	attachments: ProofAttachment[];
+	penaltyContent?: string; // Decrypted penalty HTML (only if exposed)
+	penaltyAttachments?: ProofAttachment[]; // Penalty file attachments (only if exposed)
 }
 
 export interface ProofSubmissionRequest {
@@ -114,6 +116,15 @@ export interface TaskRequest {
 	location?: string;
 	repeatPattern?: string;
 	starred?: boolean;
+	penaltyContent: string; // Rich text HTML for the penalty/secret
+	penaltyAttachments?: AttachmentDto[]; // Penalty file attachments
+}
+
+export interface AttachmentDto {
+	s3Key: string;
+	originalFilename: string;
+	mimeType: string;
+	contentHash: string; // SHA-256 hash of file content for duplicate detection
 }
 
 export interface TaskFilters {

@@ -13,6 +13,8 @@ public class TaskDetailResponse {
     private String denialReason;
     private String approvalComment;
     private List<AttachmentViewDto> attachments;
+    private String penaltyContent;
+    private List<AttachmentViewDto> penaltyAttachments;
 
     @Data
     public static class AttachmentViewDto {

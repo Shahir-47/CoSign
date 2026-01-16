@@ -441,13 +441,13 @@ export interface TaskDraft {
 	location: string;
 	repeatPattern?: string;
 	starred: boolean;
+	penaltyContent: string;
 	savedAt: number; // timestamp
 }
 
 export interface ProofDraft {
 	taskId: number;
 	description: string;
-	// Note: Files can't be stored, but we can remember their names
 	fileNames: string[];
 	savedAt: number;
 }

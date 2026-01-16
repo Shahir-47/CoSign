@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
+import Image from "@tiptap/extension-image";
 import {
 	Bold,
 	Italic,
@@ -20,22 +21,40 @@ import {
 	Quote,
 	Undo,
 	Redo,
+	Image as ImageIcon,
+	Loader2,
 } from "lucide-react";
+import { api } from "../../utils/api";
 import styles from "./RichTextEditor.module.css";
 
 interface RichTextEditorProps {
 	content: string;
 	onChange: (content: string) => void;
+	onBlur?: () => void;
 	placeholder?: string;
+	enableImageUpload?: boolean;
+	minHeight?: string;
+	disabled?: boolean;
+}
+
+interface PresignResponse {
+	presignedUrl: string;
+	s3Key: string;
 }
 
 export default function RichTextEditor({
 	content,
 	onChange,
+	onBlur,
 	placeholder = "Write your proof description...",
+	enableImageUpload = false,
+	minHeight,
+	disabled = false,
 }: RichTextEditorProps) {
 	// Force re-render when editor state changes (for toolbar button highlighting)
 	const [, setForceUpdate] = useState(0);
+	const [isUploading, setIsUploading] = useState(false);
+	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const editor = useEditor({
 		extensions: [
@@ -55,10 +74,21 @@ export default function RichTextEditor({
 			Placeholder.configure({
 				placeholder,
 			}),
+			Image.configure({
+				inline: true,
+				allowBase64: false,
+				HTMLAttributes: {
+					class: styles.image,
+				},
+			}),
 		],
 		content,
+		editable: !disabled,
 		onUpdate: ({ editor }) => {
 			onChange(editor.getHTML());
+		},
+		onBlur: () => {
+			onBlur?.();
 		},
 		onSelectionUpdate: () => {
 			// Re-render to update toolbar button states
@@ -69,6 +99,61 @@ export default function RichTextEditor({
 			setForceUpdate((n) => n + 1);
 		},
 	});
+
+	// Image upload handler
+	const handleImageUpload = useCallback(() => {
+		fileInputRef.current?.click();
+	}, []);
+
+	const onFileSelect = useCallback(
+		async (e: React.ChangeEvent<HTMLInputElement>) => {
+			if (!editor || !e.target.files?.length) return;
+
+			const file = e.target.files[0];
+			if (!file.type.startsWith("image/")) {
+				alert("Please select an image file");
+				return;
+			}
+
+			setIsUploading(true);
+
+			try {
+				// Get presigned URL
+				const presignResponse = await api.get<PresignResponse>(
+					`/api/uploads/presign?filename=${encodeURIComponent(
+						file.name
+					)}&contentType=${encodeURIComponent(file.type)}`
+				);
+
+				// Upload to S3
+				await fetch(presignResponse.presignedUrl, {
+					method: "PUT",
+					body: file,
+					headers: {
+						"Content-Type": file.type,
+					},
+				});
+
+				// Get the public URL (using the download presign endpoint)
+				const downloadUrl = await api.get<{ url: string }>(
+					`/api/uploads/download/${encodeURIComponent(presignResponse.s3Key)}`
+				);
+
+				// Insert image into editor
+				editor.chain().focus().setImage({ src: downloadUrl.url }).run();
+			} catch (error) {
+				console.error("Failed to upload image:", error);
+				alert("Failed to upload image. Please try again.");
+			} finally {
+				setIsUploading(false);
+				// Reset input
+				if (fileInputRef.current) {
+					fileInputRef.current.value = "";
+				}
+			}
+		},
+		[editor]
+	);
 
 	if (!editor) return null;
 
@@ -87,7 +172,7 @@ export default function RichTextEditor({
 	};
 
 	return (
-		<div className={styles.editor}>
+		<div className={`${styles.editor} ${disabled ? styles.disabled : ""}`}>
 			{/* Toolbar */}
 			<div className={styles.toolbar}>
 				<div className={styles.toolbarGroup}>
@@ -97,6 +182,7 @@ export default function RichTextEditor({
 							editor.isActive("bold") ? styles.active : ""
 						}`}
 						onClick={() => editor.chain().focus().toggleBold().run()}
+						disabled={disabled}
 						title="Bold"
 					>
 						<Bold size={16} />
@@ -226,6 +312,21 @@ export default function RichTextEditor({
 							<Unlink size={16} />
 						</button>
 					)}
+					{enableImageUpload && (
+						<button
+							type="button"
+							className={styles.toolbarButton}
+							onClick={handleImageUpload}
+							disabled={isUploading}
+							title="Insert Image"
+						>
+							{isUploading ? (
+								<Loader2 size={16} className={styles.spinning} />
+							) : (
+								<ImageIcon size={16} />
+							)}
+						</button>
+					)}
 				</div>
 
 				<div className={styles.spacer} />
@@ -253,7 +354,22 @@ export default function RichTextEditor({
 			</div>
 
 			{/* Editor Content */}
-			<EditorContent editor={editor} className={styles.content} />
+			<EditorContent
+				editor={editor}
+				className={styles.content}
+				style={minHeight ? { minHeight } : undefined}
+			/>
+
+			{/* Hidden file input for image upload */}
+			{enableImageUpload && (
+				<input
+					ref={fileInputRef}
+					type="file"
+					accept="image/*"
+					onChange={onFileSelect}
+					style={{ display: "none" }}
+				/>
+			)}
 		</div>
 	);
 }

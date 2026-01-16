@@ -430,6 +430,72 @@
 	line-height: 1.5;
 }
 
+/* Penalty Banner and Section Styles */
+.penaltyBanner {
+	display: flex;
+	gap: 12px;
+	padding: 16px;
+	background: rgba(239, 68, 68, 0.1);
+	border: 1px solid rgba(239, 68, 68, 0.3);
+	border-radius: var(--radius-md);
+	color: #ef4444;
+}
+
+.penaltyBanner svg {
+	flex-shrink: 0;
+	margin-top: 2px;
+}
+
+.penaltyBanner strong {
+	display: block;
+	margin-bottom: 4px;
+	font-size: 0.875rem;
+}
+
+.penaltyBanner p {
+	margin: 0;
+	color: var(--text-secondary);
+	font-size: 0.875rem;
+	line-height: 1.5;
+}
+
+.penaltySection {
+	background: rgba(239, 68, 68, 0.05);
+	border: 1px solid rgba(239, 68, 68, 0.2);
+	border-radius: var(--radius-md);
+	padding: 16px;
+	margin-bottom: 16px;
+}
+
+.penaltySection .sectionTitle {
+	color: #ef4444;
+	margin-bottom: 12px;
+}
+
+.penaltyContent {
+	color: var(--text-primary);
+	font-size: 0.9375rem;
+	line-height: 1.6;
+}
+
+.penaltyContent img {
+	max-width: 100%;
+	height: auto;
+	border-radius: var(--radius-sm);
+	margin: 8px 0;
+}
+
+.penaltyContent a {
+	color: var(--accent-primary);
+	text-decoration: underline;
+}
+
+.penaltyAttachmentsSection {
+	margin-top: 16px;
+	padding-top: 16px;
+	border-top: 1px solid rgba(239, 68, 68, 0.2);
+}
+
 /* Proof Section Styles */
 .proofLoading {
 	display: flex;

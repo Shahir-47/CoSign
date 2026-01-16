@@ -14,11 +14,15 @@ import {
 	ChevronDown,
 	User,
 	Plus,
+	Lock,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import Input from "../shared/Input";
 import Select from "../shared/Select";
 import Button from "../shared/Button";
+import RichTextEditor from "../shared/RichTextEditor";
+import FileUploader from "../shared/FileUploader";
+import type { UploadedFile } from "../shared/FileUploader";
 import OnlineStatusIndicator from "../shared/OnlineStatusIndicator";
 import RecurrenceSelector from "./RecurrenceSelector";
 import type {
@@ -62,6 +66,7 @@ interface FormErrors {
 	title?: string;
 	deadline?: string;
 	verifierEmail?: string;
+	penaltyContent?: string;
 }
 
 const priorityOptions = [
@@ -119,11 +124,13 @@ export default function CreateTaskModal({
 			location: "",
 			repeatPattern: undefined,
 			starred: false,
+			penaltyContent: "",
 		}),
 		[selectedListId]
 	);
 
 	const [formData, setFormData] = useState<TaskRequest>(getInitialFormData);
+	const [penaltyFiles, setPenaltyFiles] = useState<UploadedFile[]>([]);
 
 	const [errors, setErrors] = useState<FormErrors>({});
 	const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -151,6 +158,7 @@ export default function CreateTaskModal({
 					location: draft.location,
 					repeatPattern: draft.repeatPattern,
 					starred: draft.starred,
+					penaltyContent: draft.penaltyContent || "",
 				});
 				setHasDraft(true);
 				toast.info("📝 Draft restored", { icon: false, autoClose: 2000 });
@@ -170,7 +178,8 @@ export default function CreateTaskModal({
 		const hasContent =
 			formData.title.trim() ||
 			formData.description?.trim() ||
-			formData.tags?.trim();
+			formData.tags?.trim() ||
+			formData.penaltyContent?.trim();
 		if (!hasContent) return;
 
 		if (saveDraftTimeoutRef.current) {
@@ -189,6 +198,7 @@ export default function CreateTaskModal({
 				location: formData.location || "",
 				repeatPattern: formData.repeatPattern,
 				starred: formData.starred ?? false,
+				penaltyContent: formData.penaltyContent || "",
 			});
 		}, 1000); // Save after 1s of inactivity
 
@@ -298,6 +308,16 @@ export default function CreateTaskModal({
 				if (!emailRegex.test(value)) return "Please enter a valid email";
 				return undefined;
 			}
+			case "penaltyContent": {
+				// Penalty is valid if there's text content OR files attached
+				// This function only checks text - file validation is done separately in handleSubmit
+				const textContent = value.replace(/<[^>]*>/g, "").trim();
+				// Return undefined here - we'll do combined validation in handleSubmit
+				if (!textContent) return undefined; // Will be validated with files in handleSubmit
+				if (textContent.length < 10)
+					return "Penalty text must be at least 10 characters (or just upload files)";
+				return undefined;
+			}
 			default:
 				return undefined;
 		}
@@ -329,7 +349,7 @@ export default function CreateTaskModal({
 	const handleSubmit = async (e: FormEvent) => {
 		e.preventDefault();
 
-		// Validate required fields
+		// Validate required fields (excluding penaltyContent which has special validation)
 		const newErrors: FormErrors = {};
 		(["title", "deadline", "verifierEmail"] as const).forEach((key) => {
 			const value = formData[key];
@@ -339,8 +359,29 @@ export default function CreateTaskModal({
 			}
 		});
 
+		// Special validation for penalty: must have content OR attachments
+		const penaltyTextContent = formData.penaltyContent
+			.replace(/<[^>]*>/g, "")
+			.trim();
+		const hasPenaltyContent =
+			penaltyTextContent.length > 0 && formData.penaltyContent !== "<p></p>";
+		const hasPenaltyFiles = penaltyFiles.length > 0;
+
+		if (!hasPenaltyContent && !hasPenaltyFiles) {
+			newErrors.penaltyContent =
+				"A penalty is required. Provide text content or upload files.";
+		} else if (hasPenaltyContent && penaltyTextContent.length < 10) {
+			newErrors.penaltyContent =
+				"Penalty text must be at least 10 characters (or just upload files)";
+		}
+
 		setErrors(newErrors);
-		setTouched({ title: true, deadline: true, verifierEmail: true });
+		setTouched({
+			title: true,
+			deadline: true,
+			verifierEmail: true,
+			penaltyContent: true,
+		});
 
 		if (Object.keys(newErrors).length > 0) return;
 
@@ -352,6 +393,12 @@ export default function CreateTaskModal({
 			const payload: TaskRequest = {
 				...formData,
 				deadline: formatForBackend(formData.deadline),
+				penaltyAttachments: penaltyFiles.map((f) => ({
+					s3Key: f.s3Key,
+					originalFilename: f.originalFilename,
+					mimeType: f.mimeType,
+					contentHash: f.contentHash,
+				})),
 			};
 
 			await api.post("/tasks", payload);
@@ -372,6 +419,7 @@ export default function CreateTaskModal({
 	const handleClose = () => {
 		// Note: We intentionally keep the draft on close so user can continue later
 		setFormData(getInitialFormData());
+		setPenaltyFiles([]);
 		setErrors({});
 		setTouched({});
 		setServerError(undefined);
@@ -706,6 +754,58 @@ export default function CreateTaskModal({
 						/>
 						<span>Mark as starred (high importance)</span>
 					</label>
+
+					{/* Penalty/Secret Content */}
+					<div className={styles.penaltySection}>
+						<label className={styles.label}>
+							<Lock size={18} />
+							Penalty/Secret *
+						</label>
+						<p className={styles.penaltyDescription}>
+							This secret will be encrypted and only revealed to your verifier
+							if you fail to complete the task. Provide either a written secret,
+							upload files (like embarrassing photos), or both!
+						</p>
+						<div
+							className={`${styles.penaltyEditorWrapper} ${
+								touched.penaltyContent &&
+								errors.penaltyContent &&
+								penaltyFiles.length === 0
+									? styles.hasError
+									: ""
+							}`}
+						>
+							<RichTextEditor
+								content={formData.penaltyContent}
+								onChange={(html) => handleChange("penaltyContent", html)}
+								onBlur={() => handleBlur("penaltyContent")}
+								placeholder="Write your secret here... (optional if you upload files below)"
+								disabled={isLoading}
+								enableImageUpload
+							/>
+						</div>
+
+						{/* Penalty Attachments */}
+						<div className={styles.penaltyAttachments}>
+							<label className={styles.attachmentLabel}>Or Upload Files</label>
+							<p className={styles.attachmentHint}>
+								Upload embarrassing photos, documents, or any files as your
+								penalty. Files are stored securely and only revealed if you miss
+								the deadline.
+							</p>
+							<FileUploader
+								files={penaltyFiles}
+								onChange={setPenaltyFiles}
+								maxFiles={5}
+								maxSizeMB={25}
+							/>
+						</div>
+
+						{/* Combined error for penalty (text or files) */}
+						{touched.penaltyContent && errors.penaltyContent && (
+							<span className={styles.error}>{errors.penaltyContent}</span>
+						)}
+					</div>
 
 					<div className={styles.actions}>
 						<Button

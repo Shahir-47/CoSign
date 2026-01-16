@@ -19,6 +19,9 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import com.cosign.backend.util.RecurrenceUtil;
 import org.hibernate.Hibernate;
+import com.cosign.backend.model.Penalty;
+import com.cosign.backend.repository.PenaltyRepository;
+import com.cosign.backend.repository.PenaltyAttachmentRepository;
 
 import java.util.List;
 import java.util.Map;
@@ -34,19 +37,31 @@ public class TaskService {
     private final TaskListService taskListService;
     private final S3Service s3Service;
     private final SocketService socketService;
+    private final PenaltyRepository penaltyRepository;
+    private final PenaltyAttachmentRepository penaltyAttachmentRepository;
+    private final EncryptionService encryptionService;
+    private final EmailService emailService;
 
     public TaskService(TaskRepository taskRepository,
                        TaskListRepository taskListRepository,
                        UserRepository userRepository,
                        TaskListService taskListService,
                        S3Service s3Service,
-                       SocketService socketService) {
+                       SocketService socketService,
+                       PenaltyRepository penaltyRepository,
+                       PenaltyAttachmentRepository penaltyAttachmentRepository,
+                       EncryptionService encryptionService,
+                       EmailService emailService) {
         this.taskRepository = taskRepository;
         this.taskListRepository = taskListRepository;
         this.userRepository = userRepository;
         this.taskListService = taskListService;
         this.s3Service = s3Service;
         this.socketService = socketService;
+        this.penaltyRepository = penaltyRepository;
+        this.penaltyAttachmentRepository = penaltyAttachmentRepository;
+        this.encryptionService = encryptionService;
+        this.emailService = emailService;
     }
 
     /**
@@ -99,6 +114,60 @@ public class TaskService {
     public Task createTask(TaskRequest request) {
         User creator = getCurrentUser();
 
+        // PENALTY VALIDATION: Must have either content OR attachments
+        String rawPenalty = request.getPenaltyContent();
+        boolean hasContent = rawPenalty != null && !rawPenalty.trim().isEmpty() 
+                && !rawPenalty.equals("<p></p>"); // Empty rich text editor
+        boolean hasAttachments = request.getPenaltyAttachments() != null 
+                && !request.getPenaltyAttachments().isEmpty();
+
+        if (!hasContent && !hasAttachments) {
+            throw new RuntimeException("A penalty is required for accountability. Please provide text content or upload files.");
+        }
+
+        // CHECK 1: If text content is provided, check if it has been exposed before
+        if (hasContent) {
+            String contentHash = encryptionService.hash(rawPenalty);
+            if (penaltyRepository.existsByUserAndContentHashAndIsExposedTrue(creator, contentHash)) {
+                throw new RuntimeException("You cannot reuse penalty text that has already been exposed. Please provide new content.");
+            }
+        }
+
+        // CHECK 2: If attachments are provided, check if any file has been exposed before
+        if (hasAttachments) {
+            List<String> fileHashes = request.getPenaltyAttachments().stream()
+                    .map(TaskRequest.AttachmentDto::getContentHash)
+                    .filter(h -> h != null && !h.isEmpty())
+                    .collect(Collectors.toList());
+            
+            if (!fileHashes.isEmpty() && 
+                penaltyAttachmentRepository.existsByUserAndContentHashInAndPenaltyExposed(creator, fileHashes)) {
+                throw new RuntimeException("One or more files have already been exposed in a previous failed task. Please use different files.");
+            }
+        }
+
+        // Build combined hash for the penalty record (for exact combination reuse detection)
+        StringBuilder hashInput = new StringBuilder();
+        if (hasContent) {
+            hashInput.append(rawPenalty);
+        }
+        if (hasAttachments) {
+            // Sort file hashes to ensure consistent ordering
+            List<String> sortedHashes = request.getPenaltyAttachments().stream()
+                    .map(att -> att.getContentHash() != null ? att.getContentHash() : att.getS3Key())
+                    .sorted()
+                    .collect(Collectors.toList());
+            for (String hash : sortedHashes) {
+                hashInput.append("|").append(hash);
+            }
+        }
+        String combinedHash = encryptionService.hash(hashInput.toString());
+
+        // CHECK 3: Ensure exact same combination of text + files hasn't been exposed
+        if (penaltyRepository.existsByUserAndContentHashAndIsExposedTrue(creator, combinedHash)) {
+            throw new RuntimeException("This exact penalty (text and/or files combination) has already been exposed. Please provide different content.");
+        }
+
         // Find Verifier
         User verifier = userRepository.findByEmail(request.getVerifierEmail())
                 .orElseThrow(() -> new RuntimeException("Verifier not found with email: " + request.getVerifierEmail()));
@@ -130,6 +199,30 @@ public class TaskService {
         task.setCreator(creator);
         task.setVerifier(verifier);
         task.setList(list);
+
+        Penalty penalty = new Penalty();
+        // Encrypt content (use empty string if null to avoid encryption errors)
+        String contentToEncrypt = hasContent ? rawPenalty : "";
+        penalty.setEncryptedContent(encryptionService.encrypt(contentToEncrypt));
+        penalty.setContentHash(combinedHash);
+        penalty.setUser(creator);
+        penalty.setExposed(false);
+        penalty.setTask(task);
+
+        // Add penalty attachments if provided
+        if (hasAttachments) {
+            for (TaskRequest.AttachmentDto attDto : request.getPenaltyAttachments()) {
+                PenaltyAttachment attachment = new PenaltyAttachment();
+                attachment.setS3Key(attDto.getS3Key());
+                attachment.setOriginalFilename(attDto.getOriginalFilename());
+                attachment.setMimeType(attDto.getMimeType());
+                attachment.setContentHash(attDto.getContentHash()); // Store file content hash
+                attachment.setPenalty(penalty);
+                penalty.getAttachments().add(attachment);
+            }
+        }
+
+        task.setPenalty(penalty);
 
         // Default status
         task.setStatus(TaskStatus.PENDING_PROOF);
@@ -507,6 +600,23 @@ public class TaskService {
         response.setDenialReason(task.getDenialReason());
         response.setApprovalComment(task.getApprovalComment());
 
+        if (task.getPenalty() != null && task.getPenalty().isExposed()) {
+            // Only decrypt and show if it has been exposed
+            String decrypted = encryptionService.decrypt(task.getPenalty().getEncryptedContent());
+            response.setPenaltyContent(decrypted);
+
+            // Include penalty attachments with presigned URLs
+            List<TaskDetailResponse.AttachmentViewDto> penaltyAttachmentDtos = task.getPenalty().getAttachments().stream()
+                    .map(att -> {
+                        TaskDetailResponse.AttachmentViewDto dto = new TaskDetailResponse.AttachmentViewDto();
+                        dto.setFilename(att.getOriginalFilename());
+                        dto.setMimeType(att.getMimeType());
+                        dto.setUrl(s3Service.generatePresignedDownloadUrl(att.getS3Key()));
+                        return dto;
+                    }).collect(Collectors.toList());
+            response.setPenaltyAttachments(penaltyAttachmentDtos);
+        }
+
         // Convert attachments to View DTOs with Presigned URLs
         List<TaskDetailResponse.AttachmentViewDto> attachmentDtos = task.getProofAttachments().stream()
                 .map(att -> {
@@ -555,33 +665,75 @@ public class TaskService {
         return savedTask;
     }
 
-    @Scheduled(fixedRate = 60000) // Runs every minute
+
+    @Scheduled(fixedRate = 60000)
     @Transactional
     public void processMissedTasks() {
-        // Find all active tasks that might be overdue
-        // We need to check each task individually against its creator's timezone
         List<Task> activeTasks = taskRepository.findByStatusIn(
                 List.of(TaskStatus.PENDING_PROOF, TaskStatus.PENDING_VERIFICATION));
 
         for (Task task : activeTasks) {
-            // Get current time in the task creator's timezone
             String userTimezone = task.getCreator().getTimezone();
             ZonedDateTime nowInUserTz = ZonedDateTime.now(ZoneId.of(userTimezone));
-            LocalDateTime nowLocal = nowInUserTz.toLocalDateTime();
-            
-            // Check if deadline has passed in user's timezone
-            if (task.getDeadline().isBefore(nowLocal)) {
-                // Mark as Missed
+
+            if (task.getDeadline().isBefore(nowInUserTz.toLocalDateTime())) {
+
+                // Mark Missed
                 task.setStatus(TaskStatus.MISSED);
 
-                // Trigger Penalty Notification
+                // EXPOSE PENALTY
+                Penalty penalty = task.getPenalty();
+                if (penalty != null && !penalty.isExposed()) {
+                    penalty.setExposed(true);
+
+                    // Decrypt for delivery
+                    String decryptedSecret = encryptionService.decrypt(penalty.getEncryptedContent());
+
+                    // Build attachments section for email
+                    StringBuilder attachmentsHtml = new StringBuilder();
+                    if (penalty.getAttachments() != null && !penalty.getAttachments().isEmpty()) {
+                        attachmentsHtml.append("<h3>Penalty Attachments:</h3><ul>");
+                        for (PenaltyAttachment att : penalty.getAttachments()) {
+                            String presignedUrl = s3Service.generatePresignedDownloadUrl(att.getS3Key());
+                            if (att.getMimeType().startsWith("image/")) {
+                                attachmentsHtml.append("<li><img src=\"").append(presignedUrl)
+                                        .append("\" alt=\"").append(att.getOriginalFilename())
+                                        .append("\" style=\"max-width:100%;height:auto;margin:10px 0;\"/></li>");
+                            } else {
+                                attachmentsHtml.append("<li><a href=\"").append(presignedUrl)
+                                        .append("\">").append(att.getOriginalFilename()).append("</a></li>");
+                            }
+                        }
+                        attachmentsHtml.append("</ul>");
+                    }
+
+                    // Send Email to Verifier
+                    String subject = "CoSign Penalty Triggered: " + task.getCreator().getFullName() + " failed a task";
+                    String htmlBody = "<h1>Task Failed</h1>" +
+                            "<p>Your supervisee failed to complete: <b>" + task.getTitle() + "</b></p>" +
+                            "<hr/>" +
+                            "<h3>The Penalty (Confidential):</h3>" +
+                            "<div>" + decryptedSecret + "</div>" + // Injects the rich text/images
+                            attachmentsHtml.toString();
+
+                    emailService.sendEmail(task.getVerifier().getEmail(), subject, htmlBody);
+
+                    // Send Socket Notification to Verifier
+                    socketService.sendToUser(task.getVerifier().getId(), "PENALTY_UNLOCKED", Map.of(
+                            "taskId", task.getId(),
+                            "creatorName", task.getCreator().getFullName(),
+                            "penaltyContent", decryptedSecret // Frontend renders this HTML
+                    ));
+                }
+
+                // Notify Creator
                 socketService.sendToUser(task.getCreator().getId(), "TASK_MISSED", Map.of(
                         "taskId", task.getId(),
                         "title", task.getTitle(),
-                        "message", "Deadline missed! Penalty applied."
+                        "message", "Deadline missed! Your penalty has been sent to your verifier."
                 ));
 
-                // GENERATE NEXT TASK
+                // Recurrence
                 handleRecurrence(task);
 
                 taskRepository.save(task);

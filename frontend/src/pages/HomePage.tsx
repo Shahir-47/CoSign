@@ -22,6 +22,8 @@ import type {
 	NewTaskAssignedPayload,
 	VerifierAddedPayload,
 	VerifierRemovedPayload,
+	TaskMissedPayload,
+	PenaltyUnlockedPayload,
 } from "../context/websocket.types";
 import {
 	parseURLState,
@@ -531,6 +533,40 @@ export default function HomePage() {
 				toast.warning(`👋 ${payload.message}`, {
 					icon: false,
 				});
+			} else if (message.type === "TASK_MISSED") {
+				const payload = message.payload as TaskMissedPayload;
+
+				// Update task status to MISSED in local state
+				setTasks((prevTasks) =>
+					prevTasks.map((task) =>
+						task.id === payload.taskId
+							? { ...task, status: "MISSED" as Task["status"] }
+							: task
+					)
+				);
+
+				// Show notification to creator that their task was missed
+				const toastOptions: ToastOptions = {
+					icon: false,
+					onClick: () => navigateToTask(payload.taskId, "my-tasks"),
+					style: { cursor: "pointer" },
+				};
+				toast.error(`⚠️ ${payload.message}`, toastOptions);
+			} else if (message.type === "PENALTY_UNLOCKED") {
+				const payload = message.payload as PenaltyUnlockedPayload;
+
+				// Show notification to verifier that a penalty has been revealed
+				const toastOptions: ToastOptions = {
+					icon: false,
+					onClick: () =>
+						navigateToTask(payload.taskId, "verification-requests"),
+					style: { cursor: "pointer" },
+					autoClose: false, // Don't auto-close this important notification
+				};
+				toast.warning(
+					`🔓 Penalty revealed! ${payload.creatorName} missed their deadline. Check your email for details.`,
+					toastOptions
+				);
 			}
 		};
 
