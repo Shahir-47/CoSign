@@ -472,6 +472,7 @@ export default function CreateTaskModal({
 					<Input
 						label="Title *"
 						type="text"
+						name="task-title"
 						placeholder="What do you commit to doing?"
 						icon={FileText}
 						value={formData.title}
@@ -479,6 +480,7 @@ export default function CreateTaskModal({
 						onBlur={() => handleBlur("title")}
 						error={touched.title ? errors.title : undefined}
 						disabled={isLoading}
+						autoComplete="off"
 					/>
 
 					<div className={styles.textareaWrapper}>

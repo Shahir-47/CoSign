@@ -199,10 +199,12 @@ export default function CreateListModal({
 
 					<Input
 						label="List Name"
+						name="list-name"
 						value={name}
 						onChange={(e) => setName(e.target.value)}
 						placeholder="e.g., Work, Personal, Side Projects"
 						autoFocus
+						autoComplete="off"
 					/>
 
 					<div className={styles.field}>

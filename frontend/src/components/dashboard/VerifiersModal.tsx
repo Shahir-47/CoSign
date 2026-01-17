@@ -143,11 +143,13 @@ export default function VerifiersModal({
 								<Input
 									label="Verifier Email"
 									type="email"
+									name="verifier-email"
 									placeholder="Enter their CoSign email"
 									icon={Mail}
 									value={email}
 									onChange={(e) => setEmail(e.target.value)}
 									disabled={isAdding}
+									autoComplete="off"
 								/>
 								<div className={styles.addFormActions}>
 									<Button
