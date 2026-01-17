@@ -462,6 +462,31 @@ public class TaskService {
         nextTask.setList(previousTask.getList());
 
         nextTask.setStatus(TaskStatus.PENDING_PROOF);
+
+        // Copy the penalty for recurring tasks (create a new penalty with same content)
+        if (previousTask.getPenalty() != null) {
+            Penalty previousPenalty = previousTask.getPenalty();
+            Penalty newPenalty = new Penalty();
+            newPenalty.setContent(previousPenalty.getContent());
+            newPenalty.setContentHash(previousPenalty.getContentHash());
+            newPenalty.setUser(previousTask.getCreator());
+            newPenalty.setExposed(false); // New penalty is not exposed
+            newPenalty.setTask(nextTask);
+            
+            // Copy penalty attachments
+            for (PenaltyAttachment prevAtt : previousPenalty.getAttachments()) {
+                PenaltyAttachment newAtt = new PenaltyAttachment();
+                newAtt.setS3Key(prevAtt.getS3Key()); // Reuse the same S3 file
+                newAtt.setOriginalFilename(prevAtt.getOriginalFilename());
+                newAtt.setMimeType(prevAtt.getMimeType());
+                newAtt.setContentHash(prevAtt.getContentHash());
+                newAtt.setPenalty(newPenalty);
+                newPenalty.getAttachments().add(newAtt);
+            }
+            
+            nextTask.setPenalty(newPenalty);
+        }
+
         return nextTask;
     }
 
@@ -476,7 +501,12 @@ public class TaskService {
             throw new RuntimeException("Only the task creator can submit proof.");
         }
 
-        if (task.getStatus() != TaskStatus.PENDING_PROOF && task.getStatus() != TaskStatus.MISSED) {
+        // MISSED tasks cannot submit proof - the deadline has passed and penalty was exposed
+        if (task.getStatus() == TaskStatus.MISSED) {
+            throw new RuntimeException("Cannot submit proof for a missed task. The deadline has passed and penalty has been revealed.");
+        }
+
+        if (task.getStatus() != TaskStatus.PENDING_PROOF) {
             throw new RuntimeException("Task is not pending proof.");
         }
 

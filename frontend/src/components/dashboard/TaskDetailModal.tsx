@@ -547,8 +547,9 @@ export default function TaskDetailModal({
 							</button>
 						)}
 
-					{/* Submit Proof Button for PENDING_PROOF tasks (task creator) */}
-					{(task.status === "PENDING_PROOF" || task.status === "MISSED") &&
+					{/* Submit Proof Button for PENDING_PROOF tasks only (task creator) */}
+					{/* MISSED tasks cannot submit proof - deadline passed and penalty revealed */}
+					{task.status === "PENDING_PROOF" &&
 						viewMode === "my-tasks" &&
 						onSubmitProof && (
 							<button
