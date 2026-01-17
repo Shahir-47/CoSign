@@ -781,7 +781,6 @@ export default function CreateTaskModal({
 								onBlur={() => handleBlur("penaltyContent")}
 								placeholder="Write your secret here... (optional if you upload files below)"
 								disabled={isLoading}
-								enableImageUpload
 							/>
 						</div>
 
