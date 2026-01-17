@@ -15,18 +15,18 @@ function CoSignIcon({ size = 32 }: { size?: number }) {
 			fill="none"
 			xmlns="http://www.w3.org/2000/svg"
 		>
-			{/* Stylized C shape */}
+			{/* Stylized C shape - circular arc */}
 			<path
-				d="M22 8C19.5 5.5 15.5 4.5 12 6C7 8 5 13 6 18C7 23 11 26 16 26C19 26 21.5 25 23.5 23"
+				d="M25 7A11 11 0 1 0 25 25"
 				stroke="currentColor"
-				strokeWidth="2.5"
+				strokeWidth="3"
 				strokeLinecap="round"
 			/>
-			{/* Integrated checkmark at the end */}
+			{/* Integrated checkmark */}
 			<path
-				d="M18 14L21 17L27 11"
+				d="M18 16L20 19L26 13"
 				stroke="currentColor"
-				strokeWidth="2.5"
+				strokeWidth="3"
 				strokeLinecap="round"
 				strokeLinejoin="round"
 			/>
