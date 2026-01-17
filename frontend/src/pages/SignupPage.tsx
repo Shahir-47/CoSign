@@ -1,5 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { RefreshCw } from "lucide-react";
+import { toast } from "react-toastify";
+import { useAuth } from "../context/useAuth";
 import AuthLayout from "../components/shared/AuthLayout";
 import Card, {
 	CardHeader,
@@ -12,11 +15,48 @@ import type { SignupFormData } from "../components/signup/SignupForm";
 import SignupFooter from "../components/signup/SignupFooter";
 import styles from "./SignupPage.module.css";
 
+// Map technical error messages to user-friendly ones
+function getUserFriendlySignupError(error: string): string {
+	const lowerError = error.toLowerCase();
+
+	if (
+		lowerError.includes("email") &&
+		(lowerError.includes("in use") ||
+			lowerError.includes("exists") ||
+			lowerError.includes("already"))
+	) {
+		return "This email address is already registered. Please log in or use a different email.";
+	}
+	if (lowerError.includes("password") && lowerError.includes("weak")) {
+		return "Please choose a stronger password with at least 8 characters, including numbers and special characters.";
+	}
+	if (
+		lowerError.includes("invalid email") ||
+		lowerError.includes("email format")
+	) {
+		return "Please enter a valid email address.";
+	}
+	if (lowerError.includes("name") && lowerError.includes("required")) {
+		return "Please enter your full name.";
+	}
+
+	return error;
+}
+
 export default function SignupPage() {
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | undefined>();
 	const [success, setSuccess] = useState(false);
 	const [submittedEmail, setSubmittedEmail] = useState("");
+	const navigate = useNavigate();
+	const { isAuthenticated } = useAuth();
+
+	// Redirect if already authenticated
+	useEffect(() => {
+		if (isAuthenticated) {
+			navigate("/");
+		}
+	}, [isAuthenticated, navigate]);
 
 	const handleSubmit = async (data: SignupFormData) => {
 		setIsLoading(true);
@@ -33,15 +73,20 @@ export default function SignupPage() {
 
 			if (!response.ok) {
 				const errorText = await response.text();
-				throw new Error(errorText || "Failed to create account");
+				const userFriendlyError = getUserFriendlySignupError(
+					errorText || "Failed to create account"
+				);
+				throw new Error(userFriendlyError);
 			}
 
 			setSubmittedEmail(data.email);
 			setSuccess(true);
+			toast.success("Account created! Please check your email to verify.");
 		} catch (err) {
-			setError(
-				err instanceof Error ? err.message : "An unexpected error occurred"
-			);
+			const errorMessage =
+				err instanceof Error ? err.message : "An unexpected error occurred";
+			setError(errorMessage);
+			toast.error(errorMessage);
 		} finally {
 			setIsLoading(false);
 		}
@@ -114,6 +159,7 @@ function SuccessMessage({ email }: SuccessMessageProps) {
 			}
 
 			setResendStatus("success");
+			toast.success("Verification email sent! Please check your inbox.");
 			// Start 60 second cooldown
 			setCooldown(60);
 			const interval = setInterval(() => {
@@ -127,9 +173,10 @@ function SuccessMessage({ email }: SuccessMessageProps) {
 			}, 1000);
 		} catch (err) {
 			setResendStatus("error");
-			setResendError(
-				err instanceof Error ? err.message : "An unexpected error occurred"
-			);
+			const errorMessage =
+				err instanceof Error ? err.message : "An unexpected error occurred";
+			setResendError(errorMessage);
+			toast.error(errorMessage);
 		} finally {
 			setIsResending(false);
 		}

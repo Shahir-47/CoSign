@@ -16,6 +16,7 @@ import type { Task, TaskFilters, TaskList, TaskSortConfig } from "../types";
 import { api } from "../utils/api";
 import { getSortComparator } from "../utils/sortTasks";
 import { useWebSocket } from "../context/useWebSocket";
+import { useAuth } from "../context/useAuth";
 import type {
 	SocketMessage,
 	TaskUpdatedPayload,
@@ -33,20 +34,6 @@ import {
 	type ModalType,
 } from "../utils/persistence";
 import styles from "./HomePage.module.css";
-
-// Helper to get current user's email from localStorage
-function getCurrentUserEmail(): string | null {
-	try {
-		const userData = localStorage.getItem("user");
-		if (userData) {
-			const user = JSON.parse(userData);
-			return user.email || null;
-		}
-	} catch {
-		// Ignore parse errors
-	}
-	return null;
-}
 
 type TabType = "my-tasks" | "verification-requests" | "supervising";
 
@@ -78,6 +65,8 @@ function getTaskIdFromModal(stack: ModalType[], prefix: string): number | null {
 export default function HomePage() {
 	const navigate = useNavigate();
 	const initializedRef = useRef(false);
+	const { user } = useAuth();
+	const currentUserEmail = user?.email ?? null;
 
 	// Parse URL state on initial mount
 	const initialState = useMemo(() => {
@@ -335,13 +324,8 @@ export default function HomePage() {
 				if (task) setReassignTask(task);
 			}
 		} catch (err) {
-			if (err instanceof Error && err.message.includes("401")) {
-				// Token expired, redirect to login
-				localStorage.removeItem("token");
-				localStorage.removeItem("user");
-				navigate("/login");
-				return;
-			}
+			// 401 errors are now automatically handled by the API utility
+			// which triggers global logout
 			setError(err instanceof Error ? err.message : "Failed to load tasks");
 		} finally {
 			setIsLoading(false);
@@ -364,8 +348,6 @@ export default function HomePage() {
 
 	// Subscribe to real-time task updates via WebSocket
 	useEffect(() => {
-		const currentUserEmail = getCurrentUserEmail();
-
 		const handleSocketMessage = (message: SocketMessage) => {
 			if (message.type === "TASK_UPDATED") {
 				const payload = message.payload as TaskUpdatedPayload;
@@ -601,7 +583,7 @@ export default function HomePage() {
 
 		const unsubscribe = subscribe(handleSocketMessage);
 		return unsubscribe;
-	}, [subscribe, navigateToTask, selectedListId]);
+	}, [subscribe, navigateToTask, selectedListId, currentUserEmail]);
 
 	const handleTabChange = (tab: TabType) => {
 		setActiveTab(tab);
@@ -771,8 +753,6 @@ export default function HomePage() {
 
 	// Filter and sort tasks based on current filters and sort config
 	const filteredTasks = useMemo(() => {
-		const currentUserEmail = getCurrentUserEmail();
-
 		const filtered = tasks.filter((task) => {
 			// CRITICAL: Filter tasks based on current view to prevent cross-contamination
 			// This ensures real-time socket updates don't render tasks in the wrong view
@@ -864,7 +844,7 @@ export default function HomePage() {
 		// Apply sorting
 		const sortedTasks = [...filtered].sort(getSortComparator(sortConfig));
 		return sortedTasks;
-	}, [tasks, filters, sortConfig, activeTab]);
+	}, [tasks, filters, sortConfig, activeTab, currentUserEmail]);
 
 	// Calculate stats from filtered tasks
 	const pendingProofCount = filteredTasks.filter(
