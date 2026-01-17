@@ -66,19 +66,19 @@
 	align-items: center;
 	gap: 8px;
 	padding: 10px 20px;
-	background: var(--gradient-primary);
+	background: var(--accent-primary);
 	border: none;
 	border-radius: var(--radius-md);
 	color: white;
 	font-size: 0.9375rem;
 	font-weight: 600;
 	transition: all 0.2s ease;
-	box-shadow: var(--shadow-md);
+	box-shadow: var(--shadow-sm);
 }
 
 .createButton:hover {
-	transform: translateY(-1px);
-	box-shadow: var(--shadow-lg), 0 0 20px rgba(99, 102, 241, 0.3);
+	background: var(--accent-solid-hover);
+	box-shadow: var(--shadow-md);
 }
 
 .verifiersButton {

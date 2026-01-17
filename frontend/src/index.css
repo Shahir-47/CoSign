@@ -25,13 +25,9 @@
 	--border-primary: #2d2d3a;
 	--border-secondary: #3d3d4a;
 
-	/* Gradients */
-	--gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-	--gradient-glow: linear-gradient(
-		135deg,
-		rgba(99, 102, 241, 0.15) 0%,
-		rgba(139, 92, 246, 0.15) 100%
-	);
+	/* Accent colors */
+	--accent-solid: #6366f1;
+	--accent-solid-hover: #5558e3;
 
 	/* Shadows */
 	--shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
@@ -39,7 +35,6 @@
 		0 2px 4px -2px rgba(0, 0, 0, 0.3);
 	--shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5),
 		0 4px 6px -4px rgba(0, 0, 0, 0.4);
-	--shadow-glow: 0 0 40px rgba(99, 102, 241, 0.15);
 
 	/* Sizing */
 	--radius-sm: 6px;

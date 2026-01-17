@@ -28,7 +28,7 @@
 	max-width: 560px;
 	max-height: 90vh;
 	overflow-y: auto;
-	box-shadow: var(--shadow-lg), var(--shadow-glow);
+	box-shadow: var(--shadow-lg);
 	animation: slideIn 0.2s ease;
 }
 
@@ -288,12 +288,8 @@
 }
 
 .checkbox:has(input:checked) {
-	border-color: rgba(245, 158, 11, 0.3);
-	background: linear-gradient(
-		135deg,
-		var(--bg-tertiary) 0%,
-		rgba(245, 158, 11, 0.05) 100%
-	);
+	border-color: rgba(245, 158, 11, 0.4);
+	background: rgba(245, 158, 11, 0.08);
 }
 
 .actions {

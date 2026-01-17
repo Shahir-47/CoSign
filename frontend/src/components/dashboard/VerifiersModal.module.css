@@ -30,7 +30,7 @@
 	overflow: hidden;
 	display: flex;
 	flex-direction: column;
-	box-shadow: var(--shadow-lg), var(--shadow-glow);
+	box-shadow: var(--shadow-lg);
 	animation: slideIn 0.2s ease;
 }
 
