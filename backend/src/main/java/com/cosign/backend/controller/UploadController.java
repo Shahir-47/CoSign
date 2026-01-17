@@ -34,8 +34,14 @@ public class UploadController {
         String filename = body.get("name");
         String type = body.get("type");
 
-        //  Use the real ID
-        String key = "proofs/" + user.getId() + "/" + UUID.randomUUID() + "_" + filename;
+        // Determine folder
+        String folder = body.getOrDefault("folder", "proofs");
+        if (!folder.equals("proofs") && !folder.equals("avatars")) {
+            return ResponseEntity.badRequest().body("Invalid folder type");
+        }
+
+        // Structure: avatars/{userId}/{uuid}_{filename}
+        String key = folder + "/" + user.getId() + "/" + UUID.randomUUID() + "_" + filename;
 
         String url = s3Service.generatePresignedUploadUrl(key, type);
 

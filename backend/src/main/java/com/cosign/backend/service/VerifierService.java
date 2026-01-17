@@ -22,17 +22,24 @@ public class VerifierService {
     private final UserRepository userRepository;
     private final TaskRepository taskRepository;
     private final SocketService socketService;
+    private final S3Service s3Service;
 
-    public VerifierService(UserRepository userRepository, TaskRepository taskRepository, SocketService socketService) {
+    public VerifierService(UserRepository userRepository, TaskRepository taskRepository, SocketService socketService, S3Service s3Service) {
         this.userRepository = userRepository;
         this.taskRepository = taskRepository;
         this.socketService = socketService;
+        this.s3Service = s3Service;
     }
 
     private User getCurrentUser() {
         String email = Objects.requireNonNull(SecurityContextHolder.getContext().getAuthentication()).getName();
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
+    }
+
+    private String getPfpUrl(String key) {
+        if (key == null) return null;
+        return s3Service.generatePresignedDownloadUrl(key);
     }
 
     @Transactional
@@ -75,7 +82,7 @@ public class VerifierService {
                 verifier.getId(),
                 verifier.getFullName(),
                 verifier.getEmail(),
-                verifier.getProfilePictureUrl(),
+                getPfpUrl(verifier.getProfilePictureUrl()),
                 socketService.isUserOnline(verifier.getId())
         );
     }
@@ -89,7 +96,7 @@ public class VerifierService {
                         v.getId(),
                         v.getFullName(),
                         v.getEmail(),
-                        v.getProfilePictureUrl(),
+                        getPfpUrl(v.getProfilePictureUrl()),
                         socketService.isUserOnline(v.getId())
                 ))
                 .collect(Collectors.toList());
@@ -166,7 +173,7 @@ public class VerifierService {
                             supervisee.getId(),
                             supervisee.getFullName(),
                             supervisee.getEmail(),
-                            supervisee.getProfilePictureUrl(),
+                            getPfpUrl(supervisee.getProfilePictureUrl()),
                             socketService.isUserOnline(supervisee.getId()),
                             pendingProofCount,
                             pendingVerificationCount,

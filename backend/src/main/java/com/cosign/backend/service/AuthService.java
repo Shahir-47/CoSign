@@ -16,6 +16,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import com.cosign.backend.dto.ForgotPasswordRequest;
 import com.cosign.backend.dto.ResetPasswordRequest;
+import com.cosign.backend.service.S3Service;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -29,19 +30,22 @@ public class AuthService {
     private final String frontendUrl;
     private final AuthenticationManager authenticationManager;
     private final JwtUtils jwtUtils;
+    private final S3Service s3Service;
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        EmailService emailService,
                        @Value("${app.frontend.url}") String frontendUrl,
                        AuthenticationManager authenticationManager,
-                       JwtUtils jwtUtils) {
+                       JwtUtils jwtUtils,
+                       S3Service s3Service) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
         this.frontendUrl = frontendUrl;
         this.authenticationManager = authenticationManager;
         this.jwtUtils = jwtUtils;
+        this.s3Service = s3Service;
     }
 
     public LoginResponse login(LoginRequest request) {
@@ -62,7 +66,13 @@ public class AuthService {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = jwtUtils.generateJwtToken(authentication);
 
-        return new LoginResponse(jwt, user.getEmail(), user.getFullName(), user.getTimezone());
+        // Generate Presigned URL for PFP
+        String pfpUrl = null;
+        if (user.getProfilePictureUrl() != null) {
+            pfpUrl = s3Service.generatePresignedDownloadUrl(user.getProfilePictureUrl());
+        }
+
+        return new LoginResponse(jwt, user.getEmail(), user.getFullName(), user.getTimezone(), pfpUrl);
     }
 
     @Transactional
@@ -78,6 +88,11 @@ public class AuthService {
         user.setEmail(request.getEmail());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setTimezone(request.getTimezone());
+
+        // Set profile picture if provided
+        if (request.getProfilePictureKey() != null && !request.getProfilePictureKey().isEmpty()) {
+            user.setProfilePictureUrl(request.getProfilePictureKey());
+        }
 
         // Generate Verification Token
         String token = UUID.randomUUID().toString();

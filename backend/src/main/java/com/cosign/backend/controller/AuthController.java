@@ -2,6 +2,7 @@ package com.cosign.backend.controller;
 
 import com.cosign.backend.dto.SignupRequest;
 import com.cosign.backend.service.AuthService;
+import com.cosign.backend.service.S3Service;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,15 +12,18 @@ import com.cosign.backend.dto.ForgotPasswordRequest;
 import com.cosign.backend.dto.ResetPasswordRequest;
 
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
     private final AuthService authService;
+    private final S3Service s3Service;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, S3Service s3Service) {
         this.authService = authService;
+        this.s3Service = s3Service;
     }
 
     @PostMapping("/signup")
@@ -61,5 +65,31 @@ public class AuthController {
     public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request);
         return ResponseEntity.ok("Password has been reset successfully. You can now login.");
+    }
+
+    @PostMapping("/signup-avatar-presign")
+    public ResponseEntity<?> getSignupAvatarPresignedUrl(@RequestBody Map<String, String> body) {
+        String filename = body.get("name");
+        String type = body.get("type");
+
+        if (filename == null || type == null) {
+            return ResponseEntity.badRequest().body("Missing name or type");
+        }
+
+        // Only allow image types
+        if (!type.startsWith("image/")) {
+            return ResponseEntity.badRequest().body("Only image files are allowed");
+        }
+
+        // Structure: avatars/pending/{uuid}_{filename}
+        // These will be moved to the user's folder after signup
+        String key = "avatars/pending/" + UUID.randomUUID() + "_" + filename;
+
+        String url = s3Service.generatePresignedUploadUrl(key, type);
+
+        return ResponseEntity.ok(Map.of(
+                "url", url,
+                "key", key
+        ));
     }
 }
