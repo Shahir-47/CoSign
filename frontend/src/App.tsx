@@ -7,6 +7,8 @@ import ProtectedRoute from "./components/shared/ProtectedRoute";
 import SignupPage from "./pages/SignupPage";
 import VerifyEmailPage from "./pages/VerifyEmailPage";
 import LoginPage from "./pages/LoginPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import HomePage from "./pages/HomePage";
 import ErrorPage from "./pages/ErrorPage";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
@@ -29,6 +31,8 @@ function App() {
 						<Route path="/signup" element={<SignupPage />} />
 						<Route path="/login" element={<LoginPage />} />
 						<Route path="/verify-email" element={<VerifyEmailPage />} />
+						<Route path="/forgot-password" element={<ForgotPasswordPage />} />
+						<Route path="/reset-password" element={<ResetPasswordPage />} />
 						<Route path="/error" element={<ErrorPage />} />
 						<Route path="/unauthorized" element={<UnauthorizedPage />} />
 						<Route path="/health" element={<HealthPage />} />

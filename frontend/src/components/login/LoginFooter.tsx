@@ -8,9 +8,9 @@ export default function LoginFooter() {
 				Don't have an account? <Link to="/signup">Sign up</Link>
 			</p>
 
-			<a href="#forgot-password" className={styles.forgotPassword}>
+			<Link to="/forgot-password" className={styles.forgotPassword}>
 				Forgot your password?
-			</a>
+			</Link>
 		</div>
 	);
 }
