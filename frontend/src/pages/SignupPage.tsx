@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { toast } from "react-toastify";
+import { getUserFriendlyMessage } from "../utils/api";
 import AuthLayout from "../components/shared/AuthLayout";
 import Card, {
 	CardHeader,
@@ -12,34 +13,6 @@ import SignupForm from "../components/signup/SignupForm";
 import type { SignupFormData } from "../components/signup/SignupForm";
 import SignupFooter from "../components/signup/SignupFooter";
 import styles from "./SignupPage.module.css";
-
-// Map technical error messages to user-friendly ones
-function getUserFriendlySignupError(error: string): string {
-	const lowerError = error.toLowerCase();
-
-	if (
-		lowerError.includes("email") &&
-		(lowerError.includes("in use") ||
-			lowerError.includes("exists") ||
-			lowerError.includes("already"))
-	) {
-		return "This email address is already registered. Please log in or use a different email.";
-	}
-	if (lowerError.includes("password") && lowerError.includes("weak")) {
-		return "Please choose a stronger password with at least 8 characters, including numbers and special characters.";
-	}
-	if (
-		lowerError.includes("invalid email") ||
-		lowerError.includes("email format")
-	) {
-		return "Please enter a valid email address.";
-	}
-	if (lowerError.includes("name") && lowerError.includes("required")) {
-		return "Please enter your full name.";
-	}
-
-	return error;
-}
 
 export default function SignupPage() {
 	const [isLoading, setIsLoading] = useState(false);
@@ -62,8 +35,10 @@ export default function SignupPage() {
 
 			if (!response.ok) {
 				const errorText = await response.text();
-				const userFriendlyError = getUserFriendlySignupError(
-					errorText || "Failed to create account"
+				const userFriendlyError = getUserFriendlyMessage(
+					errorText,
+					response.status,
+					"/auth/signup"
 				);
 				throw new Error(userFriendlyError);
 			}

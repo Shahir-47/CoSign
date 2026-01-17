@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useWebSocket } from "../context/useWebSocket";
 import { useAuth } from "../context/useAuth";
+import { getUserFriendlyMessage } from "../utils/api";
 import AuthLayout from "../components/shared/AuthLayout";
 import Card, {
 	CardHeader,
@@ -20,32 +21,6 @@ interface LoginResponse {
 	email: string;
 	fullName: string;
 	timezone: string;
-}
-
-// Map technical error messages to user-friendly ones
-function getUserFriendlyLoginError(error: string): string {
-	const lowerError = error.toLowerCase();
-
-	if (
-		lowerError.includes("bad credentials") ||
-		lowerError.includes("invalid")
-	) {
-		return "Invalid email or password. Please check your credentials and try again.";
-	}
-	if (
-		lowerError.includes("email not verified") ||
-		lowerError.includes("not verified")
-	) {
-		return "Your email address hasn't been verified yet. Please check your inbox for the verification link.";
-	}
-	if (lowerError.includes("disabled") || lowerError.includes("locked")) {
-		return "Your account has been disabled. Please contact support for assistance.";
-	}
-	if (lowerError.includes("not found")) {
-		return "No account found with this email. Please check your email or sign up.";
-	}
-
-	return error;
 }
 
 export default function LoginPage() {
@@ -70,8 +45,10 @@ export default function LoginPage() {
 
 			if (!response.ok) {
 				const errorText = await response.text();
-				const userFriendlyError = getUserFriendlyLoginError(
-					errorText || "Invalid email or password"
+				const userFriendlyError = getUserFriendlyMessage(
+					errorText,
+					response.status,
+					"/auth/login"
 				);
 				throw new Error(userFriendlyError);
 			}
