@@ -6,7 +6,6 @@ import {
 	useRef,
 	type ReactNode,
 } from "react";
-import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { setGlobalLogoutHandler } from "../utils/api";
 
@@ -56,33 +55,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		() => getInitialAuthState().token
 	);
 	const [isLoading] = useState(false); // No longer need loading state since we initialize synchronously
-	const navigate = useNavigate();
 	const logoutInProgressRef = useRef(false);
 
-	const logout = useCallback(
-		(message?: string) => {
-			// Prevent multiple simultaneous logouts
-			if (logoutInProgressRef.current) return;
-			logoutInProgressRef.current = true;
+	const logout = useCallback((message?: string) => {
+		// Prevent multiple simultaneous logouts
+		if (logoutInProgressRef.current) return;
+		logoutInProgressRef.current = true;
 
-			localStorage.removeItem("token");
-			localStorage.removeItem("user");
-			setToken(null);
-			setUser(null);
+		localStorage.removeItem("token");
+		localStorage.removeItem("user");
+		setToken(null);
+		setUser(null);
 
-			if (message) {
-				toast.warning(message);
-			}
+		if (message) {
+			toast.warning(message);
+		}
 
-			navigate("/login");
-
-			// Reset after navigation
-			setTimeout(() => {
-				logoutInProgressRef.current = false;
-			}, 100);
-		},
-		[navigate]
-	);
+		// Reset after state update - ProtectedRoute will handle redirect
+		setTimeout(() => {
+			logoutInProgressRef.current = false;
+		}, 100);
+	}, []);
 
 	// Register global logout handler for API interceptor
 	useEffect(() => {

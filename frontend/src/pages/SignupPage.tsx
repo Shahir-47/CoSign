@@ -1,8 +1,6 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { toast } from "react-toastify";
-import { useAuth } from "../context/useAuth";
 import AuthLayout from "../components/shared/AuthLayout";
 import Card, {
 	CardHeader,
@@ -48,15 +46,6 @@ export default function SignupPage() {
 	const [error, setError] = useState<string | undefined>();
 	const [success, setSuccess] = useState(false);
 	const [submittedEmail, setSubmittedEmail] = useState("");
-	const navigate = useNavigate();
-	const { isAuthenticated } = useAuth();
-
-	// Redirect if already authenticated
-	useEffect(() => {
-		if (isAuthenticated) {
-			navigate("/");
-		}
-	}, [isAuthenticated, navigate]);
 
 	const handleSubmit = async (data: SignupFormData) => {
 		setIsLoading(true);

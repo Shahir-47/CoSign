@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useWebSocket } from "../context/useWebSocket";
@@ -53,14 +53,7 @@ export default function LoginPage() {
 	const [error, setError] = useState<string | undefined>();
 	const navigate = useNavigate();
 	const { connect } = useWebSocket();
-	const { login, isAuthenticated } = useAuth();
-
-	// Redirect if already authenticated
-	useEffect(() => {
-		if (isAuthenticated) {
-			navigate("/");
-		}
-	}, [isAuthenticated, navigate]);
+	const { login } = useAuth();
 
 	const handleSubmit = async (data: LoginFormData) => {
 		setIsLoading(true);
