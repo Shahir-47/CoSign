@@ -220,4 +220,31 @@ public class EmailTemplates {
 
         return wrapInTemplate("Verification Requested - CoSign", content);
     }
+
+    /**
+     * Password Reset email template
+     */
+    public static String passwordResetEmail(String resetLink) {
+        String content = """
+            <h1 style="margin: 0 0 8px; color: %s; font-size: 24px; font-weight: 700;">Reset Your Password</h1>
+            <p style="margin: 0 0 24px; color: %s; font-size: 15px; line-height: 1.6;">
+                We received a request to reset your password for your CoSign account.
+            </p>
+            %s
+            <p style="margin: 0; color: %s; font-size: 13px; line-height: 1.5;">
+                If you didn't ask to reset your password, you can safely ignore this email.
+            </p>
+            <p style="margin: 16px 0 0; color: %s; font-size: 12px;">
+                This link expires in 1 hour.
+            </p>
+            """.formatted(
+                TEXT_PRIMARY,
+                TEXT_SECONDARY,
+                button("Reset Password", resetLink),
+                TEXT_SECONDARY,
+                TEXT_SECONDARY
+        );
+
+        return wrapInTemplate("Reset your password - CoSign", content);
+    }
 }

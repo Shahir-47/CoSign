@@ -79,4 +79,25 @@ public class EmailService {
             throw new RuntimeException("Failed to send penalty email", e);
         }
     }
+
+    public void sendPasswordResetEmail(String toEmail, String resetLink) {
+        Resend resend = new Resend(resendApiKey);
+
+        String htmlContent = EmailTemplates.passwordResetEmail(resetLink);
+
+        CreateEmailOptions params = CreateEmailOptions.builder()
+                .from("CoSign <security@cosign.shahirahmed.com>")
+                .to(toEmail)
+                .subject("Reset your password - CoSign")
+                .html(htmlContent)
+                .build();
+
+        try {
+            CreateEmailResponse data = resend.emails().send(params);
+            logger.info("Password reset email sent to {}. ID: {}", toEmail, data.getId());
+        } catch (ResendException e) {
+            logger.error("Failed to send password reset email to {}", toEmail, e);
+            throw new RuntimeException("Failed to send password reset email", e);
+        }
+    }
 }

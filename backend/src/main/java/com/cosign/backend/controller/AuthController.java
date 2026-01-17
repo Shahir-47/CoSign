@@ -7,6 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.cosign.backend.dto.LoginRequest;
 import com.cosign.backend.dto.LoginResponse;
+import com.cosign.backend.dto.ForgotPasswordRequest;
+import com.cosign.backend.dto.ResetPasswordRequest;
 
 import java.util.Map;
 
@@ -47,5 +49,17 @@ public class AuthController {
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse response = authService.login(request);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request);
+        return ResponseEntity.ok("If an account exists with that email, we have sent a password reset link.");
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
+        return ResponseEntity.ok("Password has been reset successfully. You can now login.");
     }
 }

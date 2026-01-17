@@ -36,6 +36,12 @@ public class User {
 
     private String profilePictureUrl; // Optional
 
+    @JsonIgnore
+    private String passwordResetToken;
+
+    @JsonIgnore
+    private LocalDateTime passwordResetTokenExpiry;
+
     // Verification
     private boolean isEmailVerified = false;
     @JsonIgnore
