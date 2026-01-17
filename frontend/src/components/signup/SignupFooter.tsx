@@ -7,12 +7,6 @@ export default function SignupFooter() {
 			<p className={styles.loginLink}>
 				Already have an account? <Link to="/login">Sign in</Link>
 			</p>
-
-			<p className={styles.terms}>
-				By creating an account, you agree to our{" "}
-				<a href="#terms">Terms of Service</a> and{" "}
-				<a href="#privacy">Privacy Policy</a>
-			</p>
 		</div>
 	);
 }
