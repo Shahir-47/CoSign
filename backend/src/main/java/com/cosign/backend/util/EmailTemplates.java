@@ -35,8 +35,11 @@ public class EmailTemplates {
                                     <td align="center" style="padding-bottom: 32px;">
                                         <table role="presentation" cellpadding="0" cellspacing="0">
                                             <tr>
-                                                <td style="background-color: %s; padding: 10px 14px; border-radius: 10px;">
-                                                    <span style="color: white; font-size: 20px; font-weight: bold;">✓✓</span>
+                                                <td style="background-color: %s; padding: 8px; border-radius: 10px; line-height: 0;">
+                                                    <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M22 8C19.5 5.5 15.5 4.5 12 6C7 8 5 13 6 18C7 23 11 26 16 26C19 26 21.5 25 23.5 23" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                                                        <path d="M18 14L21 17L27 11" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                                    </svg>
                                                 </td>
                                                 <td style="padding-left: 12px;">
                                                     <span style="color: %s; font-size: 24px; font-weight: 700; letter-spacing: -0.5px;">CoSign</span>
