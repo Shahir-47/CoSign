@@ -1,5 +1,6 @@
 package com.cosign.backend.service;
 
+import com.cosign.backend.util.EmailTemplates;
 import com.resend.Resend;
 import com.resend.core.exception.ResendException;
 import com.resend.services.emails.model.CreateEmailOptions;
@@ -21,17 +22,12 @@ public class EmailService {
     public void sendVerificationEmail(String toEmail, String verificationLink) {
         Resend resend = new Resend(resendApiKey);
 
-        String htmlContent = String.format(
-                "<h1>Welcome to CoSign!</h1>" +
-                        "<p>Please verify your email by clicking the link below:</p>" +
-                        "<a href=\"%s\">Verify Email</a>",
-                verificationLink
-        );
+        String htmlContent = EmailTemplates.verificationEmail(verificationLink);
 
         CreateEmailOptions params = CreateEmailOptions.builder()
                 .from("CoSign <verify@cosign.shahirahmed.com>")
                 .to(toEmail)
-                .subject("Verify your email")
+                .subject("Verify your email - CoSign")
                 .html(htmlContent)
                 .build();
 
@@ -60,6 +56,27 @@ public class EmailService {
         } catch (ResendException e) {
             logger.error("Failed to send email to {}", toEmail, e);
             throw new RuntimeException("Failed to send email", e);
+        }
+    }
+
+    public void sendPenaltyEmail(String toEmail, String creatorName, String taskTitle, String penaltyContent, String attachmentsHtml) {
+        Resend resend = new Resend(resendApiKey);
+
+        String htmlContent = EmailTemplates.penaltyEmail(creatorName, taskTitle, penaltyContent, attachmentsHtml);
+
+        CreateEmailOptions params = CreateEmailOptions.builder()
+                .from("CoSign <notifications@cosign.shahirahmed.com>")
+                .to(toEmail)
+                .subject("⚠️ Penalty Triggered: " + creatorName + " failed a task")
+                .html(htmlContent)
+                .build();
+
+        try {
+            CreateEmailResponse data = resend.emails().send(params);
+            logger.info("Penalty email sent successfully to {}. ID: {}", toEmail, data.getId());
+        } catch (ResendException e) {
+            logger.error("Failed to send penalty email to {}", toEmail, e);
+            throw new RuntimeException("Failed to send penalty email", e);
         }
     }
 }

@@ -764,31 +764,28 @@ public class TaskService {
             // Build attachments section for email
             StringBuilder attachmentsHtml = new StringBuilder();
             if (penalty.getAttachments() != null && !penalty.getAttachments().isEmpty()) {
-                attachmentsHtml.append("<h3>Penalty Attachments:</h3><ul>");
+                attachmentsHtml.append("<ul style=\"margin: 0; padding-left: 20px;\">");
                 for (PenaltyAttachment att : penalty.getAttachments()) {
                     String presignedUrl = s3Service.generatePresignedDownloadUrl(att.getS3Key());
                     if (att.getMimeType().startsWith("image/")) {
-                        attachmentsHtml.append("<li><img src=\"").append(presignedUrl)
-                                .append("\" alt=\"").append(att.getOriginalFilename())
-                                .append("\" style=\"max-width:100%;height:auto;margin:10px 0;\"/></li>");
+                        attachmentsHtml.append("<li style=\"margin: 8px 0;\"><a href=\"").append(presignedUrl)
+                                .append("\" style=\"color: #6366f1;\">📷 ").append(att.getOriginalFilename()).append("</a></li>");
                     } else {
-                        attachmentsHtml.append("<li><a href=\"").append(presignedUrl)
-                                .append("\">").append(att.getOriginalFilename()).append("</a></li>");
+                        attachmentsHtml.append("<li style=\"margin: 8px 0;\"><a href=\"").append(presignedUrl)
+                                .append("\" style=\"color: #6366f1;\">📎 ").append(att.getOriginalFilename()).append("</a></li>");
                     }
                 }
                 attachmentsHtml.append("</ul>");
             }
 
-            // Send Email to Verifier
-            String subject = "CoSign Penalty Triggered: " + task.getCreator().getFullName() + " failed a task";
-            String htmlBody = "<h1>Task Failed</h1>" +
-                    "<p>Your supervisee failed to complete: <b>" + task.getTitle() + "</b></p>" +
-                    "<hr/>" +
-                    "<h3>The Penalty (Confidential):</h3>" +
-                    "<div>" + decryptedSecret + "</div>" +
-                    attachmentsHtml;
-
-            emailService.sendEmail(task.getVerifier().getEmail(), subject, htmlBody);
+            // Send branded penalty email to Verifier
+            emailService.sendPenaltyEmail(
+                    task.getVerifier().getEmail(),
+                    task.getCreator().getFullName(),
+                    task.getTitle(),
+                    decryptedSecret,
+                    attachmentsHtml.toString()
+            );
 
             // Send Socket Notification to Verifier
             socketService.sendToUser(task.getVerifier().getId(), "PENALTY_UNLOCKED", Map.of(
