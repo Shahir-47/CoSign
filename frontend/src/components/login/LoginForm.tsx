@@ -93,6 +93,7 @@ export default function LoginForm({
 			<Input
 				label="Email Address"
 				type="email"
+				name="email"
 				placeholder="Enter your email"
 				icon={Mail}
 				value={formData.email}
@@ -106,6 +107,7 @@ export default function LoginForm({
 			<Input
 				label="Password"
 				type="password"
+				name="password"
 				placeholder="Enter your password"
 				icon={Lock}
 				value={formData.password}
