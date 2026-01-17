@@ -1,0 +1,63 @@
+.container {
+	min-height: 100vh;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 24px;
+	background: var(--bg-primary);
+}
+
+.content {
+	text-align: center;
+	max-width: 440px;
+}
+
+.iconWrapper {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 80px;
+	height: 80px;
+	background: rgba(239, 68, 68, 0.1);
+	border-radius: 50%;
+	color: #ef4444;
+	margin-bottom: 24px;
+}
+
+.errorCode {
+	display: block;
+	font-size: 4rem;
+	font-weight: 800;
+	color: var(--text-primary);
+	line-height: 1;
+	margin-bottom: 8px;
+	letter-spacing: -2px;
+}
+
+.title {
+	font-size: 1.5rem;
+	font-weight: 700;
+	color: var(--text-primary);
+	margin: 0 0 12px;
+}
+
+.message {
+	font-size: 1rem;
+	color: var(--text-secondary);
+	line-height: 1.6;
+	margin: 0 0 32px;
+}
+
+.actions {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+.actions button {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}

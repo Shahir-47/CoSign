@@ -8,6 +8,9 @@ import SignupPage from "./pages/SignupPage";
 import VerifyEmailPage from "./pages/VerifyEmailPage";
 import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage";
+import ErrorPage from "./pages/ErrorPage";
+import UnauthorizedPage from "./pages/UnauthorizedPage";
+import HealthPage from "./pages/HealthPage";
 
 function App() {
 	return (
@@ -26,6 +29,10 @@ function App() {
 						<Route path="/signup" element={<SignupPage />} />
 						<Route path="/login" element={<LoginPage />} />
 						<Route path="/verify-email" element={<VerifyEmailPage />} />
+						<Route path="/error" element={<ErrorPage />} />
+						<Route path="/unauthorized" element={<UnauthorizedPage />} />
+						<Route path="/health" element={<HealthPage />} />
+						<Route path="*" element={<ErrorPage />} />
 					</Routes>
 					<ToastContainer
 						position="bottom-right"

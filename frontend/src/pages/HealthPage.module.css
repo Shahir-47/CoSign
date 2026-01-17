@@ -1,0 +1,158 @@
+.container {
+	min-height: 100vh;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 24px;
+	background: var(--bg-primary);
+}
+
+.content {
+	width: 100%;
+	max-width: 480px;
+}
+
+.header {
+	text-align: center;
+	margin-bottom: 32px;
+}
+
+.title {
+	font-size: 1.75rem;
+	font-weight: 700;
+	color: var(--text-primary);
+	margin: 0 0 8px;
+}
+
+.subtitle {
+	font-size: 1rem;
+	color: var(--text-secondary);
+	margin: 0;
+}
+
+.overallStatus {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+	padding: 20px;
+	border-radius: var(--radius-lg);
+	font-size: 1.125rem;
+	font-weight: 600;
+	margin-bottom: 24px;
+}
+
+.overallStatus.healthy {
+	background: rgba(34, 197, 94, 0.1);
+	color: #22c55e;
+	border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.overallStatus.unhealthy {
+	background: rgba(239, 68, 68, 0.1);
+	color: #ef4444;
+	border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.overallStatus.degraded {
+	background: rgba(245, 158, 11, 0.1);
+	color: #f59e0b;
+	border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.overallStatus.checking {
+	background: var(--bg-secondary);
+	color: var(--text-secondary);
+	border: 1px solid var(--border-primary);
+}
+
+.services {
+	background: var(--bg-card);
+	border: 1px solid var(--border-primary);
+	border-radius: var(--radius-lg);
+	overflow: hidden;
+}
+
+.service {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 16px 20px;
+	border-bottom: 1px solid var(--border-primary);
+}
+
+.service:last-child {
+	border-bottom: none;
+}
+
+.serviceInfo {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	color: var(--text-primary);
+	font-weight: 500;
+}
+
+.serviceInfo svg {
+	color: var(--text-secondary);
+}
+
+.serviceStatus {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.latency {
+	font-size: 0.8125rem;
+	color: var(--text-muted);
+	font-family: monospace;
+}
+
+.healthy {
+	color: #22c55e;
+}
+
+.unhealthy {
+	color: #ef4444;
+}
+
+.checking {
+	color: var(--text-secondary);
+	animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.footer {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	margin-top: 24px;
+	color: var(--text-muted);
+	font-size: 0.8125rem;
+}
+
+.refreshButton {
+	background: none;
+	border: none;
+	color: var(--accent-primary);
+	cursor: pointer;
+	font-size: 0.8125rem;
+	font-weight: 500;
+	padding: 4px 8px;
+	border-radius: var(--radius-sm);
+	transition: background 0.15s ease;
+}
+
+.refreshButton:hover {
+	background: var(--bg-tertiary);
+}
