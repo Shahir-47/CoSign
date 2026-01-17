@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import {
-	Inbox,
+	Layers,
 	FolderKanban,
 	Briefcase,
 	Rocket,
@@ -13,6 +13,7 @@ import {
 	Pencil,
 	Trash2,
 	List,
+	Inbox,
 } from "lucide-react";
 import type { TaskList } from "../../types";
 import { api } from "../../utils/api";
@@ -140,7 +141,7 @@ export default function ListsSidebar({
 					}}
 				>
 					<div className={styles.listIcon} style={{ color: "#6366f1" }}>
-						<Inbox size={18} />
+						<Layers size={18} />
 					</div>
 					<span className={styles.listName}>All Tasks</span>
 					<span className={styles.listCount}>

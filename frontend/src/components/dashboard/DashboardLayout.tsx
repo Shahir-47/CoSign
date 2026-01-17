@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import {
 	LogOut,
 	Plus,
-	ClipboardList,
+	CheckSquare,
 	ClipboardCheck,
 	Users,
 	Wifi,
@@ -84,7 +84,7 @@ export default function DashboardLayout({
 						}`}
 						onClick={() => onTabChange("my-tasks")}
 					>
-						<ClipboardList size={18} />
+						<CheckSquare size={18} />
 						<span>My Tasks</span>
 					</button>
 					<button
