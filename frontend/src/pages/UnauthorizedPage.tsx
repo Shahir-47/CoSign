@@ -20,10 +20,7 @@ export default function UnauthorizedPage() {
 				</p>
 
 				<div className={styles.actions}>
-					<Button
-						variant="secondary"
-						onClick={() => navigate(-1)}
-					>
+					<Button variant="secondary" onClick={() => navigate(-1)}>
 						<ArrowLeft size={18} />
 						Go Back
 					</Button>
@@ -31,10 +28,7 @@ export default function UnauthorizedPage() {
 						<LogIn size={18} />
 						Log In
 					</Button>
-					<Button
-						variant="ghost"
-						onClick={() => navigate("/")}
-					>
+					<Button variant="ghost" onClick={() => navigate("/")}>
 						<Home size={18} />
 						Home
 					</Button>

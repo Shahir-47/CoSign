@@ -126,9 +126,7 @@ export default function HealthPage() {
 					<p className={styles.subtitle}>CoSign service health overview</p>
 				</div>
 
-				<div
-					className={`${styles.overallStatus} ${styles[overallStatus]}`}
-				>
+				<div className={`${styles.overallStatus} ${styles[overallStatus]}`}>
 					{overallStatus === "checking" ? (
 						<Loader2 size={24} className={styles.checking} />
 					) : overallStatus === "healthy" ? (
@@ -185,13 +183,8 @@ export default function HealthPage() {
 				{status.lastChecked && (
 					<div className={styles.footer}>
 						<Clock size={14} />
-						<span>
-							Last checked: {status.lastChecked.toLocaleTimeString()}
-						</span>
-						<button
-							className={styles.refreshButton}
-							onClick={checkHealth}
-						>
+						<span>Last checked: {status.lastChecked.toLocaleTimeString()}</span>
+						<button className={styles.refreshButton} onClick={checkHealth}>
 							Refresh
 						</button>
 					</div>

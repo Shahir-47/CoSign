@@ -54,10 +54,7 @@ export default function ErrorPage() {
 				<p className={styles.message}>{errorMessage}</p>
 
 				<div className={styles.actions}>
-					<Button
-						variant="secondary"
-						onClick={() => navigate(-1)}
-					>
+					<Button variant="secondary" onClick={() => navigate(-1)}>
 						<ArrowLeft size={18} />
 						Go Back
 					</Button>
@@ -65,10 +62,7 @@ export default function ErrorPage() {
 						<Home size={18} />
 						Home
 					</Button>
-					<Button
-						variant="ghost"
-						onClick={() => window.location.reload()}
-					>
+					<Button variant="ghost" onClick={() => window.location.reload()}>
 						<RefreshCw size={18} />
 						Retry
 					</Button>
