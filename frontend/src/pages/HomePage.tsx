@@ -153,6 +153,7 @@ export default function HomePage() {
 	const isListModalOpen = modalStack.includes("create-list");
 	const isVerifiersModalOpen = modalStack.includes("verifiers");
 	const isRepeatModalOpen = modalStack.includes("repeat");
+	const isProfileModalOpen = modalStack.includes("profile");
 
 	// Mark as initialized after first render
 	useEffect(() => {
@@ -653,6 +654,14 @@ export default function HomePage() {
 		closeModal("verifiers");
 	};
 
+	const handleOpenProfile = () => {
+		openModal("profile");
+	};
+
+	const handleCloseProfile = () => {
+		closeModal("profile");
+	};
+
 	const handleOpenSubmitProof = (task: Task) => {
 		setSubmitProofTask(task);
 		openModal(`proof-${task.id}` as ModalType);
@@ -868,6 +877,9 @@ export default function HomePage() {
 			refreshListsKey={refreshListsKey}
 			onOpenVerifiersModal={handleOpenVerifiers}
 			onSelectedListNameChange={setSelectedListName}
+			isProfileModalOpen={isProfileModalOpen}
+			onOpenProfileModal={handleOpenProfile}
+			onCloseProfileModal={handleCloseProfile}
 		>
 			{activeTab === "supervising" ? (
 				<SupervisingTab />

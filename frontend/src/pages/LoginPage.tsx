@@ -21,6 +21,7 @@ interface LoginResponse {
 	email: string;
 	fullName: string;
 	timezone: string;
+	profilePictureUrl?: string;
 }
 
 export default function LoginPage() {
@@ -48,7 +49,7 @@ export default function LoginPage() {
 				const userFriendlyError = getUserFriendlyMessage(
 					errorText,
 					response.status,
-					"/auth/login"
+					"/auth/login",
 				);
 				throw new Error(userFriendlyError);
 			}
@@ -60,6 +61,7 @@ export default function LoginPage() {
 				email: result.email,
 				fullName: result.fullName,
 				timezone: result.timezone,
+				profilePictureUrl: result.profilePictureUrl,
 			});
 
 			// Connect to WebSocket after login

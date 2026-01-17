@@ -1,9 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import type { FormEvent } from "react";
-import { User, Mail, Lock, Globe } from "lucide-react";
+import { User, Mail, Lock, Globe, Camera, Loader2 } from "lucide-react";
+import { toast } from "react-toastify";
 import Input from "../shared/Input";
 import Select from "../shared/Select";
 import Button from "../shared/Button";
+import Avatar from "../shared/Avatar";
 import styles from "./SignupForm.module.css";
 
 interface SignupFormProps {
@@ -17,6 +19,7 @@ export interface SignupFormData {
 	email: string;
 	password: string;
 	timezone: string;
+	profilePictureKey?: string;
 }
 
 interface FormErrors {
@@ -59,6 +62,7 @@ export default function SignupForm({
 }: SignupFormProps) {
 	const timezoneOptions = useMemo(() => getTimezoneOptions(), []);
 	const detectedTimezone = useMemo(() => detectTimezone(), []);
+	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const [formData, setFormData] = useState<SignupFormData>(() => ({
 		fullName: "",
@@ -69,10 +73,76 @@ export default function SignupForm({
 
 	const [errors, setErrors] = useState<FormErrors>({});
 	const [touched, setTouched] = useState<Record<string, boolean>>({});
+	const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+	const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
+	const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0];
+		if (!file) return;
+
+		// Validate file type
+		if (!file.type.startsWith("image/")) {
+			toast.error("Please select an image file");
+			return;
+		}
+
+		// Validate file size (5MB max)
+		if (file.size > 5 * 1024 * 1024) {
+			toast.error("Image must be less than 5MB");
+			return;
+		}
+
+		setIsUploadingAvatar(true);
+
+		try {
+			// Create preview
+			const reader = new FileReader();
+			reader.onload = (event) => {
+				setAvatarPreview(event.target?.result as string);
+			};
+			reader.readAsDataURL(file);
+
+			// Get presigned URL for avatar upload (public endpoint)
+			const presignResponse = await fetch("/api/auth/signup-avatar-presign", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					name: file.name,
+					type: file.type,
+				}),
+			});
+
+			if (!presignResponse.ok) {
+				throw new Error("Failed to get upload URL");
+			}
+
+			const { url, key } = await presignResponse.json();
+
+			// Upload to S3
+			await fetch(url, {
+				method: "PUT",
+				body: file,
+				headers: {
+					"Content-Type": file.type,
+				},
+			});
+
+			setFormData((prev) => ({ ...prev, profilePictureKey: key }));
+			toast.success("Photo uploaded!");
+		} catch (err) {
+			console.error("Upload error:", err);
+			toast.error("Failed to upload photo");
+			setAvatarPreview(null);
+		} finally {
+			setIsUploadingAvatar(false);
+		}
+	};
 
 	const validateField = (
 		name: keyof SignupFormData,
-		value: string
+		value: string,
 	): string | undefined => {
 		switch (name) {
 			case "fullName":
@@ -105,7 +175,7 @@ export default function SignupForm({
 		}
 	};
 
-	const handleBlur = (name: keyof SignupFormData) => {
+	const handleBlur = (name: keyof FormErrors) => {
 		setTouched((prev) => ({ ...prev, [name]: true }));
 		setErrors((prev) => ({
 			...prev,
@@ -116,9 +186,15 @@ export default function SignupForm({
 	const handleSubmit = async (e: FormEvent) => {
 		e.preventDefault();
 
-		// Validate all fields
+		// Validate all fields (except optional profilePictureKey)
 		const newErrors: FormErrors = {};
-		(Object.keys(formData) as (keyof SignupFormData)[]).forEach((key) => {
+		const fieldsToValidate: (keyof FormErrors)[] = [
+			"fullName",
+			"email",
+			"password",
+			"timezone",
+		];
+		fieldsToValidate.forEach((key) => {
 			const error = validateField(key, formData[key]);
 			if (error) newErrors[key] = error;
 		});
@@ -134,6 +210,39 @@ export default function SignupForm({
 	return (
 		<form className={styles.form} onSubmit={handleSubmit}>
 			{error && <div className={styles.serverError}>{error}</div>}
+
+			{/* Avatar Upload Section */}
+			<div className={styles.avatarSection}>
+				<div className={styles.avatarWrapper}>
+					<Avatar
+						src={avatarPreview}
+						name={formData.fullName || "User"}
+						size="lg"
+					/>
+					<button
+						type="button"
+						className={styles.avatarOverlay}
+						onClick={() => fileInputRef.current?.click()}
+						disabled={isUploadingAvatar || isLoading}
+					>
+						{isUploadingAvatar ? (
+							<Loader2 size={20} className={styles.spinning} />
+						) : (
+							<Camera size={20} />
+						)}
+					</button>
+				</div>
+				<input
+					ref={fileInputRef}
+					type="file"
+					accept="image/*"
+					onChange={handleAvatarSelect}
+					className={styles.hiddenInput}
+				/>
+				<span className={styles.avatarHint}>
+					Add a profile photo (optional)
+				</span>
+			</div>
 
 			<Input
 				label="Full Name"

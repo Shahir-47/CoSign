@@ -15,6 +15,7 @@ const STORAGE_KEYS = {
 	PROOF_DRAFT: "cosign_proof_draft_", // + taskId
 	LIST_DRAFT: "cosign_list_draft",
 	REPEAT_DRAFT: "cosign_repeat_draft",
+	PROFILE_DRAFT: "cosign_profile_draft",
 } as const;
 
 // ============ URL State Management ============
@@ -24,6 +25,7 @@ export type ModalType =
 	| "create-list"
 	| "verifiers"
 	| "repeat"
+	| "profile"
 	| `proof-${number}`
 	| `review-${number}`
 	| `reassign-${number}`
@@ -214,7 +216,8 @@ function isValidModalType(modal: string): boolean {
 		modal === "create-task" ||
 		modal === "create-list" ||
 		modal === "verifiers" ||
-		modal === "repeat"
+		modal === "repeat" ||
+		modal === "profile"
 	) {
 		return true;
 	}
@@ -619,5 +622,48 @@ export function clearRepeatDraft(): void {
 		localStorage.removeItem(STORAGE_KEYS.REPEAT_DRAFT);
 	} catch (e) {
 		console.warn("Failed to clear repeat draft:", e);
+	}
+}
+
+// Profile Draft
+export interface ProfileDraft {
+	fullName: string;
+	timezone: string;
+	previewUrl: string | null;
+	newPictureKey: string | null;
+	savedAt: number;
+}
+
+export function saveProfileDraft(draft: Omit<ProfileDraft, "savedAt">): void {
+	try {
+		const data: ProfileDraft = { ...draft, savedAt: Date.now() };
+		localStorage.setItem(STORAGE_KEYS.PROFILE_DRAFT, JSON.stringify(data));
+	} catch (e) {
+		console.warn("Failed to save profile draft:", e);
+	}
+}
+
+export function loadProfileDraft(): ProfileDraft | null {
+	try {
+		const data = localStorage.getItem(STORAGE_KEYS.PROFILE_DRAFT);
+		if (!data) return null;
+		const draft = JSON.parse(data) as ProfileDraft;
+		// Expire drafts after 1 hour
+		if (Date.now() - draft.savedAt > 60 * 60 * 1000) {
+			clearProfileDraft();
+			return null;
+		}
+		return draft;
+	} catch (e) {
+		console.warn("Failed to load profile draft:", e);
+		return null;
+	}
+}
+
+export function clearProfileDraft(): void {
+	try {
+		localStorage.removeItem(STORAGE_KEYS.PROFILE_DRAFT);
+	} catch (e) {
+		console.warn("Failed to clear profile draft:", e);
 	}
 }

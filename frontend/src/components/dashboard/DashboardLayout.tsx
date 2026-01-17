@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
 	LogOut,
@@ -8,18 +9,23 @@ import {
 	Wifi,
 	WifiOff,
 	Eye,
+	Settings,
+	ChevronDown,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useWebSocket } from "../../context/useWebSocket";
+import { useAuth } from "../../context/useAuth";
 import Logo from "../shared/Logo";
+import Avatar from "../shared/Avatar";
 import ListsSidebar from "./ListsSidebar";
+import ProfileSettingsModal from "./ProfileSettingsModal";
 import styles from "./DashboardLayout.module.css";
 
 interface DashboardLayoutProps {
 	children: React.ReactNode;
 	activeTab: "my-tasks" | "verification-requests" | "supervising";
 	onTabChange: (
-		tab: "my-tasks" | "verification-requests" | "supervising"
+		tab: "my-tasks" | "verification-requests" | "supervising",
 	) => void;
 	onCreateTask: () => void;
 	selectedListId: number | null;
@@ -28,22 +34,9 @@ interface DashboardLayoutProps {
 	refreshListsKey?: number;
 	onOpenVerifiersModal: () => void;
 	onSelectedListNameChange?: (name: string | null) => void;
-}
-
-function getUser(): {
-	fullName: string;
-	email: string;
-	timezone: string;
-} | null {
-	const userData = localStorage.getItem("user");
-	if (userData) {
-		try {
-			return JSON.parse(userData);
-		} catch {
-			return null;
-		}
-	}
-	return null;
+	isProfileModalOpen?: boolean;
+	onOpenProfileModal?: () => void;
+	onCloseProfileModal?: () => void;
 }
 
 export default function DashboardLayout({
@@ -57,10 +50,35 @@ export default function DashboardLayout({
 	refreshListsKey,
 	onOpenVerifiersModal,
 	onSelectedListNameChange,
+	isProfileModalOpen,
+	onOpenProfileModal,
+	onCloseProfileModal,
 }: DashboardLayoutProps) {
 	const navigate = useNavigate();
-	const user = getUser();
+	const { user } = useAuth();
 	const { isConnected, disconnect } = useWebSocket();
+	const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+	
+	// Use prop if provided, otherwise use local state for backwards compatibility
+	const [localShowProfileModal, setLocalShowProfileModal] = useState(false);
+	const showProfileModal = isProfileModalOpen ?? localShowProfileModal;
+	const handleOpenProfile = onOpenProfileModal ?? (() => setLocalShowProfileModal(true));
+	const handleCloseProfile = onCloseProfileModal ?? (() => setLocalShowProfileModal(false));
+	const dropdownRef = useRef<HTMLDivElement>(null);
+
+	// Close dropdown when clicking outside
+	useEffect(() => {
+		function handleClickOutside(event: MouseEvent) {
+			if (
+				dropdownRef.current &&
+				!dropdownRef.current.contains(event.target as Node)
+			) {
+				setShowProfileDropdown(false);
+			}
+		}
+		document.addEventListener("mousedown", handleClickOutside);
+		return () => document.removeEventListener("mousedown", handleClickOutside);
+	}, []);
 
 	const handleLogout = () => {
 		disconnect();
@@ -136,18 +154,50 @@ export default function DashboardLayout({
 							{isConnected ? <Wifi size={14} /> : <WifiOff size={14} />}
 						</div>
 						{user && (
-							<div className={styles.userInfo}>
-								<span className={styles.userName}>{user.fullName}</span>
-								<span className={styles.userEmail}>{user.email}</span>
+							<div className={styles.profileDropdown} ref={dropdownRef}>
+								<button
+									className={styles.profileButton}
+									onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+								>
+									<Avatar
+										src={user.profilePictureUrl}
+										name={user.fullName}
+										size="sm"
+									/>
+									<div className={styles.profileInfo}>
+										<span className={styles.profileName}>{user.fullName}</span>
+										<span className={styles.profileEmail}>{user.email}</span>
+									</div>
+									<ChevronDown
+										size={16}
+										className={`${styles.chevron} ${showProfileDropdown ? styles.open : ""}`}
+									/>
+								</button>
+
+								{showProfileDropdown && (
+									<div className={styles.dropdownMenu}>
+										<button
+											className={styles.dropdownItem}
+											onClick={() => {
+												setShowProfileDropdown(false);
+												handleOpenProfile();
+											}}
+										>
+											<Settings size={16} />
+											Profile Settings
+										</button>
+										<div className={styles.dropdownDivider} />
+										<button
+											className={`${styles.dropdownItem} ${styles.danger}`}
+											onClick={handleLogout}
+										>
+											<LogOut size={16} />
+											Log Out
+										</button>
+									</div>
+								)}
 							</div>
 						)}
-						<button
-							className={styles.logoutButton}
-							onClick={handleLogout}
-							title="Logout"
-						>
-							<LogOut size={18} />
-						</button>
 					</div>
 				</div>
 			</header>
@@ -164,6 +214,11 @@ export default function DashboardLayout({
 				)}
 				<div className={styles.content}>{children}</div>
 			</main>
+
+			<ProfileSettingsModal
+				isOpen={showProfileModal}
+				onClose={handleCloseProfile}
+			/>
 		</div>
 	);
 }

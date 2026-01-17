@@ -13,6 +13,7 @@ interface User {
 	email: string;
 	fullName: string;
 	timezone: string;
+	profilePictureUrl?: string;
 }
 
 interface AuthContextType {
@@ -22,7 +23,7 @@ interface AuthContextType {
 	isLoading: boolean;
 	login: (token: string, user: User) => void;
 	logout: (message?: string) => void;
-	updateUser: (user: User) => void;
+	updateUser: (user: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -49,10 +50,10 @@ function getInitialAuthState(): { token: string | null; user: User | null } {
 export function AuthProvider({ children }: { children: ReactNode }) {
 	// Use lazy initializers to avoid useEffect for initial state
 	const [user, setUser] = useState<User | null>(
-		() => getInitialAuthState().user
+		() => getInitialAuthState().user,
 	);
 	const [token, setToken] = useState<string | null>(
-		() => getInitialAuthState().token
+		() => getInitialAuthState().token,
 	);
 	const [isLoading] = useState(false); // No longer need loading state since we initialize synchronously
 	const logoutInProgressRef = useRef(false);
@@ -89,9 +90,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		setUser(newUser);
 	}, []);
 
-	const updateUser = useCallback((updatedUser: User) => {
-		localStorage.setItem("user", JSON.stringify(updatedUser));
-		setUser(updatedUser);
+	const updateUser = useCallback((updatedFields: Partial<User>) => {
+		setUser((prevUser) => {
+			if (!prevUser) return prevUser;
+			const newUser = { ...prevUser, ...updatedFields };
+			localStorage.setItem("user", JSON.stringify(newUser));
+			return newUser;
+		});
 	}, []);
 
 	const value: AuthContextType = {
