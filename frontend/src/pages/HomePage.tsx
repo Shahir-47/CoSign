@@ -75,7 +75,7 @@ export default function HomePage() {
 	}, []);
 
 	const [activeTab, setActiveTab] = useState<TabType>(
-		initialState?.tab || "my-tasks"
+		initialState?.tab || "my-tasks",
 	);
 	const [tasks, setTasks] = useState<Task[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
@@ -83,11 +83,11 @@ export default function HomePage() {
 
 	// Modal stack state - tracks which modals are open and in what order
 	const [modalStack, setModalStack] = useState<ModalType[]>(
-		initialState?.modalStack || []
+		initialState?.modalStack || [],
 	);
 
 	const [selectedListId, setSelectedListId] = useState<number | null>(
-		initialState?.list ?? null
+		initialState?.list ?? null,
 	);
 	const [selectedListName, setSelectedListName] = useState<string | null>(null);
 	const [refreshListsKey, setRefreshListsKey] = useState(0);
@@ -103,7 +103,7 @@ export default function HomePage() {
 
 	const [refreshVerifiersKey, setRefreshVerifiersKey] = useState(0);
 	const [newlyCreatedListId, setNewlyCreatedListId] = useState<number | null>(
-		null
+		null,
 	);
 	const [newlyAddedVerifierEmail, setNewlyAddedVerifierEmail] = useState<
 		string | null
@@ -114,22 +114,22 @@ export default function HomePage() {
 
 	// Initialize sort config from URL or use defaults
 	const [sortConfig, setSortConfig] = useState<TaskSortConfig>(
-		initialState?.sortConfig || defaultSortConfig
+		initialState?.sortConfig || defaultSortConfig,
 	);
 
 	// Section visibility state (lifted from TaskList for URL persistence)
 	const [showOverdue, setShowOverdue] = useState(
-		initialState?.showOverdue ?? false
+		initialState?.showOverdue ?? false,
 	);
 	const [showCompleted, setShowCompleted] = useState(
-		initialState?.showCompleted ?? false
+		initialState?.showCompleted ?? false,
 	);
 
 	// Selected task ID for task detail modal (lifted from TaskList for toast navigation)
 	// Check URL for task-{id} modal
 	const getInitialSelectedTaskId = (): number | null => {
 		const taskModal = initialState?.modalStack.find((m) =>
-			m.startsWith("task-")
+			m.startsWith("task-"),
 		);
 		if (taskModal) {
 			const id = parseInt(taskModal.split("-")[1], 10);
@@ -138,7 +138,7 @@ export default function HomePage() {
 		return null;
 	};
 	const [selectedTaskId, setSelectedTaskId] = useState<number | null>(
-		getInitialSelectedTaskId
+		getInitialSelectedTaskId,
 	);
 
 	// Task objects for task-specific modals (resolved from IDs after fetch)
@@ -359,7 +359,7 @@ export default function HomePage() {
 				// If the task was reassigned away from this user, remove it from their list
 				if (payload.status === "REASSIGNED") {
 					setTasks((prevTasks) =>
-						prevTasks.filter((task) => task.id !== payload.taskId)
+						prevTasks.filter((task) => task.id !== payload.taskId),
 					);
 					// Always show reassign notification since it affects the user
 					toast.info(`🔄 ${payload.message}`, {
@@ -417,8 +417,8 @@ export default function HomePage() {
 									...(payload.repeatPattern !== undefined && {
 										repeatPattern: payload.repeatPattern,
 									}),
-							  }
-							: task
+								}
+							: task,
 					);
 				});
 
@@ -483,7 +483,7 @@ export default function HomePage() {
 								icon: payload.list.icon,
 								isDefault: payload.list.isDefault,
 								taskCount: 0, // Not provided in payload, will be updated on refresh
-						  }
+							}
 						: undefined,
 				};
 
@@ -516,7 +516,7 @@ export default function HomePage() {
 					};
 					toast.info(
 						`📥 New task: "${payload.title}" from ${payload.creatorName}`,
-						newTaskToastOptions
+						newTaskToastOptions,
 					);
 				}
 			} else if (message.type === "VERIFIER_ADDED") {
@@ -544,8 +544,8 @@ export default function HomePage() {
 					prevTasks.map((task) =>
 						task.id === payload.taskId
 							? { ...task, status: "MISSED" as Task["status"] }
-							: task
-					)
+							: task,
+					),
 				);
 
 				// Show notification to creator that their task was missed
@@ -563,8 +563,8 @@ export default function HomePage() {
 					prevTasks.map((task) =>
 						task.id === payload.taskId
 							? { ...task, status: "MISSED" as Task["status"] }
-							: task
-					)
+							: task,
+					),
 				);
 
 				// Show notification to verifier that a penalty has been revealed
@@ -577,7 +577,7 @@ export default function HomePage() {
 				};
 				toast.warning(
 					`🔓 Penalty revealed! ${payload.creatorName} missed their deadline. Click to view.`,
-					toastOptions
+					toastOptions,
 				);
 			}
 		};
@@ -635,7 +635,7 @@ export default function HomePage() {
 				closeModal("repeat");
 			}
 		},
-		[openModal, closeModal]
+		[openModal, closeModal],
 	);
 
 	const handleOpenCreateList = () => {
@@ -703,7 +703,9 @@ export default function HomePage() {
 	// Handle task updated (e.g., moved to a different list)
 	const handleTaskUpdated = (updatedTask: Task) => {
 		setTasks((prevTasks) =>
-			prevTasks.map((task) => (task.id === updatedTask.id ? updatedTask : task))
+			prevTasks.map((task) =>
+				task.id === updatedTask.id ? updatedTask : task,
+			),
 		);
 	};
 
@@ -717,12 +719,12 @@ export default function HomePage() {
 	const handleTaskMoved = (
 		movedTask: Task,
 		newListId: number | null,
-		newListName: string
+		newListName: string,
 	) => {
 		// Remove the task from the current view since it's moving to a different list
 		// (If viewing "All Tasks", we'll re-add it when we navigate)
 		setTasks((prevTasks) =>
-			prevTasks.filter((task) => task.id !== movedTask.id)
+			prevTasks.filter((task) => task.id !== movedTask.id),
 		);
 
 		// Refresh lists to update task counts
@@ -857,10 +859,10 @@ export default function HomePage() {
 
 	// Calculate stats from filtered tasks
 	const pendingProofCount = filteredTasks.filter(
-		(t) => t.status === "PENDING_PROOF"
+		(t) => t.status === "PENDING_PROOF",
 	).length;
 	const pendingVerificationCount = filteredTasks.filter(
-		(t) => t.status === "PENDING_VERIFICATION"
+		(t) => t.status === "PENDING_VERIFICATION",
 	).length;
 
 	// Compute the title for My Tasks tab

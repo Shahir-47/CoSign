@@ -235,7 +235,7 @@ function isValidModalType(modal: string): boolean {
 
 export function updateURLState(
 	updates: Partial<Omit<URLState, "modalStack">>,
-	replace = false
+	replace = false,
 ): void {
 	const params = new URLSearchParams(window.location.search);
 
@@ -499,13 +499,13 @@ export function clearTaskDraft(): void {
 // Proof Draft (per task)
 export function saveProofDraft(
 	taskId: number,
-	draft: Omit<ProofDraft, "taskId" | "savedAt">
+	draft: Omit<ProofDraft, "taskId" | "savedAt">,
 ): void {
 	try {
 		const data: ProofDraft = { ...draft, taskId, savedAt: Date.now() };
 		localStorage.setItem(
 			STORAGE_KEYS.PROOF_DRAFT + taskId,
-			JSON.stringify(data)
+			JSON.stringify(data),
 		);
 	} catch (e) {
 		console.warn("Failed to save proof draft:", e);

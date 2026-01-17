@@ -58,12 +58,14 @@ export default function DashboardLayout({
 	const { user } = useAuth();
 	const { isConnected, disconnect } = useWebSocket();
 	const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-	
+
 	// Use prop if provided, otherwise use local state for backwards compatibility
 	const [localShowProfileModal, setLocalShowProfileModal] = useState(false);
 	const showProfileModal = isProfileModalOpen ?? localShowProfileModal;
-	const handleOpenProfile = onOpenProfileModal ?? (() => setLocalShowProfileModal(true));
-	const handleCloseProfile = onCloseProfileModal ?? (() => setLocalShowProfileModal(false));
+	const handleOpenProfile =
+		onOpenProfileModal ?? (() => setLocalShowProfileModal(true));
+	const handleCloseProfile =
+		onCloseProfileModal ?? (() => setLocalShowProfileModal(false));
 	const dropdownRef = useRef<HTMLDivElement>(null);
 
 	// Close dropdown when clicking outside
