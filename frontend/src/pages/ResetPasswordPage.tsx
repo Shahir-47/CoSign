@@ -183,7 +183,7 @@ export default function ResetPasswordPage() {
 							}}
 							onBlur={() => setPasswordError(validatePassword(password))}
 							error={passwordError}
-							icon={<Lock size={18} />}
+							icon={Lock}
 							name="new-password"
 							autoComplete="new-password"
 						/>
@@ -202,7 +202,7 @@ export default function ResetPasswordPage() {
 								setConfirmError(validateConfirmPassword(confirmPassword))
 							}
 							error={confirmError}
-							icon={<Lock size={18} />}
+							icon={Lock}
 							name="confirm-password"
 							autoComplete="new-password"
 						/>

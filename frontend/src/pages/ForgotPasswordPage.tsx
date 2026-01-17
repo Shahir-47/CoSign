@@ -129,7 +129,7 @@ export default function ForgotPasswordPage() {
 							}}
 							onBlur={() => setEmailError(validateEmail(email))}
 							error={emailError}
-							icon={<Mail size={18} />}
+							icon={Mail}
 							name="email"
 							autoComplete="email"
 						/>
