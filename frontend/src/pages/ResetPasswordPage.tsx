@@ -5,7 +5,11 @@ import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { getUserFriendlyMessage } from "../utils/api";
 import AuthLayout from "../components/shared/AuthLayout";
-import Card, { CardHeader, CardContent, CardFooter } from "../components/shared/Card";
+import Card, {
+	CardHeader,
+	CardContent,
+	CardFooter,
+} from "../components/shared/Card";
 import Input from "../components/shared/Input";
 import Button from "../components/shared/Button";
 import styles from "./ResetPasswordPage.module.css";
@@ -25,7 +29,9 @@ export default function ResetPasswordPage() {
 
 	useEffect(() => {
 		if (!token) {
-			setError("Invalid or missing reset token. Please request a new password reset link.");
+			setError(
+				"Invalid or missing reset token. Please request a new password reset link."
+			);
 		}
 	}, [token]);
 
@@ -132,9 +138,7 @@ export default function ResetPasswordPage() {
 								Your password has been successfully reset. You can now log in
 								with your new password.
 							</p>
-							<Button onClick={() => navigate("/login")}>
-								Go to Login
-							</Button>
+							<Button onClick={() => navigate("/login")}>Go to Login</Button>
 						</div>
 					</CardContent>
 				</Card>
@@ -148,14 +152,16 @@ export default function ResetPasswordPage() {
 				<CardHeader>
 					<div className={styles.header}>
 						<h1 className={styles.title}>Reset Password</h1>
-						<p className={styles.subtitle}>
-							Enter your new password below.
-						</p>
+						<p className={styles.subtitle}>Enter your new password below.</p>
 					</div>
 				</CardHeader>
 
 				<CardContent>
-					<form onSubmit={handleSubmit} className={styles.form} autoComplete="off">
+					<form
+						onSubmit={handleSubmit}
+						className={styles.form}
+						autoComplete="off"
+					>
 						{error && <div className={styles.error}>{error}</div>}
 
 						<Input
@@ -165,7 +171,8 @@ export default function ResetPasswordPage() {
 							value={password}
 							onChange={(e) => {
 								setPassword(e.target.value);
-								if (passwordError) setPasswordError(validatePassword(e.target.value));
+								if (passwordError)
+									setPasswordError(validatePassword(e.target.value));
 								if (confirmPassword && confirmError) {
 									setConfirmError(
 										e.target.value !== confirmPassword
@@ -188,9 +195,12 @@ export default function ResetPasswordPage() {
 							value={confirmPassword}
 							onChange={(e) => {
 								setConfirmPassword(e.target.value);
-								if (confirmError) setConfirmError(validateConfirmPassword(e.target.value));
+								if (confirmError)
+									setConfirmError(validateConfirmPassword(e.target.value));
 							}}
-							onBlur={() => setConfirmError(validateConfirmPassword(confirmPassword))}
+							onBlur={() =>
+								setConfirmError(validateConfirmPassword(confirmPassword))
+							}
 							error={confirmError}
 							icon={<Lock size={18} />}
 							name="confirm-password"

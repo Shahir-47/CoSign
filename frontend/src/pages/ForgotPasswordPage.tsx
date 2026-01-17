@@ -5,7 +5,11 @@ import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import { getUserFriendlyMessage } from "../utils/api";
 import AuthLayout from "../components/shared/AuthLayout";
-import Card, { CardHeader, CardContent, CardFooter } from "../components/shared/Card";
+import Card, {
+	CardHeader,
+	CardContent,
+	CardFooter,
+} from "../components/shared/Card";
 import Input from "../components/shared/Input";
 import Button from "../components/shared/Button";
 import styles from "./ForgotPasswordPage.module.css";
@@ -81,9 +85,7 @@ export default function ForgotPasswordPage() {
 								If an account exists with <strong>{email}</strong>, we've sent a
 								password reset link. Please check your inbox and spam folder.
 							</p>
-							<p className={styles.successNote}>
-								The link expires in 1 hour.
-							</p>
+							<p className={styles.successNote}>The link expires in 1 hour.</p>
 							<Link to="/login" className={styles.backLink}>
 								<ArrowLeft size={18} />
 								Back to Login
@@ -109,7 +111,11 @@ export default function ForgotPasswordPage() {
 				</CardHeader>
 
 				<CardContent>
-					<form onSubmit={handleSubmit} className={styles.form} autoComplete="off">
+					<form
+						onSubmit={handleSubmit}
+						className={styles.form}
+						autoComplete="off"
+					>
 						{error && <div className={styles.error}>{error}</div>}
 
 						<Input
