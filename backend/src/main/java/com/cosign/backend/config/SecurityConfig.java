@@ -34,6 +34,7 @@ public class SecurityConfig {
                     .authorizeHttpRequests(auth -> auth
                             .requestMatchers("/api/auth/**").permitAll() // Allow access to auth endpoints
                             .requestMatchers("/api/health").permitAll() // Allow access to health endpoint
+                            .requestMatchers("/api/cron/**").permitAll()
                             .requestMatchers("/api/**").authenticated()
                             .anyRequest().permitAll()
                     )
