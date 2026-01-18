@@ -104,15 +104,4 @@ public class RecurrenceUtil {
         // Replace the COUNT value with the decremented one
         return matcher.replaceFirst("COUNT=" + newCount);
     }
-
-    /**
-     * Checks if an RRULE has a COUNT parameter.
-     * 
-     * @param rruleStr The RRULE string
-     * @return true if COUNT is present
-     */
-    public static boolean hasCount(String rruleStr) {
-        if (rruleStr == null || rruleStr.isEmpty()) return false;
-        return COUNT_PATTERN.matcher(rruleStr).find();
-    }
 }

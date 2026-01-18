@@ -29,7 +29,7 @@ public class EmailTemplates {
                     <tr>
                         <td align="center" style="padding: 40px 20px;">
                             <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="max-width: 560px;">
-                                
+            
                                 <!-- Logo -->
                                 <tr>
                                     <td align="center" style="padding-bottom: 32px;">
@@ -48,14 +48,14 @@ public class EmailTemplates {
                                         </table>
                                     </td>
                                 </tr>
-                                
+            
                                 <!-- Main Card -->
                                 <tr>
                                     <td style="background-color: %s; border: 1px solid %s; border-radius: 16px; padding: 32px;">
                                         %s
                                     </td>
                                 </tr>
-                                
+            
                                 <!-- Footer -->
                                 <tr>
                                     <td align="center" style="padding-top: 32px;">
@@ -67,7 +67,7 @@ public class EmailTemplates {
                                         </p>
                                     </td>
                                 </tr>
-                                
+            
                             </table>
                         </td>
                     </tr>
@@ -127,18 +127,25 @@ public class EmailTemplates {
     }
 
     /**
+     * Extracted helper method for attachment section
+     */
+    private static String generateAttachmentSection(String attachmentsHtml) {
+        if (attachmentsHtml == null || attachmentsHtml.isEmpty()) {
+            return "";
+        }
+        return """
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid %s;">
+                <p style="margin: 0 0 12px; color: %s; font-size: 14px; font-weight: 600;">Attachments:</p>
+                <div style="color: %s; font-size: 14px;">%s</div>
+            </div>
+            """.formatted(BORDER_COLOR, TEXT_PRIMARY, BRAND_COLOR, attachmentsHtml);
+    }
+
+    /**
      * Penalty triggered email template
      */
     public static String penaltyEmail(String creatorName, String taskTitle, String penaltyContent, String attachmentsHtml) {
-        String attachmentSection = "";
-        if (attachmentsHtml != null && !attachmentsHtml.isEmpty()) {
-            attachmentSection = """
-                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid %s;">
-                    <p style="margin: 0 0 12px; color: %s; font-size: 14px; font-weight: 600;">Attachments:</p>
-                    <div style="color: %s; font-size: 14px;">%s</div>
-                </div>
-                """.formatted(BORDER_COLOR, TEXT_PRIMARY, BRAND_COLOR, attachmentsHtml);
-        }
+        String attachmentSection = generateAttachmentSection(attachmentsHtml);
 
         String content = """
             <div style="text-align: center; margin-bottom: 24px;">
@@ -183,45 +190,6 @@ public class EmailTemplates {
             );
 
         return wrapInTemplate("Penalty Triggered - CoSign", content);
-    }
-
-    /**
-     * Task verification request email template
-     */
-    public static String verificationRequestEmail(String creatorName, String taskTitle, String proofContent, String verifyUrl) {
-        String content = """
-            <h1 style="margin: 0 0 8px; color: %s; font-size: 22px; font-weight: 700;">Verification Requested</h1>
-            <p style="margin: 0 0 24px; color: %s; font-size: 15px; line-height: 1.6;">
-                <strong style="color: %s;">%s</strong> has submitted proof for their task and needs your verification.
-            </p>
-            
-            <div style="background-color: %s; border: 1px solid %s; border-radius: 10px; padding: 16px; margin-bottom: 24px;">
-                <p style="margin: 0 0 4px; color: %s; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Task</p>
-                <p style="margin: 0; color: %s; font-size: 16px; font-weight: 600;">%s</p>
-            </div>
-            
-            <div style="background-color: %s; border: 1px solid %s; border-radius: 10px; padding: 16px; margin-bottom: 24px;">
-                <p style="margin: 0 0 8px; color: %s; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Submitted Proof</p>
-                <div style="color: %s; font-size: 14px; line-height: 1.6;">%s</div>
-            </div>
-            
-            %s
-            
-            <p style="margin: 0; color: %s; font-size: 13px; text-align: center;">
-                Review the proof and approve or reject it in your CoSign dashboard.
-            </p>
-            """.formatted(
-                TEXT_PRIMARY,
-                TEXT_SECONDARY, TEXT_PRIMARY, creatorName,
-                BG_PRIMARY, BORDER_COLOR,
-                TEXT_SECONDARY, TEXT_PRIMARY, taskTitle,
-                BG_PRIMARY, BORDER_COLOR,
-                TEXT_SECONDARY, TEXT_PRIMARY, proofContent,
-                button("Review in CoSign", verifyUrl),
-                TEXT_SECONDARY
-            );
-
-        return wrapInTemplate("Verification Requested - CoSign", content);
     }
 
     /**

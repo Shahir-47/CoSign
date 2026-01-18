@@ -16,8 +16,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import com.cosign.backend.dto.ForgotPasswordRequest;
 import com.cosign.backend.dto.ResetPasswordRequest;
-import com.cosign.backend.service.S3Service;
-
 import java.time.LocalDateTime;
 import java.util.UUID;
 

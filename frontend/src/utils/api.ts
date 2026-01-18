@@ -34,7 +34,7 @@ function parseErrorResponse(text: string): string {
 export function getUserFriendlyMessage(
 	error: string,
 	status: number,
-	endpoint: string
+	endpoint: string,
 ): string {
 	// First parse the error if it's JSON
 	const parsedError = parseErrorResponse(error);
@@ -90,7 +90,7 @@ export function getUserFriendlyMessage(
 
 export async function apiRequest<T>(
 	endpoint: string,
-	options: RequestOptions = {}
+	options: RequestOptions = {},
 ): Promise<T> {
 	const {
 		requiresAuth = true,
@@ -107,9 +107,8 @@ export async function apiRequest<T>(
 	if (requiresAuth) {
 		const token = localStorage.getItem("token");
 		if (token) {
-			(requestHeaders as Record<string, string>)[
-				"Authorization"
-			] = `Bearer ${token}`;
+			(requestHeaders as Record<string, string>)["Authorization"] =
+				`Bearer ${token}`;
 		}
 	}
 
@@ -123,11 +122,14 @@ export async function apiRequest<T>(
 		const userFriendlyMessage = getUserFriendlyMessage(
 			errorText,
 			response.status,
-			endpoint
+			endpoint,
 		);
 
-		// Handle 401 - token expired
-		if (response.status === 401 && !endpoint.includes("/auth/")) {
+		// Handle 401 or 403 - token expired or invalid
+		if (
+			(response.status === 401 || response.status === 403) &&
+			!endpoint.includes("/auth/")
+		) {
 			if (globalLogoutHandler) {
 				globalLogoutHandler("Your session has expired. Please log in again.");
 			}

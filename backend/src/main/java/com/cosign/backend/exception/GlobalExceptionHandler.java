@@ -1,5 +1,6 @@
 package com.cosign.backend.exception;
 
+import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -39,7 +40,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleValidationException(MethodArgumentNotValidException ex) {
         String message = ex.getBindingResult().getFieldErrors().stream()
                 .findFirst()
-                .map(error -> error.getDefaultMessage())
+                .map(DefaultMessageSourceResolvable::getDefaultMessage)
                 .orElse("Validation failed");
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
@@ -48,7 +49,7 @@ public class GlobalExceptionHandler {
 
     // Handle bad credentials (login failures)
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<Map<String, Object>> handleBadCredentials(BadCredentialsException ex) {
+    public ResponseEntity<Map<String, Object>> handleBadCredentials() {
         return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
                 .body(buildErrorResponse("Invalid email or password", HttpStatus.UNAUTHORIZED));
@@ -65,7 +66,7 @@ public class GlobalExceptionHandler {
 
     // Handle locked accounts
     @ExceptionHandler(LockedException.class)
-    public ResponseEntity<Map<String, Object>> handleLockedException(LockedException ex) {
+    public ResponseEntity<Map<String, Object>> handleLockedException() {
         return ResponseEntity
                 .status(HttpStatus.FORBIDDEN)
                 .body(buildErrorResponse("Account is locked", HttpStatus.FORBIDDEN));

@@ -121,6 +121,19 @@ public class TaskService {
         return taskPayload;
     }
 
+    /**
+     * Helper to create a penalty attachment and link it to the penalty.
+     */
+    private void addPenaltyAttachment(Penalty penalty, String s3Key, String filename, String mimeType, String contentHash) {
+        PenaltyAttachment attachment = new PenaltyAttachment();
+        attachment.setS3Key(s3Key);
+        attachment.setOriginalFilename(filename);
+        attachment.setMimeType(mimeType);
+        attachment.setContentHash(contentHash);
+        attachment.setPenalty(penalty);
+        penalty.getAttachments().add(attachment);
+    }
+
     @Transactional
     public Task createTask(TaskRequest request) {
         User creator = getCurrentUser();
@@ -223,13 +236,8 @@ public class TaskService {
         // Add penalty attachments if provided
         if (hasAttachments) {
             for (TaskRequest.AttachmentDto attDto : request.getPenaltyAttachments()) {
-                PenaltyAttachment attachment = new PenaltyAttachment();
-                attachment.setS3Key(attDto.getS3Key());
-                attachment.setOriginalFilename(attDto.getOriginalFilename());
-                attachment.setMimeType(attDto.getMimeType());
-                attachment.setContentHash(attDto.getContentHash()); // Store file content hash
-                attachment.setPenalty(penalty);
-                penalty.getAttachments().add(attachment);
+                addPenaltyAttachment(penalty, attDto.getS3Key(), attDto.getOriginalFilename(),
+                        attDto.getMimeType(), attDto.getContentHash());
             }
         }
 
@@ -475,13 +483,8 @@ public class TaskService {
             
             // Copy penalty attachments
             for (PenaltyAttachment prevAtt : previousPenalty.getAttachments()) {
-                PenaltyAttachment newAtt = new PenaltyAttachment();
-                newAtt.setS3Key(prevAtt.getS3Key()); // Reuse the same S3 file
-                newAtt.setOriginalFilename(prevAtt.getOriginalFilename());
-                newAtt.setMimeType(prevAtt.getMimeType());
-                newAtt.setContentHash(prevAtt.getContentHash());
-                newAtt.setPenalty(newPenalty);
-                newPenalty.getAttachments().add(newAtt);
+                addPenaltyAttachment(newPenalty, prevAtt.getS3Key(), prevAtt.getOriginalFilename(),
+                        prevAtt.getMimeType(), prevAtt.getContentHash());
             }
             
             nextTask.setPenalty(newPenalty);

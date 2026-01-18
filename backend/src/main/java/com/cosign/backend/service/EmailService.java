@@ -40,25 +40,6 @@ public class EmailService {
         }
     }
 
-    public void sendEmail(String toEmail, String subject, String htmlContent) {
-        Resend resend = new Resend(resendApiKey);
-
-        CreateEmailOptions params = CreateEmailOptions.builder()
-                .from("CoSign <notifications@cosign.shahirahmed.com>")
-                .to(toEmail)
-                .subject(subject)
-                .html(htmlContent)
-                .build();
-
-        try {
-            CreateEmailResponse data = resend.emails().send(params);
-            logger.info("Email sent successfully to {}. ID: {}", toEmail, data.getId());
-        } catch (ResendException e) {
-            logger.error("Failed to send email to {}", toEmail, e);
-            throw new RuntimeException("Failed to send email", e);
-        }
-    }
-
     public void sendPenaltyEmail(String toEmail, String creatorName, String taskTitle, String penaltyContent, String attachmentsHtml) {
         Resend resend = new Resend(resendApiKey);
 
