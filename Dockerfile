@@ -39,7 +39,7 @@ WORKDIR /app
 # Copy the JAR from the build stage
 COPY --from=backend-build /app/backend/target/*.jar app.jar
 
-EXPOSE 8080
+EXPOSE 10000
 
 # Run the application
 ENTRYPOINT ["java", "-jar", "app.jar"]
