@@ -74,7 +74,7 @@ public class Task {
     @Convert(converter = EncryptedStringConverter.class)
     private String approvalComment;
 
-    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JoinColumn(name = "penalty_id", referencedColumnName = "id")
     @JsonIgnoreProperties({"task", "user"})
     private Penalty penalty;
