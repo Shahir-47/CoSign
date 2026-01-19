@@ -15,7 +15,13 @@ import {
 	type WebSocketContextValue,
 } from "./WebSocketContextValue";
 
-const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:8080/ws";
+// Dynamically construct WebSocket URL based on current location
+function getWebSocketUrl(): string {
+	const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+	const host = window.location.host;
+	return `${protocol}//${host}/ws`;
+}
+
 const INITIAL_RECONNECT_DELAY = 1000;
 const MAX_RECONNECT_DELAY = 30000; // Cap at 30 seconds
 
@@ -48,7 +54,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 		(userId: number) => {
 			return onlineUsers.has(userId);
 		},
-		[onlineUsers]
+		[onlineUsers],
 	);
 
 	// Disconnect WebSocket
@@ -123,10 +129,13 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 			wsRef.current.close();
 		}
 
-		const ws = new WebSocket(`${WS_URL}?token=${token}`);
+		const wsUrl = getWebSocketUrl();
+		console.log("WebSocket connecting to:", wsUrl);
+
+		const ws = new WebSocket(`${wsUrl}?token=${token}`);
 
 		ws.onopen = () => {
-			console.log("WebSocket connected");
+			console.log("WebSocket connected successfully");
 			setIsConnected(true);
 			reconnectAttemptsRef.current = 0;
 		};
@@ -134,7 +143,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 		ws.onmessage = handleMessage;
 
 		ws.onclose = (event) => {
-			console.log("WebSocket disconnected", event.code, event.reason);
+			console.log("WebSocket disconnected:", event.code, event.reason);
 			setIsConnected(false);
 			wsRef.current = null;
 
@@ -149,13 +158,13 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 				const delay = Math.min(
 					INITIAL_RECONNECT_DELAY *
 						Math.pow(2, reconnectAttemptsRef.current - 1),
-					MAX_RECONNECT_DELAY
+					MAX_RECONNECT_DELAY,
 				);
 
 				console.log(
 					`WebSocket reconnecting in ${delay / 1000}s (attempt ${
 						reconnectAttemptsRef.current
-					})...`
+					})...`,
 				);
 
 				reconnectTimeoutRef.current = window.setTimeout(() => {

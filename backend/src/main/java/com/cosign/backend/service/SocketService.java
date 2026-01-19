@@ -97,10 +97,17 @@ public class SocketService {
         new Thread(() -> {
             try {
                 User user = userRepository.findByIdWithVerifiers(userId).orElse(null);
-                if (user == null) return;
+                if (user == null) {
+                    logger.warn("Could not find user {} for status broadcast", userId);
+                    return;
+                }
+
+                logger.info("Broadcasting status for user {} ({}): isOnline={}", 
+                    userId, user.getEmail(), isOnline);
 
                 // Notify my Saved Verifiers
                 Set<User> myVerifiers = user.getSavedVerifiers();
+                logger.debug("Notifying {} verifiers of user {}", myVerifiers.size(), userId);
                 for (User verifier : myVerifiers) {
                     sendToUser(verifier.getId(), "USER_STATUS", Map.of(
                             "userId", userId,
@@ -110,6 +117,7 @@ public class SocketService {
 
                 // Notify users who have saved Me
                 List<User> myClients = userRepository.findUsersBySavedVerifier(userId);
+                logger.debug("Notifying {} clients of verifier {}", myClients.size(), userId);
                 for (User client : myClients) {
                     sendToUser(client.getId(), "USER_STATUS", Map.of(
                             "userId", userId,
@@ -117,6 +125,7 @@ public class SocketService {
                     ));
                 }
 
+                logger.info("Status broadcast complete for user {}", userId);
             } catch (Exception e) {
                 logger.error("Failed to broadcast status for user {}", userId, e);
             }

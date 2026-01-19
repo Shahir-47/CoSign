@@ -43,6 +43,8 @@ public class CoSignSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionEstablished(@NonNull WebSocketSession session) throws Exception {
+        logger.info("WebSocket connection attempt from: {}", session.getRemoteAddress());
+        
         // Get Token from query params: ws://localhost:8080/ws?token=XYZ
         String token = getTokenFromSession(session);
 
@@ -59,8 +61,13 @@ public class CoSignSocketHandler extends TextWebSocketHandler {
                 session.getAttributes().put("userEmail", email);
 
                 socketService.addSession(userId, session);
+                logger.info("WebSocket connected successfully for user: {} (ID: {})", email, userId);
                 return;
+            } else {
+                logger.warn("WebSocket connection failed: user not found for email {}", email);
             }
+        } else {
+            logger.warn("WebSocket connection failed: invalid or missing token");
         }
 
         // Close if unauthorized
