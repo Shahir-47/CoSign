@@ -11,6 +11,8 @@ import {
 	Eye,
 	Settings,
 	ChevronDown,
+	Menu,
+	X,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useWebSocket } from "../../context/useWebSocket";
@@ -58,6 +60,7 @@ export default function DashboardLayout({
 	const { user } = useAuth();
 	const { isConnected, disconnect } = useWebSocket();
 	const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+	const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
 	// Use prop if provided, otherwise use local state for backwards compatibility
 	const [localShowProfileModal, setLocalShowProfileModal] = useState(false);
@@ -94,6 +97,15 @@ export default function DashboardLayout({
 		<div className={styles.layout}>
 			<header className={styles.header}>
 				<div className={styles.headerLeft}>
+					{activeTab === "my-tasks" && (
+						<button
+							className={styles.mobileMenuButton}
+							onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+							aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
+						>
+							{isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
+						</button>
+					)}
 					<Logo size="sm" />
 				</div>
 
@@ -206,13 +218,25 @@ export default function DashboardLayout({
 
 			<main className={styles.main}>
 				{activeTab === "my-tasks" && (
-					<ListsSidebar
-						selectedListId={selectedListId}
-						onSelectList={onSelectList}
-						onCreateList={onCreateList}
-						refreshKey={refreshListsKey}
-						onSelectedListNameChange={onSelectedListNameChange}
-					/>
+					<>
+						{isSidebarOpen && (
+							<div
+								className={styles.sidebarOverlay}
+								onClick={() => setIsSidebarOpen(false)}
+							/>
+						)}
+						<ListsSidebar
+							selectedListId={selectedListId}
+							onSelectList={(listId) => {
+								onSelectList(listId);
+								setIsSidebarOpen(false);
+							}}
+							onCreateList={onCreateList}
+							refreshKey={refreshListsKey}
+							onSelectedListNameChange={onSelectedListNameChange}
+							isOpen={isSidebarOpen}
+						/>
+					</>
 				)}
 				<div className={styles.content}>{children}</div>
 			</main>

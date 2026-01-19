@@ -26,6 +26,7 @@ interface ListsSidebarProps {
 	onCreateList: () => void;
 	refreshKey?: number;
 	onSelectedListNameChange?: (name: string | null) => void;
+	isOpen?: boolean;
 }
 
 const ICON_MAP: Record<string, React.ComponentType<{ size?: number }>> = {
@@ -51,6 +52,7 @@ export default function ListsSidebar({
 	onCreateList,
 	refreshKey,
 	onSelectedListNameChange,
+	isOpen,
 }: ListsSidebarProps) {
 	const [lists, setLists] = useState<TaskList[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
@@ -108,7 +110,7 @@ export default function ListsSidebar({
 
 	if (isLoading) {
 		return (
-			<aside className={styles.sidebar}>
+			<aside className={`${styles.sidebar} ${isOpen ? styles.open : ""}`}>
 				<div className={styles.header}>
 					<h2 className={styles.title}>Lists</h2>
 				</div>
@@ -118,7 +120,7 @@ export default function ListsSidebar({
 	}
 
 	return (
-		<aside className={styles.sidebar}>
+		<aside className={`${styles.sidebar} ${isOpen ? styles.open : ""}`}>
 			<div className={styles.header}>
 				<h2 className={styles.title}>Lists</h2>
 				<button
@@ -219,7 +221,7 @@ export default function ListsSidebar({
 				onSuccess={(updatedList) => {
 					// Update list in local state
 					setLists((prev) =>
-						prev.map((l) => (l.id === updatedList.id ? updatedList : l))
+						prev.map((l) => (l.id === updatedList.id ? updatedList : l)),
 					);
 					// Update selected list name if this is the selected list
 					if (selectedListId === updatedList.id) {

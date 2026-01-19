@@ -245,9 +245,45 @@
 	color: #ef4444;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 640px) {
 	.card {
 		padding: 16px;
+	}
+
+	.title {
+		font-size: 1rem;
+	}
+
+	.description {
+		font-size: 0.8125rem;
+	}
+
+	.meta {
+		gap: 8px;
+		margin-bottom: 12px;
+	}
+
+	.person {
+		margin-left: 0;
+	}
+}
+
+@media (max-width: 480px) {
+	.card {
+		padding: 14px;
+	}
+
+	.header {
+		gap: 8px;
+	}
+
+	.title {
+		font-size: 0.9375rem;
+	}
+
+	.priority {
+		padding: 3px 6px;
+		font-size: 0.625rem;
 	}
 
 	.footer {
@@ -259,5 +295,14 @@
 	.timeline {
 		flex-direction: column;
 		gap: 6px;
+	}
+
+	.tags {
+		margin-bottom: 12px;
+	}
+
+	.tag {
+		font-size: 0.6875rem;
+		padding: 2px 8px;
 	}
 }
