@@ -12,6 +12,10 @@ COPY frontend/ ./
 # Create the destination directory for the build output
 RUN mkdir -p /app/backend/src/main/resources/static
 
+# Set environment variables for production build
+ENV VITE_API_URL=https://cosign-nwwl.onrender.com
+ENV VITE_WS_URL=wss://cosign-nwwl.onrender.com/ws
+
 # Build the frontend
 RUN npm run build
 
