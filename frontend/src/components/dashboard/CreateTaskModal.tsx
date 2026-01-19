@@ -94,7 +94,7 @@ export default function CreateTaskModal({
 	const { isUserOnline, subscribe } = useWebSocket();
 	const draftLoadedRef = useRef(false);
 	const saveDraftTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-		null
+		null,
 	);
 	const [, setStatusTick] = useState(0);
 
@@ -126,7 +126,7 @@ export default function CreateTaskModal({
 			starred: false,
 			penaltyContent: "",
 		}),
-		[selectedListId]
+		[selectedListId],
 	);
 
 	const [formData, setFormData] = useState<TaskRequest>(getInitialFormData);
@@ -298,8 +298,10 @@ export default function CreateTaskModal({
 				return undefined;
 			case "deadline": {
 				if (!value) return "Deadline is required";
-				const deadlineDate = new Date(value);
-				if (deadlineDate <= new Date()) return "Deadline must be in the future";
+				// Use getMinDateTime to get the current time in user's timezone
+				// The datetime-local input value represents time in user's timezone
+				const minDateTime = getMinDateTime(0); // Get current time with no offset
+				if (value <= minDateTime) return "Deadline must be in the future";
 				return undefined;
 			}
 			case "verifierEmail": {
@@ -325,7 +327,7 @@ export default function CreateTaskModal({
 
 	const handleChange = (
 		name: keyof TaskRequest,
-		value: string | boolean | number | undefined
+		value: string | boolean | number | undefined,
 	) => {
 		if (name === "listId") {
 			const numValue = value ? Number(value) : undefined;
@@ -409,7 +411,7 @@ export default function CreateTaskModal({
 			handleClose();
 		} catch (err) {
 			setServerError(
-				err instanceof Error ? err.message : "Failed to create task"
+				err instanceof Error ? err.message : "Failed to create task",
 			);
 		} finally {
 			setIsLoading(false);
@@ -556,7 +558,7 @@ export default function CreateTaskModal({
 								{formData.verifierEmail ? (
 									<span className={styles.selectedVerifier}>
 										{savedVerifiers.find(
-											(v) => v.email === formData.verifierEmail
+											(v) => v.email === formData.verifierEmail,
 										)?.fullName || formData.verifierEmail}
 									</span>
 								) : (
@@ -663,9 +665,9 @@ export default function CreateTaskModal({
 									<span>
 										{formData.listId
 											? lists.find((l) => l.id === formData.listId)?.name ||
-											  "Select list..."
+												"Select list..."
 											: lists.find((l) => l.isDefault)?.name ||
-											  "Select list..."}
+												"Select list..."}
 									</span>
 									<ChevronDown
 										size={18}

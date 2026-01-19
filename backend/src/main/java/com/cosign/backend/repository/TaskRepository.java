@@ -16,9 +16,15 @@ import java.util.List;
 import java.util.Optional;
 
 public interface TaskRepository extends JpaRepository<Task, Long> {
-    List<Task> findByCreator(User creator);
-    List<Task> findByVerifier(User verifier);
-    List<Task> findByCreatorAndList(User creator, TaskList list);
+    // Use JOIN FETCH to eagerly load creator, verifier, and list to prevent LazyInitializationException
+    @Query("SELECT t FROM Task t LEFT JOIN FETCH t.creator LEFT JOIN FETCH t.verifier LEFT JOIN FETCH t.list WHERE t.creator = :creator")
+    List<Task> findByCreator(@Param("creator") User creator);
+
+    @Query("SELECT t FROM Task t LEFT JOIN FETCH t.creator LEFT JOIN FETCH t.verifier LEFT JOIN FETCH t.list WHERE t.verifier = :verifier")
+    List<Task> findByVerifier(@Param("verifier") User verifier);
+
+    @Query("SELECT t FROM Task t LEFT JOIN FETCH t.creator LEFT JOIN FETCH t.verifier LEFT JOIN FETCH t.list WHERE t.creator = :creator AND t.list = :list")
+    List<Task> findByCreatorAndList(@Param("creator") User creator, @Param("list") TaskList list);
 
     // Find by ID with pessimistic write lock to prevent race conditions
     @Lock(LockModeType.PESSIMISTIC_WRITE)
