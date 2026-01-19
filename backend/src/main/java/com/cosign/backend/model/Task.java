@@ -63,7 +63,7 @@ public class Task {
     @Convert(converter = EncryptedStringConverter.class)
     private String proofDescription;
 
-    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private java.util.List<ProofAttachment> proofAttachments = new java.util.ArrayList<>();
 
     @Column(columnDefinition = "TEXT")
