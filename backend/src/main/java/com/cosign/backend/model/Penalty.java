@@ -39,7 +39,7 @@ public class Penalty {
     @JsonIgnore
     private Task task;
 
-    @OneToMany(mappedBy = "penalty", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "penalty", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JsonIgnoreProperties({"penalty"})
     private List<PenaltyAttachment> attachments = new ArrayList<>();
 
