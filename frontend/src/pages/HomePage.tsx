@@ -95,6 +95,11 @@ export default function HomePage() {
 	// Task ID to scroll to after navigation (e.g., after moving a task to a new list)
 	const [scrollToTaskId, setScrollToTaskId] = useState<number | null>(null);
 
+	// User ID to highlight in SupervisingTab (e.g., when someone adds you as verifier)
+	const [highlightSuperviseeId, setHighlightSuperviseeId] = useState<
+		number | null
+	>(null);
+
 	// Initialize filters from URL or use defaults
 	const [filters, setFilters] = useState<TaskFilters>(() => ({
 		...defaultFilters,
@@ -343,8 +348,16 @@ export default function HomePage() {
 	const navigateToTask = useCallback((taskId: number, targetTab: TabType) => {
 		// Switch to the correct tab if needed
 		setActiveTab(targetTab);
+		// Scroll to and highlight the task card
+		setScrollToTaskId(taskId);
 		// Select the task to open the detail modal
 		setSelectedTaskId(taskId);
+	}, []);
+
+	// Navigate to supervisee card (used when someone adds you as verifier)
+	const navigateToSupervisee = useCallback((userId: number) => {
+		setActiveTab("supervising");
+		setHighlightSuperviseeId(userId);
 	}, []);
 
 	// Subscribe to real-time task updates via WebSocket
@@ -488,22 +501,36 @@ export default function HomePage() {
 				};
 
 				// Add to the task list for real-time update
-				// Only add if it matches the current list filter (or viewing All Tasks)
+				// Handle differently based on current tab
 				setTasks((prevTasks) => {
 					// Only add if not already in the list
 					if (prevTasks.some((t) => t.id === newTask.id)) {
 						return prevTasks;
 					}
 
-					// If viewing a specific list, only add if task belongs to that list
-					if (selectedListId !== null) {
-						// Task must belong to the selected list
-						if (!newTask.list || newTask.list.id !== selectedListId) {
-							return prevTasks; // Don't add - task doesn't belong to this list
+					// For verification-requests tab: add if current user is the verifier
+					if (activeTab === "verification-requests") {
+						if (newTask.verifier.email === currentUserEmail) {
+							return [newTask, ...prevTasks];
 						}
+						return prevTasks;
 					}
 
-					return [newTask, ...prevTasks];
+					// For my-tasks tab: add if current user is the creator
+					if (activeTab === "my-tasks") {
+						if (newTask.creator.email !== currentUserEmail) {
+							return prevTasks; // Not creator, don't add
+						}
+						// If viewing a specific list, only add if task belongs to that list
+						if (selectedListId !== null) {
+							if (!newTask.list || newTask.list.id !== selectedListId) {
+								return prevTasks; // Don't add - task doesn't belong to this list
+							}
+						}
+						return [newTask, ...prevTasks];
+					}
+
+					return prevTasks;
 				});
 
 				// Only show toast to verifier, not the creator who just created the task
@@ -525,7 +552,7 @@ export default function HomePage() {
 				// Show notification that someone added you as their verifier
 				const toastOptions: ToastOptions = {
 					icon: false,
-					onClick: () => setActiveTab("supervising"),
+					onClick: () => navigateToSupervisee(payload.addedById),
 					style: { cursor: "pointer" },
 				};
 				toast.info(`🤝 ${payload.message}`, toastOptions);
@@ -584,7 +611,14 @@ export default function HomePage() {
 
 		const unsubscribe = subscribe(handleSocketMessage);
 		return unsubscribe;
-	}, [subscribe, navigateToTask, selectedListId, currentUserEmail]);
+	}, [
+		subscribe,
+		navigateToTask,
+		navigateToSupervisee,
+		selectedListId,
+		currentUserEmail,
+		activeTab,
+	]);
 
 	const handleTabChange = (tab: TabType) => {
 		setActiveTab(tab);
@@ -884,7 +918,10 @@ export default function HomePage() {
 			onCloseProfileModal={handleCloseProfile}
 		>
 			{activeTab === "supervising" ? (
-				<SupervisingTab />
+				<SupervisingTab
+					highlightUserId={highlightSuperviseeId}
+					onHighlightComplete={() => setHighlightSuperviseeId(null)}
+				/>
 			) : (
 				<div className={styles.container}>
 					<div className={styles.header}>

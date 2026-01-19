@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
 	Users,
 	Clock,
@@ -19,9 +19,15 @@ import styles from "./SupervisingTab.module.css";
 
 interface SupervisingTabProps {
 	refreshKey?: number;
+	highlightUserId?: number | null;
+	onHighlightComplete?: () => void;
 }
 
-export default function SupervisingTab({ refreshKey }: SupervisingTabProps) {
+export default function SupervisingTab({
+	refreshKey,
+	highlightUserId,
+	onHighlightComplete,
+}: SupervisingTabProps) {
 	const [supervisees, setSupervisees] = useState<Supervisee[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
@@ -36,7 +42,7 @@ export default function SupervisingTab({ refreshKey }: SupervisingTabProps) {
 			setSupervisees(data);
 		} catch (err) {
 			setError(
-				err instanceof Error ? err.message : "Failed to load supervisees"
+				err instanceof Error ? err.message : "Failed to load supervisees",
 			);
 		} finally {
 			setIsLoading(false);
@@ -55,14 +61,16 @@ export default function SupervisingTab({ refreshKey }: SupervisingTabProps) {
 				const payload = message.payload as UserStatusPayload;
 				setSupervisees((prev) =>
 					prev.map((s) =>
-						s.id === payload.userId ? { ...s, isOnline: payload.isOnline } : s
-					)
+						s.id === payload.userId ? { ...s, isOnline: payload.isOnline } : s,
+					),
 				);
 			} else if (
 				message.type === "NEW_TASK_ASSIGNED" ||
-				message.type === "TASK_UPDATED"
+				message.type === "TASK_UPDATED" ||
+				message.type === "VERIFIER_ADDED" ||
+				message.type === "VERIFIER_REMOVED"
 			) {
-				// Refresh to update task counts when a new task is assigned or status changes
+				// Refresh when tasks change or verifier relationships change
 				fetchSupervisees();
 			}
 		};
@@ -70,6 +78,31 @@ export default function SupervisingTab({ refreshKey }: SupervisingTabProps) {
 		const unsubscribe = subscribe(handleMessage);
 		return unsubscribe;
 	}, [subscribe, fetchSupervisees]);
+
+	// Refs map for scrolling to specific supervisee cards
+	const cardRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+
+	// Scroll to and highlight supervisee card when highlightUserId is set
+	useEffect(() => {
+		if (highlightUserId === null || highlightUserId === undefined) return;
+
+		// Small delay to ensure DOM has updated after navigation/data load
+		const timeoutId = setTimeout(() => {
+			const cardElement = cardRefs.current.get(highlightUserId);
+			if (cardElement) {
+				cardElement.scrollIntoView({ behavior: "smooth", block: "center" });
+				// Add a brief highlight effect
+				cardElement.classList.add(styles.highlight);
+				setTimeout(() => {
+					cardElement.classList.remove(styles.highlight);
+				}, 2000);
+				// Notify parent that highlight is complete
+				onHighlightComplete?.();
+			}
+		}, 300); // Slightly longer delay to wait for data to load
+
+		return () => clearTimeout(timeoutId);
+	}, [highlightUserId, supervisees, onHighlightComplete]);
 
 	if (isLoading) {
 		return (
@@ -114,7 +147,17 @@ export default function SupervisingTab({ refreshKey }: SupervisingTabProps) {
 
 			<div className={styles.grid}>
 				{supervisees.map((supervisee) => (
-					<div key={supervisee.id} className={styles.card}>
+					<div
+						key={supervisee.id}
+						className={styles.card}
+						ref={(el) => {
+							if (el) {
+								cardRefs.current.set(supervisee.id, el);
+							} else {
+								cardRefs.current.delete(supervisee.id);
+							}
+						}}
+					>
 						<div className={styles.cardHeader}>
 							<div className={styles.avatar}>
 								{supervisee.profilePictureUrl ? (
