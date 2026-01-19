@@ -198,13 +198,16 @@ export default function ListsSidebar({
 												<Pencil size={14} />
 												<span>Edit</span>
 											</button>
-											<button
-												className={`${styles.menuItem} ${styles.danger}`}
-												onClick={() => handleDeleteList(list.id)}
-											>
-												<Trash2 size={14} />
-												<span>Delete</span>
-											</button>
+											{/* Do not show delete for the default list */}
+											{!list.isDefault && (
+												<button
+													className={`${styles.menuItem} ${styles.danger}`}
+													onClick={() => handleDeleteList(list.id)}
+												>
+													<Trash2 size={14} />
+													<span>Delete</span>
+												</button>
+											)}
 										</div>
 									)}
 								</div>
