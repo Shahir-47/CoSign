@@ -16,10 +16,6 @@ import {
 } from "lucide-react";
 import type { Task } from "../../types";
 import { useWebSocket } from "../../context/useWebSocket";
-import type {
-	SocketMessage,
-	UserStatusPayload,
-} from "../../context/websocket.types";
 import OnlineStatusIndicator from "../shared/OnlineStatusIndicator";
 import styles from "./TaskCard.module.css";
 import {
@@ -46,7 +42,7 @@ function highlightText(text: string, searchTerm?: string): React.ReactNode {
 
 	const regex = new RegExp(
 		`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`,
-		"gi"
+		"gi",
 	);
 	const parts = text.split(regex);
 
@@ -57,7 +53,7 @@ function highlightText(text: string, searchTerm?: string): React.ReactNode {
 			</mark>
 		) : (
 			part
-		)
+		),
 	);
 }
 
@@ -165,8 +161,7 @@ function formatDeadline(deadline: string): {
 			text: formatDeadlineDisplay(deadline, {
 				month: "short",
 				day: "numeric",
-				year:
-					deadlineYear !== currentYear ? "numeric" : undefined,
+				year: deadlineYear !== currentYear ? "numeric" : undefined,
 			}),
 			isUrgent: false,
 			isPast: false,
@@ -205,13 +200,11 @@ export default function TaskCard({
 	onReassign,
 }: TaskCardProps) {
 	const [, setTick] = useState(0);
-	const { isUserOnline, subscribe } = useWebSocket();
+	const { isUserOnline } = useWebSocket();
 
 	// Get the other person (verifier for my-tasks, creator for verification-requests)
 	const otherPerson = viewMode === "my-tasks" ? task.verifier : task.creator;
-	const [isOtherOnline, setIsOtherOnline] = useState(() =>
-		isUserOnline(otherPerson.id),
-	);
+	const isOtherOnline = isUserOnline(otherPerson.id);
 
 	const status = statusConfig[task.status];
 	const StatusIcon = status.icon;
@@ -229,25 +222,6 @@ export default function TaskCard({
 		}, 1000);
 		return () => clearInterval(interval);
 	}, [isCompleted]);
-
-	// Subscribe to user status changes to update online indicator in real-time
-	useEffect(() => {
-		const handleMessage = (message: SocketMessage) => {
-			if (message.type === "USER_STATUS") {
-				const payload = message.payload as UserStatusPayload;
-				if (payload.userId === otherPerson.id) {
-					setIsOtherOnline(payload.isOnline);
-				}
-			}
-		};
-
-		const unsubscribe = subscribe(handleMessage);
-		return unsubscribe;
-	}, [subscribe, otherPerson.id]);
-
-	useEffect(() => {
-		setIsOtherOnline(isUserOnline(otherPerson.id));
-	}, [isUserOnline, otherPerson.id]);
 
 	return (
 		<div
@@ -412,7 +386,7 @@ export default function TaskCard({
 					events.sort(
 						(a, b) =>
 							getLocalDateTimeValue(a.timestamp) -
-							getLocalDateTimeValue(b.timestamp)
+							getLocalDateTimeValue(b.timestamp),
 					);
 
 					return events.map((event) => {
@@ -469,10 +443,7 @@ export default function TaskCard({
 							</>
 						)}
 					</span>
-					<OnlineStatusIndicator
-						isOnline={isOtherOnline}
-						size="sm"
-					/>
+					<OnlineStatusIndicator isOnline={isOtherOnline} size="sm" />
 				</div>
 			</div>
 		</div>

@@ -63,8 +63,11 @@ export function getUserTimezone(): string {
 /**
  * Get current time in user's timezone as individual components
  */
-function getNowInTimezone(timezone: string): LocalDateTimeParts {
-	const now = new Date();
+function getNowInTimezone(
+	timezone: string,
+	referenceTime?: number,
+): LocalDateTimeParts {
+	const now = referenceTime ? new Date(referenceTime) : new Date();
 
 	// Use Intl.DateTimeFormat to get time in user's timezone
 	const formatter = new Intl.DateTimeFormat("en-CA", {
@@ -95,19 +98,18 @@ function getNowInTimezone(timezone: string): LocalDateTimeParts {
 }
 
 export function getNowLocalDateTimeParts(
-	timezone?: string
+	timezone?: string,
+	referenceTime?: number,
 ): LocalDateTimeParts {
 	const resolvedTimezone = timezone || getUserTimezone();
-	return getNowInTimezone(resolvedTimezone);
+	return getNowInTimezone(resolvedTimezone, referenceTime);
 }
 
 /**
  * Parse a local datetime string into components
  * Handles formats like "2026-01-14T12:48:00" or "2026-01-14T12:48"
  */
-export function parseLocalDateTime(
-	dateTimeString: string
-): LocalDateTimeParts {
+export function parseLocalDateTime(dateTimeString: string): LocalDateTimeParts {
 	// Handle both "2026-01-14T12:48:00" and "2026-01-14T12:48"
 	const [datePart, timePart = "00:00:00"] = dateTimeString.split("T");
 	const [year, month, day] = datePart.split("-").map((s) => parseInt(s, 10));
@@ -131,19 +133,22 @@ export function getLocalDateTimeValue(dateTimeString: string): number {
 		parsed.day,
 		parsed.hour,
 		parsed.minute,
-		parsed.second
+		parsed.second,
 	);
 }
 
-export function getNowLocalDateTimeValue(timezone?: string): number {
-	const now = getNowLocalDateTimeParts(timezone);
+export function getNowLocalDateTimeValue(
+	timezone?: string,
+	referenceTime?: number,
+): number {
+	const now = getNowLocalDateTimeParts(timezone, referenceTime);
 	return Date.UTC(
 		now.year,
 		now.month - 1,
 		now.day,
 		now.hour,
 		now.minute,
-		now.second
+		now.second,
 	);
 }
 
@@ -156,7 +161,7 @@ export function getNowLocalDateTimeValue(timezone?: string): number {
  */
 export function getTimeUntilDeadline(
 	deadlineString: string,
-	timezone?: string
+	timezone?: string,
 ): number {
 	const deadlineMs = getLocalDateTimeValue(deadlineString);
 	const nowMs = getNowLocalDateTimeValue(timezone);
@@ -181,7 +186,7 @@ export function formatForBackend(dateTimeLocalValue: string): string {
  */
 export function getMinDateTime(
 	offsetMinutes: number = 1,
-	timezone?: string
+	timezone?: string,
 ): string {
 	const userTimezone = timezone || getUserTimezone();
 	const now = new Date(Date.now() + offsetMinutes * 60000);
@@ -202,7 +207,7 @@ export function getMinDateTime(
 
 	// en-CA format gives us YYYY-MM-DD which is what we need
 	return `${getPart("year")}-${getPart("month")}-${getPart("day")}T${getPart(
-		"hour"
+		"hour",
 	)}:${getPart("minute")}`;
 }
 
@@ -211,7 +216,7 @@ export function getMinDateTime(
  */
 export function formatDeadlineDisplay(
 	deadlineString: string,
-	options?: Intl.DateTimeFormatOptions
+	options?: Intl.DateTimeFormatOptions,
 ): string {
 	// Parse the deadline string and create a date
 	const parsed = parseLocalDateTime(deadlineString);
@@ -222,8 +227,8 @@ export function formatDeadlineDisplay(
 			parsed.day,
 			parsed.hour,
 			parsed.minute,
-			parsed.second
-		)
+			parsed.second,
+		),
 	);
 
 	// Format using the local date/time components

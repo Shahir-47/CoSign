@@ -24,7 +24,7 @@ interface TaskListProps {
 	onTaskMoved?: (
 		task: Task,
 		newListId: number | null,
-		newListName: string
+		newListName: string,
 	) => void;
 	onRepeatPatternUpdated?: (task: Task) => void;
 	selectedTaskId?: number | null;
@@ -101,8 +101,7 @@ export default function TaskList({
 
 	// Time trigger to re-evaluate overdue status every minute
 	// This ensures tasks actively move to the overdue section when their deadline passes
-	const [currentTime, setCurrentTime] = useState(Date.now());
-	const userTimezone = getUserTimezone();
+	const [currentTime, setCurrentTime] = useState(() => Date.now());
 
 	useEffect(() => {
 		// Check every 30 seconds if any tasks have become overdue
@@ -116,7 +115,8 @@ export default function TaskList({
 	// Separate active, completed, and overdue tasks
 	// Re-evaluates when tasks change OR when currentTime updates (every 30s)
 	const { activeTasks, completedTasks, overdueTasks } = useMemo(() => {
-		const nowValue = getNowLocalDateTimeValue(userTimezone);
+		const userTimezone = getUserTimezone();
+		const nowValue = getNowLocalDateTimeValue(userTimezone, currentTime);
 		const active: Task[] = [];
 		const completed: Task[] = [];
 		const overdue: Task[] = [];
@@ -152,15 +152,14 @@ export default function TaskList({
 		// Sort overdue by how overdue they are (most overdue first)
 		overdue.sort(
 			(a, b) =>
-				getLocalDateTimeValue(a.deadline) -
-				getLocalDateTimeValue(b.deadline)
+				getLocalDateTimeValue(a.deadline) - getLocalDateTimeValue(b.deadline),
 		);
 
 		// Sort completed by completion date (most recent first) - using submittedAt as proxy
 		completed.sort(
 			(a, b) =>
 				getLocalDateTimeValue(b.submittedAt || b.deadline) -
-				getLocalDateTimeValue(a.submittedAt || a.deadline)
+				getLocalDateTimeValue(a.submittedAt || a.deadline),
 		);
 
 		return {
@@ -168,8 +167,7 @@ export default function TaskList({
 			completedTasks: completed,
 			overdueTasks: overdue,
 		};
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [tasks, currentTime, userTimezone]);
+	}, [tasks, currentTime]);
 
 	// Trigger deadline check via WebSocket for newly overdue tasks (my-tasks only)
 	// This immediately processes the penalty instead of waiting for backend scheduler

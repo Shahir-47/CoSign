@@ -26,7 +26,7 @@ export default function VerifiersModal({
 	onVerifierAdded,
 	onVerifierRemoved,
 }: VerifiersModalProps) {
-	const { subscribe, isUserOnline, isConnected } = useWebSocket();
+	const { subscribe, isUserOnline } = useWebSocket();
 
 	const [verifiers, setVerifiers] = useState<Verifier[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
@@ -102,7 +102,7 @@ export default function VerifiersModal({
 	const handleRemoveVerifier = async (id: number, email: string) => {
 		if (
 			!confirm(
-				"Remove this verifier? Any active tasks with them will be paused."
+				"Remove this verifier? Any active tasks with them will be paused.",
 			)
 		) {
 			return;
@@ -115,7 +115,7 @@ export default function VerifiersModal({
 			onVerifierRemoved?.(id, email);
 		} catch (err) {
 			setError(
-				err instanceof Error ? err.message : "Failed to remove verifier"
+				err instanceof Error ? err.message : "Failed to remove verifier",
 			);
 		}
 	};
@@ -202,9 +202,8 @@ export default function VerifiersModal({
 					) : (
 						<div className={styles.verifiersList}>
 							{verifiers.map((verifier) => {
-								const online = isConnected
-									? isUserOnline(verifier.id)
-									: verifier.isOnline ?? false;
+								const online =
+									isUserOnline(verifier.id) || (verifier.isOnline ?? false);
 								return (
 									<div key={verifier.id} className={styles.verifierCard}>
 										<div className={styles.verifierInfo}>

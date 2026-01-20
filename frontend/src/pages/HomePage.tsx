@@ -898,7 +898,7 @@ export default function HomePage() {
 		// Apply sorting
 		const sortedTasks = [...filtered].sort(getSortComparator(sortConfig));
 		return sortedTasks;
-	}, [tasks, filters, sortConfig, activeTab, currentUserEmail, user?.timezone]);
+	}, [tasks, filters, sortConfig, activeTab, currentUserEmail]);
 
 	// Calculate stats from filtered tasks
 	const pendingProofCount = filteredTasks.filter(
