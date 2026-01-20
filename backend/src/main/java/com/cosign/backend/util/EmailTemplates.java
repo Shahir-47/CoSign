@@ -127,25 +127,9 @@ public class EmailTemplates {
     }
 
     /**
-     * Extracted helper method for attachment section
-     */
-    private static String generateAttachmentSection(String attachmentsHtml) {
-        if (attachmentsHtml == null || attachmentsHtml.isEmpty()) {
-            return "";
-        }
-        return """
-            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid %s;">
-                <p style="margin: 0 0 12px; color: %s; font-size: 14px; font-weight: 600;">Attachments:</p>
-                <div style="color: %s; font-size: 14px;">%s</div>
-            </div>
-            """.formatted(BORDER_COLOR, TEXT_PRIMARY, BRAND_COLOR, attachmentsHtml);
-    }
-
-    /**
      * Penalty triggered email template
      */
-    public static String penaltyEmail(String creatorName, String taskTitle, String penaltyContent, String attachmentsHtml) {
-        String attachmentSection = generateAttachmentSection(attachmentsHtml);
+    public static String penaltyEmail(String creatorName, String taskTitle, String penaltyContent) {
 
         String content = """
             <div style="text-align: center; margin-bottom: 24px;">
@@ -177,7 +161,7 @@ public class EmailTemplates {
             </div>
             
             <p style="margin: 24px 0 0; color: %s; font-size: 13px; text-align: center;">
-                As their verifier, it's your discretion whether to act on this penalty.
+                (Any files associated with this penalty are attached to this email)
             </p>
             """.formatted(
                 TEXT_PRIMARY,
@@ -185,7 +169,7 @@ public class EmailTemplates {
                 BG_PRIMARY, BORDER_COLOR,
                 TEXT_SECONDARY, TEXT_PRIMARY, taskTitle,
                 TEXT_PRIMARY, penaltyContent,
-                attachmentSection,
+                TEXT_SECONDARY,
                 TEXT_SECONDARY
             );
 

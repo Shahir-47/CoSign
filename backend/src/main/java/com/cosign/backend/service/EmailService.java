@@ -7,6 +7,8 @@ import com.resend.services.emails.model.CreateEmailOptions;
 import com.resend.services.emails.model.CreateEmailResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import com.resend.services.emails.model.Attachment;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,20 +42,24 @@ public class EmailService {
         }
     }
 
-    public void sendPenaltyEmail(String toEmail, String creatorName, String taskTitle, String penaltyContent, String attachmentsHtml) {
+    public void sendPenaltyEmail(String toEmail, String creatorName, String taskTitle, String penaltyContent, List<Attachment> attachments) {
         Resend resend = new Resend(resendApiKey);
 
-        String htmlContent = EmailTemplates.penaltyEmail(creatorName, taskTitle, penaltyContent, attachmentsHtml);
+        String htmlContent = EmailTemplates.penaltyEmail(creatorName, taskTitle, penaltyContent);
 
-        CreateEmailOptions params = CreateEmailOptions.builder()
+        CreateEmailOptions.Builder paramsBuilder = CreateEmailOptions.builder()
                 .from("CoSign <notifications@cosign.shahirahmed.com>")
                 .to(toEmail)
                 .subject("⚠️ Penalty Triggered: " + creatorName + " failed a task")
-                .html(htmlContent)
-                .build();
+                .html(htmlContent);
+
+        // Add attachments if present
+        if (attachments != null && !attachments.isEmpty()) {
+            paramsBuilder.attachments(attachments);
+        }
 
         try {
-            CreateEmailResponse data = resend.emails().send(params);
+            CreateEmailResponse data = resend.emails().send(paramsBuilder.build());
             logger.info("Penalty email sent successfully to {}. ID: {}", toEmail, data.getId());
         } catch (ResendException e) {
             logger.error("Failed to send penalty email to {}", toEmail, e);

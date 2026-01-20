@@ -22,7 +22,9 @@ import org.hibernate.Hibernate;
 import com.cosign.backend.model.Penalty;
 import com.cosign.backend.repository.PenaltyRepository;
 import com.cosign.backend.repository.PenaltyAttachmentRepository;
+import com.resend.services.emails.model.Attachment;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -769,21 +771,21 @@ public class TaskService {
         if (penalty != null && penalty.isExposed()) {
             String decryptedSecret = penalty.getContent();
 
-            // Build attachments section for email
-            StringBuilder attachmentsHtml = new StringBuilder();
+            List<Attachment> emailAttachments = new ArrayList<>();
+
             if (penalty.getAttachments() != null && !penalty.getAttachments().isEmpty()) {
-                attachmentsHtml.append("<ul style=\"margin: 0; padding-left: 20px;\">");
                 for (PenaltyAttachment att : penalty.getAttachments()) {
+                    // Generate a temporary public URL for Resend to download
                     String presignedUrl = s3Service.generatePresignedDownloadUrl(att.getS3Key());
-                    if (att.getMimeType().startsWith("image/")) {
-                        attachmentsHtml.append("<li style=\"margin: 8px 0;\"><a href=\"").append(presignedUrl)
-                                .append("\" style=\"color: #6366f1;\">📷 ").append(att.getOriginalFilename()).append("</a></li>");
-                    } else {
-                        attachmentsHtml.append("<li style=\"margin: 8px 0;\"><a href=\"").append(presignedUrl)
-                                .append("\" style=\"color: #6366f1;\">📎 ").append(att.getOriginalFilename()).append("</a></li>");
-                    }
+
+                    // Create Resend Attachment object
+                    Attachment attachment = Attachment.builder()
+                            .fileName(att.getOriginalFilename())
+                            .path(presignedUrl) // Resend will fetch the file from this S3 URL
+                            .build();
+
+                    emailAttachments.add(attachment);
                 }
-                attachmentsHtml.append("</ul>");
             }
 
             // Send branded penalty email to Verifier
@@ -792,7 +794,7 @@ public class TaskService {
                     task.getCreator().getFullName(),
                     task.getTitle(),
                     decryptedSecret,
-                    attachmentsHtml.toString()
+                    emailAttachments // Pass the list
             );
 
             // Send Socket Notification to Verifier
