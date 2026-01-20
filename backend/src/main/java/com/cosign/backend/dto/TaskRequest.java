@@ -1,7 +1,6 @@
 package com.cosign.backend.dto;
 
 import com.cosign.backend.model.TaskPriority;
-import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -16,7 +15,6 @@ public class TaskRequest {
     private String description;
 
     @NotNull
-    @Future(message = "Deadline must be in the future")
     private LocalDateTime deadline;
 
     @NotBlank

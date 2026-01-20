@@ -138,6 +138,11 @@ public class TaskService {
     public Task createTask(TaskRequest request) {
         User creator = getCurrentUser();
 
+        LocalDateTime nowInUserTimezone = getNowInUserTimezone(creator);
+        if (request.getDeadline() == null || !request.getDeadline().isAfter(nowInUserTimezone)) {
+            throw new RuntimeException("Deadline must be in the future");
+        }
+
         // PENALTY VALIDATION: Must have either content OR attachments
         String rawPenalty = request.getPenaltyContent();
         boolean hasContent = rawPenalty != null && !rawPenalty.trim().isEmpty() 
