@@ -543,6 +543,11 @@ public class TaskService {
         task.setSubmittedAt(getNowInUserTimezone(task.getCreator()));
         Task savedTask = taskRepository.save(task);
 
+        Hibernate.initialize(savedTask.getList());
+        Hibernate.initialize(savedTask.getCreator());
+        Hibernate.initialize(savedTask.getVerifier());
+        Hibernate.initialize(savedTask.getProofAttachments());
+
         // Build payload for TASK_UPDATED
         Map<String, Object> payload = new java.util.HashMap<>();
         payload.put("taskId", savedTask.getId());
@@ -599,6 +604,11 @@ public class TaskService {
         }
 
         Task savedTask = taskRepository.save(task);
+
+        Hibernate.initialize(savedTask.getList());
+        Hibernate.initialize(savedTask.getCreator());
+        Hibernate.initialize(savedTask.getVerifier());
+        Hibernate.initialize(savedTask.getProofAttachments());
 
         // Notify Creator with full task update data
         String message = request.getApproved()
