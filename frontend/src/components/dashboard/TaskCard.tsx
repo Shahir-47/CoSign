@@ -16,6 +16,10 @@ import {
 } from "lucide-react";
 import type { Task } from "../../types";
 import { useWebSocket } from "../../context/useWebSocket";
+import type {
+	SocketMessage,
+	UserStatusPayload,
+} from "../../context/websocket.types";
 import OnlineStatusIndicator from "../shared/OnlineStatusIndicator";
 import styles from "./TaskCard.module.css";
 import {
@@ -199,6 +203,12 @@ export default function TaskCard({
 	const [, setTick] = useState(0);
 	const { isUserOnline, subscribe } = useWebSocket();
 
+	// Get the other person (verifier for my-tasks, creator for verification-requests)
+	const otherPerson = viewMode === "my-tasks" ? task.verifier : task.creator;
+	const [isOtherOnline, setIsOtherOnline] = useState(() =>
+		isUserOnline(otherPerson.id),
+	);
+
 	const status = statusConfig[task.status];
 	const StatusIcon = status.icon;
 	const deadline = formatDeadline(task.deadline);
@@ -218,19 +228,22 @@ export default function TaskCard({
 
 	// Subscribe to user status changes to update online indicator in real-time
 	useEffect(() => {
-		const handleMessage = (message: { type: string }) => {
+		const handleMessage = (message: SocketMessage) => {
 			if (message.type === "USER_STATUS") {
-				// Force re-render to update online status indicator
-				setTick((t) => t + 1);
+				const payload = message.payload as UserStatusPayload;
+				if (payload.userId === otherPerson.id) {
+					setIsOtherOnline(payload.isOnline);
+				}
 			}
 		};
 
 		const unsubscribe = subscribe(handleMessage);
 		return unsubscribe;
-	}, [subscribe]);
+	}, [subscribe, otherPerson.id]);
 
-	// Get the other person (verifier for my-tasks, creator for verification-requests)
-	const otherPerson = viewMode === "my-tasks" ? task.verifier : task.creator;
+	useEffect(() => {
+		setIsOtherOnline(isUserOnline(otherPerson.id));
+	}, [isUserOnline, otherPerson.id]);
 
 	return (
 		<div
@@ -452,7 +465,7 @@ export default function TaskCard({
 						)}
 					</span>
 					<OnlineStatusIndicator
-						isOnline={isUserOnline(otherPerson.id)}
+						isOnline={isOtherOnline}
 						size="sm"
 					/>
 				</div>

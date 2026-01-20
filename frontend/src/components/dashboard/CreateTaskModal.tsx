@@ -604,7 +604,12 @@ export default function CreateTaskModal({
 															.join("")
 															.toUpperCase()}
 													</div>
-													<OnlineStatusIndicator isOnline={online} size="sm" />
+													<div className={styles.statusIndicator}>
+														<OnlineStatusIndicator
+															isOnline={online}
+															size="sm"
+														/>
+													</div>
 												</div>
 												<div className={styles.verifierInfo}>
 													<span className={styles.verifierName}>

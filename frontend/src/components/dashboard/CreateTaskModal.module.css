@@ -481,7 +481,12 @@
 	position: relative;
 	display: flex;
 	align-items: center;
-	gap: 8px;
+}
+
+.statusIndicator {
+	position: absolute;
+	bottom: -1px;
+	right: -2px;
 }
 
 .verifierAvatar {
