@@ -103,7 +103,7 @@ public class CoSignSocketHandler extends TextWebSocketHandler {
     public void afterConnectionClosed(@NonNull WebSocketSession session, @NonNull CloseStatus status) {
         Long userId = (Long) session.getAttributes().get("userId");
         if (userId != null) {
-            socketService.removeSession(userId);
+            socketService.removeSession(userId, session);
         }
     }
 

@@ -11,6 +11,8 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -21,8 +23,8 @@ public class SocketService {
 
     private static final Logger logger = LoggerFactory.getLogger(SocketService.class);
 
-    // Concurrent map to store active sessions which maps UserId to Session
-    private final Map<Long, WebSocketSession> userSessions = new ConcurrentHashMap<>();
+    // Concurrent map to store active sessions which maps UserId to Sessions
+    private final Map<Long, Set<WebSocketSession>> userSessions = new ConcurrentHashMap<>();
 
     private final ObjectMapper objectMapper;
     private final UserRepository userRepository;
@@ -34,14 +36,24 @@ public class SocketService {
     }
 
     public void addSession(Long userId, WebSocketSession session) {
-        userSessions.put(userId, session);
+        Set<WebSocketSession> sessions =
+                userSessions.computeIfAbsent(userId, id -> ConcurrentHashMap.newKeySet());
+        boolean wasOffline = sessions.isEmpty();
+        sessions.add(session);
         logger.info("User {} connected via Socket", userId);
-        broadcastUserStatus(userId, true);
+        if (wasOffline) {
+            broadcastUserStatus(userId, true);
+        }
+        sendInitialStatusSnapshot(userId);
     }
 
-    public void removeSession(Long userId) {
-        // Capture the session object returned by remove()
-        WebSocketSession session = userSessions.remove(userId);
+    public void removeSession(Long userId, WebSocketSession session) {
+        Set<WebSocketSession> sessions = userSessions.get(userId);
+        if (sessions == null) {
+            return;
+        }
+
+        sessions.remove(session);
 
         // Safely close it if it exists and is currently open
         if (session != null) {
@@ -54,27 +66,37 @@ public class SocketService {
             }
         }
 
-        logger.info("User {} disconnected", userId);
-        broadcastUserStatus(userId, false);
+        if (sessions.isEmpty()) {
+            userSessions.remove(userId);
+            logger.info("User {} disconnected", userId);
+            broadcastUserStatus(userId, false);
+        }
     }
 
     public void sendToUser(Long userId, String eventType, Object payload) {
-        WebSocketSession session = userSessions.get(userId);
+        Set<WebSocketSession> sessions = userSessions.get(userId);
+        if (sessions == null || sessions.isEmpty()) {
+            return;
+        }
 
-        if (session != null && session.isOpen()) {
-            try {
-                Map<String, Object> message = Map.of(
-                        "type", eventType,
-                        "payload", payload
-                );
-                String json = objectMapper.writeValueAsString(message);
+        try {
+            Map<String, Object> message = Map.of(
+                    "type", eventType,
+                    "payload", payload
+            );
+            String json = objectMapper.writeValueAsString(message);
 
-                synchronized (session) {
-                    session.sendMessage(new TextMessage(json));
+            for (WebSocketSession session : sessions) {
+                if (session.isOpen()) {
+                    synchronized (session) {
+                        session.sendMessage(new TextMessage(json));
+                    }
+                } else {
+                    sessions.remove(session);
                 }
-            } catch (IOException e) {
-                logger.error("Error sending socket message to user {}", userId, e);
             }
+        } catch (IOException e) {
+            logger.error("Error sending socket message to user {}", userId, e);
         }
     }
 
@@ -82,8 +104,56 @@ public class SocketService {
      * Check if a user is currently online (has an active WebSocket session)
      */
     public boolean isUserOnline(Long userId) {
-        WebSocketSession session = userSessions.get(userId);
-        return session != null && session.isOpen();
+        Set<WebSocketSession> sessions = userSessions.get(userId);
+        if (sessions == null || sessions.isEmpty()) {
+            return false;
+        }
+
+        boolean hasOpenSession = false;
+        for (WebSocketSession session : sessions) {
+            if (session.isOpen()) {
+                hasOpenSession = true;
+            } else {
+                sessions.remove(session);
+            }
+        }
+
+        if (!hasOpenSession) {
+            userSessions.remove(userId);
+        }
+
+        return hasOpenSession;
+    }
+
+    private void sendInitialStatusSnapshot(Long userId) {
+        try {
+            User user = userRepository.findByIdWithVerifiers(userId).orElse(null);
+            if (user == null) {
+                logger.warn("Could not find user {} for status snapshot", userId);
+                return;
+            }
+
+            Set<Long> relevantUserIds = new HashSet<>();
+            for (User verifier : user.getSavedVerifiers()) {
+                relevantUserIds.add(verifier.getId());
+            }
+            for (User client : userRepository.findUsersBySavedVerifier(userId)) {
+                relevantUserIds.add(client.getId());
+            }
+
+            List<Long> onlineUserIds = new ArrayList<>();
+            for (Long id : relevantUserIds) {
+                if (isUserOnline(id)) {
+                    onlineUserIds.add(id);
+                }
+            }
+
+            sendToUser(userId, "USER_STATUS_SNAPSHOT", Map.of(
+                    "onlineUserIds", onlineUserIds
+            ));
+        } catch (Exception e) {
+            logger.error("Failed to send status snapshot for user {}", userId, e);
+        }
     }
 
     /**

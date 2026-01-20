@@ -10,6 +10,10 @@ export interface UserStatusPayload {
 	isOnline: boolean;
 }
 
+export interface UserStatusSnapshotPayload {
+	onlineUserIds: number[];
+}
+
 export interface TaskUpdatedPayload {
 	taskId: number;
 	status: string;

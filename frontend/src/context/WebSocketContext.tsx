@@ -9,11 +9,13 @@ import type {
 	SocketMessage,
 	UserStatusPayload,
 	MessageHandler,
+	UserStatusSnapshotPayload,
 } from "./websocket.types";
 import {
 	WebSocketContext,
 	type WebSocketContextValue,
 } from "./WebSocketContextValue";
+import { useAuth } from "./useAuth";
 
 // Dynamically construct WebSocket URL based on current location
 function getWebSocketUrl(): string {
@@ -28,6 +30,7 @@ const MAX_RECONNECT_DELAY = 30000; // Cap at 30 seconds
 export function WebSocketProvider({ children }: { children: ReactNode }) {
 	const [isConnected, setIsConnected] = useState(false);
 	const [onlineUsers, setOnlineUsers] = useState<Set<number>>(new Set());
+	const { token } = useAuth();
 
 	const wsRef = useRef<WebSocket | null>(null);
 	const handlersRef = useRef<Set<MessageHandler>>(new Set());
@@ -57,8 +60,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 		[onlineUsers],
 	);
 
-	// Disconnect WebSocket
-	const disconnect = useCallback(() => {
+	const closeSocket = useCallback((reason: string) => {
 		// Clear any pending reconnect
 		if (reconnectTimeoutRef.current) {
 			clearTimeout(reconnectTimeoutRef.current);
@@ -69,12 +71,17 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
 		// Close the connection
 		if (wsRef.current) {
-			wsRef.current.close(1000, "Logged out");
+			wsRef.current.close(1000, reason);
 			wsRef.current = null;
 		}
+	}, []);
+
+	// Disconnect WebSocket
+	const disconnect = useCallback(() => {
+		closeSocket("Logged out");
 		setIsConnected(false);
 		setOnlineUsers(new Set());
-	}, []);
+	}, [closeSocket]);
 
 	// Send message to server
 	const send = useCallback((type: string, payload: Record<string, unknown>) => {
@@ -102,6 +109,9 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 					}
 					return next;
 				});
+			} else if (message.type === "USER_STATUS_SNAPSHOT") {
+				const payload = message.payload as UserStatusSnapshotPayload;
+				setOnlineUsers(new Set(payload.onlineUserIds || []));
 			}
 
 			// Notify all subscribers
@@ -145,6 +155,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 		ws.onclose = (event) => {
 			console.log("WebSocket disconnected:", event.code, event.reason);
 			setIsConnected(false);
+			setOnlineUsers(new Set());
 			wsRef.current = null;
 
 			// Attempt reconnect if not a clean close and we have a token
@@ -188,8 +199,8 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
 	// Connect when component mounts and token exists
 	useEffect(() => {
-		const token = getToken();
-		if (token) {
+		const storedToken = getToken();
+		if (storedToken) {
 			connect();
 		}
 
@@ -200,10 +211,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 					connectRef.current();
 				} else {
 					// Token removed, disconnect
-					if (wsRef.current) {
-						wsRef.current.close(1000, "Logged out");
-						wsRef.current = null;
-					}
+					closeSocket("Logged out");
 					setOnlineUsers(new Set());
 				}
 			}
@@ -230,7 +238,16 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 				wsRef.current = null;
 			}
 		};
-	}, [getToken, connect]);
+	}, [getToken, connect, closeSocket]);
+
+	// Keep WebSocket connection in sync with auth token changes
+	useEffect(() => {
+		if (token) {
+			connect();
+		} else {
+			closeSocket("Logged out");
+		}
+	}, [token, connect, closeSocket]);
 
 	const value: WebSocketContextValue = {
 		isConnected,
