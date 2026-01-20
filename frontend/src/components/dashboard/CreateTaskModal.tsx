@@ -150,6 +150,7 @@ export default function CreateTaskModal({
 	const [showVerifierDropdown, setShowVerifierDropdown] = useState(false);
 	const [showListDropdown, setShowListDropdown] = useState(false);
 	const [hasDraft, setHasDraft] = useState(false);
+	const userTimezone = getUserTimezone();
 
 	// Load draft when modal opens
 	useEffect(() => {
@@ -298,6 +299,14 @@ export default function CreateTaskModal({
 		}
 	}, [removedVerifierEmail, isOpen]);
 
+	useEffect(() => {
+		if (!isOpen || hasDraft || formData.deadline) return;
+		setFormData((prev) => ({
+			...prev,
+			deadline: getMinDateTime(1, userTimezone),
+		}));
+	}, [isOpen, hasDraft, formData.deadline, userTimezone]);
+
 	const validateField = (name: string, value: string): string | undefined => {
 		switch (name) {
 			case "title":
@@ -309,7 +318,7 @@ export default function CreateTaskModal({
 				if (!value) return "Deadline is required";
 				// Use getMinDateTime to get the current time in user's timezone
 				// The datetime-local input value represents time in user's timezone
-				const minDateTime = getMinDateTime(0); // Get current time with no offset
+				const minDateTime = getMinDateTime(0, userTimezone); // Get current time with no offset
 				if (value <= minDateTime) return "Deadline must be in the future";
 				return undefined;
 			}
@@ -452,8 +461,7 @@ export default function CreateTaskModal({
 	if (!isOpen) return null;
 
 	// Get minimum datetime (now + 1 minute) in user's timezone
-	const userTimezone = getUserTimezone();
-	const minDateTime = getMinDateTime(1);
+	const minDateTime = getMinDateTime(1, userTimezone);
 
 	return (
 		<div className={styles.overlay} onClick={handleClose}>

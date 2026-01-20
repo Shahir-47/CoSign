@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { X, Camera, Upload, Loader2, Check } from "lucide-react";
 import { toast } from "react-toastify";
 import { useAuth } from "../../context/useAuth";
 import { apiRequest } from "../../utils/api";
+import { getTimezoneOptions } from "../../utils/timezone";
 import Avatar from "../shared/Avatar";
 import Button from "../shared/Button";
 import Input from "../shared/Input";
@@ -11,32 +12,17 @@ import styles from "./ProfileSettingsModal.module.css";
 interface ProfileSettingsModalProps {
 	isOpen: boolean;
 	onClose: () => void;
+	onProfileUpdated?: (timezoneChanged: boolean) => void;
 }
-
-// Timezone options (same as signup)
-const TIMEZONES = [
-	{ value: "America/New_York", label: "Eastern Time (ET)" },
-	{ value: "America/Chicago", label: "Central Time (CT)" },
-	{ value: "America/Denver", label: "Mountain Time (MT)" },
-	{ value: "America/Los_Angeles", label: "Pacific Time (PT)" },
-	{ value: "America/Anchorage", label: "Alaska Time (AKT)" },
-	{ value: "Pacific/Honolulu", label: "Hawaii Time (HT)" },
-	{ value: "Europe/London", label: "London (GMT/BST)" },
-	{ value: "Europe/Paris", label: "Paris (CET/CEST)" },
-	{ value: "Europe/Berlin", label: "Berlin (CET/CEST)" },
-	{ value: "Asia/Tokyo", label: "Tokyo (JST)" },
-	{ value: "Asia/Shanghai", label: "Shanghai (CST)" },
-	{ value: "Asia/Kolkata", label: "India (IST)" },
-	{ value: "Australia/Sydney", label: "Sydney (AEST/AEDT)" },
-	{ value: "UTC", label: "UTC" },
-];
 
 export default function ProfileSettingsModal({
 	isOpen,
 	onClose,
+	onProfileUpdated,
 }: ProfileSettingsModalProps) {
 	const { user, updateUser } = useAuth();
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	const timezoneOptions = useMemo(() => getTimezoneOptions(), []);
 
 	const [fullName, setFullName] = useState(user?.fullName || "");
 	const [timezone, setTimezone] = useState(user?.timezone || "UTC");
@@ -124,6 +110,7 @@ export default function ProfileSettingsModal({
 			return;
 		}
 
+		const timezoneChanged = timezone !== user.timezone;
 		setIsSaving(true);
 
 		try {
@@ -149,6 +136,7 @@ export default function ProfileSettingsModal({
 			});
 
 			toast.success("Profile updated successfully");
+			onProfileUpdated?.(timezoneChanged);
 			onClose();
 		} catch (error) {
 			console.error("Save error:", error);
@@ -234,7 +222,7 @@ export default function ProfileSettingsModal({
 								onChange={(e) => setTimezone(e.target.value)}
 								className={styles.select}
 							>
-								{TIMEZONES.map((tz) => (
+								{timezoneOptions.map((tz) => (
 									<option key={tz.value} value={tz.value}>
 										{tz.label}
 									</option>

@@ -6,6 +6,7 @@ import Input from "../shared/Input";
 import Select from "../shared/Select";
 import Button from "../shared/Button";
 import Avatar from "../shared/Avatar";
+import { detectTimezone, getTimezoneOptions } from "../../utils/timezone";
 import styles from "./SignupForm.module.css";
 
 interface SignupFormProps {
@@ -27,32 +28,6 @@ interface FormErrors {
 	email?: string;
 	password?: string;
 	timezone?: string;
-}
-
-// Generate timezone options from Intl API
-function getTimezoneOptions(): { value: string; label: string }[] {
-	const timezones = Intl.supportedValuesOf("timeZone");
-	return timezones.map((tz) => {
-		const formatter = new Intl.DateTimeFormat("en-US", {
-			timeZone: tz,
-			timeZoneName: "shortOffset",
-		});
-		const parts = formatter.formatToParts(new Date());
-		const offset = parts.find((p) => p.type === "timeZoneName")?.value || "";
-		return {
-			value: tz,
-			label: `${tz.replace(/_/g, " ")} (${offset})`,
-		};
-	});
-}
-
-// Detect user's timezone
-function detectTimezone(): string {
-	try {
-		return Intl.DateTimeFormat().resolvedOptions().timeZone;
-	} catch {
-		return "America/New_York";
-	}
 }
 
 export default function SignupForm({

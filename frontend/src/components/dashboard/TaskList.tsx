@@ -4,6 +4,11 @@ import type { Task } from "../../types";
 import TaskCard from "./TaskCard";
 import TaskDetailModal from "./TaskDetailModal";
 import { useWebSocket } from "../../context/useWebSocket";
+import {
+	getLocalDateTimeValue,
+	getNowLocalDateTimeValue,
+	getUserTimezone,
+} from "../../utils/timezone";
 import styles from "./TaskList.module.css";
 
 interface TaskListProps {
@@ -97,6 +102,7 @@ export default function TaskList({
 	// Time trigger to re-evaluate overdue status every minute
 	// This ensures tasks actively move to the overdue section when their deadline passes
 	const [currentTime, setCurrentTime] = useState(Date.now());
+	const userTimezone = getUserTimezone();
 
 	useEffect(() => {
 		// Check every 30 seconds if any tasks have become overdue
@@ -110,13 +116,13 @@ export default function TaskList({
 	// Separate active, completed, and overdue tasks
 	// Re-evaluates when tasks change OR when currentTime updates (every 30s)
 	const { activeTasks, completedTasks, overdueTasks } = useMemo(() => {
-		const now = new Date();
+		const nowValue = getNowLocalDateTimeValue(userTimezone);
 		const active: Task[] = [];
 		const completed: Task[] = [];
 		const overdue: Task[] = [];
 
 		tasks.forEach((task) => {
-			const deadline = new Date(task.deadline);
+			const deadlineValue = getLocalDateTimeValue(task.deadline);
 
 			// Completed tasks go to their own section
 			if (task.status === "COMPLETED") {
@@ -132,7 +138,7 @@ export default function TaskList({
 
 			// PENDING_PROOF or PENDING_VERIFICATION tasks that are past deadline go to overdue
 			const isOverdue =
-				deadline < now &&
+				deadlineValue < nowValue &&
 				(task.status === "PENDING_PROOF" ||
 					task.status === "PENDING_VERIFICATION");
 
@@ -145,14 +151,16 @@ export default function TaskList({
 
 		// Sort overdue by how overdue they are (most overdue first)
 		overdue.sort(
-			(a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
+			(a, b) =>
+				getLocalDateTimeValue(a.deadline) -
+				getLocalDateTimeValue(b.deadline)
 		);
 
 		// Sort completed by completion date (most recent first) - using submittedAt as proxy
 		completed.sort(
 			(a, b) =>
-				new Date(b.submittedAt || b.deadline).getTime() -
-				new Date(a.submittedAt || a.deadline).getTime()
+				getLocalDateTimeValue(b.submittedAt || b.deadline) -
+				getLocalDateTimeValue(a.submittedAt || a.deadline)
 		);
 
 		return {
@@ -161,7 +169,7 @@ export default function TaskList({
 			overdueTasks: overdue,
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [tasks, currentTime]);
+	}, [tasks, currentTime, userTimezone]);
 
 	// Trigger deadline check via WebSocket for newly overdue tasks (my-tasks only)
 	// This immediately processes the penalty instead of waiting for backend scheduler

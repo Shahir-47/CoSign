@@ -23,8 +23,12 @@ import type {
 import OnlineStatusIndicator from "../shared/OnlineStatusIndicator";
 import styles from "./TaskCard.module.css";
 import {
-	getTimeUntilDeadline,
 	formatDeadlineDisplay,
+	getLocalDateTimeValue,
+	getNowLocalDateTimeParts,
+	getNowLocalDateTimeValue,
+	getTimeUntilDeadline,
+	parseLocalDateTime,
 } from "../../utils/timezone";
 import { formatRRuleShort } from "../../utils/formatters";
 
@@ -91,9 +95,9 @@ function formatTimestamp(isoString: string): string {
 
 // Get relative time description (e.g., "2 hours ago", "3 days ago")
 function getRelativeTime(isoString: string): string {
-	const now = new Date();
-	const date = new Date(isoString);
-	const diffMs = now.getTime() - date.getTime();
+	const nowMs = getNowLocalDateTimeValue();
+	const dateMs = getLocalDateTimeValue(isoString);
+	const diffMs = nowMs - dateMs;
 	const diffSeconds = Math.floor(diffMs / 1000);
 	const diffMinutes = Math.floor(diffSeconds / 60);
 	const diffHours = Math.floor(diffMinutes / 60);
@@ -155,14 +159,14 @@ function formatDeadline(deadline: string): {
 
 	// Not past - show time remaining
 	if (totalDays > 7) {
+		const deadlineYear = parseLocalDateTime(deadline).year;
+		const currentYear = getNowLocalDateTimeParts().year;
 		return {
 			text: formatDeadlineDisplay(deadline, {
 				month: "short",
 				day: "numeric",
 				year:
-					new Date(deadline).getFullYear() !== new Date().getFullYear()
-						? "numeric"
-						: undefined,
+					deadlineYear !== currentYear ? "numeric" : undefined,
 			}),
 			isUrgent: false,
 			isPast: false,
@@ -407,7 +411,8 @@ export default function TaskCard({
 					// Sort by timestamp chronologically (oldest first)
 					events.sort(
 						(a, b) =>
-							new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+							getLocalDateTimeValue(a.timestamp) -
+							getLocalDateTimeValue(b.timestamp)
 					);
 
 					return events.map((event) => {

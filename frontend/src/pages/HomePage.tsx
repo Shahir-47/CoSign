@@ -33,6 +33,7 @@ import {
 	popModal,
 	type ModalType,
 } from "../utils/persistence";
+import { getLocalDateTimeValue } from "../utils/timezone";
 import styles from "./HomePage.module.css";
 
 type TabType = "my-tasks" | "verification-requests" | "supervising";
@@ -338,6 +339,15 @@ export default function HomePage() {
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [activeTab, selectedListId, navigate]);
+
+	const handleProfileUpdated = useCallback(
+		(timezoneChanged: boolean) => {
+			if (timezoneChanged) {
+				fetchTasks();
+			}
+		},
+		[fetchTasks],
+	);
 
 	useEffect(() => {
 		fetchTasks();
@@ -798,6 +808,13 @@ export default function HomePage() {
 
 	// Filter and sort tasks based on current filters and sort config
 	const filteredTasks = useMemo(() => {
+		const fromValue = filters.deadlineFrom
+			? getLocalDateTimeValue(`${filters.deadlineFrom}T00:00:00`)
+			: null;
+		const toValue = filters.deadlineTo
+			? getLocalDateTimeValue(`${filters.deadlineTo}T23:59:59`)
+			: null;
+
 		const filtered = tasks.filter((task) => {
 			// CRITICAL: Filter tasks based on current view to prevent cross-contamination
 			// This ensures real-time socket updates don't render tasks in the wrong view
@@ -870,17 +887,9 @@ export default function HomePage() {
 
 			// Date range filter
 			if (filters.deadlineFrom || filters.deadlineTo) {
-				const taskDeadline = new Date(task.deadline);
-				if (filters.deadlineFrom) {
-					const from = new Date(filters.deadlineFrom);
-					from.setHours(0, 0, 0, 0);
-					if (taskDeadline < from) return false;
-				}
-				if (filters.deadlineTo) {
-					const to = new Date(filters.deadlineTo);
-					to.setHours(23, 59, 59, 999);
-					if (taskDeadline > to) return false;
-				}
+				const taskDeadline = getLocalDateTimeValue(task.deadline);
+				if (fromValue !== null && taskDeadline < fromValue) return false;
+				if (toValue !== null && taskDeadline > toValue) return false;
 			}
 
 			return true;
@@ -889,7 +898,7 @@ export default function HomePage() {
 		// Apply sorting
 		const sortedTasks = [...filtered].sort(getSortComparator(sortConfig));
 		return sortedTasks;
-	}, [tasks, filters, sortConfig, activeTab, currentUserEmail]);
+	}, [tasks, filters, sortConfig, activeTab, currentUserEmail, user?.timezone]);
 
 	// Calculate stats from filtered tasks
 	const pendingProofCount = filteredTasks.filter(
@@ -916,6 +925,7 @@ export default function HomePage() {
 			isProfileModalOpen={isProfileModalOpen}
 			onOpenProfileModal={handleOpenProfile}
 			onCloseProfileModal={handleCloseProfile}
+			onProfileUpdated={handleProfileUpdated}
 		>
 			{activeTab === "supervising" ? (
 				<SupervisingTab

@@ -46,7 +46,12 @@ import { api } from "../../utils/api";
 import { formatRRuleDisplay } from "../../utils/formatters";
 import ViewAttachmentModal from "../shared/ViewAttachmentModal";
 import RecurrenceSelector from "./RecurrenceSelector";
-import { getUserTimezone, getTimeUntilDeadline } from "../../utils/timezone";
+import {
+	formatDeadlineDisplay,
+	getLocalDateTimeValue,
+	getTimeUntilDeadline,
+	getUserTimezone,
+} from "../../utils/timezone";
 import { useWebSocket } from "../../context/useWebSocket";
 import OnlineStatusIndicator from "../shared/OnlineStatusIndicator";
 import styles from "./TaskDetailModal.module.css";
@@ -153,11 +158,7 @@ const statusConfig: Record<
 };
 
 function formatDateTime(dateString: string): string {
-	const userTimezone = getUserTimezone();
-	const date = new Date(dateString);
-
-	return date.toLocaleString("en-US", {
-		timeZone: userTimezone,
+	return formatDeadlineDisplay(dateString, {
 		weekday: "short",
 		year: "numeric",
 		month: "short",
@@ -1080,8 +1081,8 @@ export default function TaskDetailModal({
 							// Sort by timestamp chronologically (oldest first)
 							events.sort(
 								(a, b) =>
-									new Date(a.timestamp).getTime() -
-									new Date(b.timestamp).getTime()
+									getLocalDateTimeValue(a.timestamp) -
+									getLocalDateTimeValue(b.timestamp)
 							);
 
 							return events.map((event) => {

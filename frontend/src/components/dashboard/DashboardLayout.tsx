@@ -39,6 +39,7 @@ interface DashboardLayoutProps {
 	isProfileModalOpen?: boolean;
 	onOpenProfileModal?: () => void;
 	onCloseProfileModal?: () => void;
+	onProfileUpdated?: (timezoneChanged: boolean) => void;
 }
 
 export default function DashboardLayout({
@@ -55,6 +56,7 @@ export default function DashboardLayout({
 	isProfileModalOpen,
 	onOpenProfileModal,
 	onCloseProfileModal,
+	onProfileUpdated,
 }: DashboardLayoutProps) {
 	const navigate = useNavigate();
 	const { user } = useAuth();
@@ -244,6 +246,7 @@ export default function DashboardLayout({
 			<ProfileSettingsModal
 				isOpen={showProfileModal}
 				onClose={handleCloseProfile}
+				onProfileUpdated={onProfileUpdated}
 			/>
 		</div>
 	);

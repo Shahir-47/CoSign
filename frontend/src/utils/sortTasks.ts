@@ -1,4 +1,5 @@
 import type { Task, TaskSortConfig, SortOption } from "../types";
+import { getLocalDateTimeValue } from "./timezone";
 
 // Priority order for sorting (higher priority = higher value)
 const PRIORITY_ORDER: Record<string, number> = {
@@ -58,8 +59,8 @@ function compareByOption(
 
 	switch (field) {
 		case "deadline": {
-			const dateA = a.deadline ? new Date(a.deadline).getTime() : 0;
-			const dateB = b.deadline ? new Date(b.deadline).getTime() : 0;
+			const dateA = a.deadline ? getLocalDateTimeValue(a.deadline) : 0;
+			const dateB = b.deadline ? getLocalDateTimeValue(b.deadline) : 0;
 			// Handle null/undefined - push them to the end
 			if (!a.deadline && b.deadline) return 1;
 			if (a.deadline && !b.deadline) return -1;
@@ -67,16 +68,16 @@ function compareByOption(
 			break;
 		}
 		case "createdAt": {
-			const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-			const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+			const dateA = a.createdAt ? getLocalDateTimeValue(a.createdAt) : 0;
+			const dateB = b.createdAt ? getLocalDateTimeValue(b.createdAt) : 0;
 			if (!a.createdAt && b.createdAt) return 1;
 			if (a.createdAt && !b.createdAt) return -1;
 			result = dateA - dateB;
 			break;
 		}
 		case "submittedAt": {
-			const dateA = a.submittedAt ? new Date(a.submittedAt).getTime() : 0;
-			const dateB = b.submittedAt ? new Date(b.submittedAt).getTime() : 0;
+			const dateA = a.submittedAt ? getLocalDateTimeValue(a.submittedAt) : 0;
+			const dateB = b.submittedAt ? getLocalDateTimeValue(b.submittedAt) : 0;
 			if (!a.submittedAt && b.submittedAt) return 1;
 			if (a.submittedAt && !b.submittedAt) return -1;
 			result = dateA - dateB;
@@ -127,8 +128,8 @@ function compareByTiebreaker(
 			return titleA.localeCompare(titleB);
 		}
 		case "createdAt": {
-			const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-			const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+			const dateA = a.createdAt ? getLocalDateTimeValue(a.createdAt) : 0;
+			const dateB = b.createdAt ? getLocalDateTimeValue(b.createdAt) : 0;
 			// Newer items first
 			return dateB - dateA;
 		}
