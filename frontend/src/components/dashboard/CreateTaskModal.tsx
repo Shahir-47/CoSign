@@ -38,6 +38,10 @@ import {
 	formatForBackend,
 } from "../../utils/timezone";
 import { useWebSocket } from "../../context/useWebSocket";
+import type {
+	SocketMessage,
+	UserStatusPayload,
+} from "../../context/websocket.types";
 import {
 	saveTaskDraft,
 	loadTaskDraft,
@@ -91,21 +95,26 @@ export default function CreateTaskModal({
 	isRepeatModalOpen,
 	onRepeatModalOpenChange,
 }: CreateTaskModalProps) {
-	const { isUserOnline, subscribe } = useWebSocket();
+	const { subscribe } = useWebSocket();
 	const draftLoadedRef = useRef(false);
 	const saveDraftTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
 		null,
 	);
-	const [, setStatusTick] = useState(0);
 
 	// Subscribe to user status changes for real-time online indicator updates
 	useEffect(() => {
 		if (!isOpen) return;
 
-		const handleMessage = (message: { type: string }) => {
-			if (message.type === "USER_STATUS") {
-				setStatusTick((t) => t + 1);
-			}
+		const handleMessage = (message: SocketMessage) => {
+			if (message.type !== "USER_STATUS") return;
+			const payload = message.payload as UserStatusPayload;
+			setSavedVerifiers((prev) =>
+				prev.map((verifier) =>
+					verifier.id === payload.userId
+						? { ...verifier, isOnline: payload.isOnline }
+						: verifier,
+				),
+			);
 		};
 
 		const unsubscribe = subscribe(handleMessage);
@@ -575,8 +584,7 @@ export default function CreateTaskModal({
 							{showVerifierDropdown && (
 								<div className={styles.verifierDropdown}>
 									{savedVerifiers.map((verifier) => {
-										const online =
-											verifier.isOnline || isUserOnline(verifier.id);
+										const online = verifier.isOnline ?? false;
 										return (
 											<button
 												key={verifier.id}

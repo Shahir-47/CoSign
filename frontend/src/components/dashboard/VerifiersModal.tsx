@@ -7,6 +7,10 @@ import Input from "../shared/Input";
 import Button from "../shared/Button";
 import OnlineStatusIndicator from "../shared/OnlineStatusIndicator";
 import { useWebSocket } from "../../context/useWebSocket";
+import type {
+	SocketMessage,
+	UserStatusPayload,
+} from "../../context/websocket.types";
 import styles from "./VerifiersModal.module.css";
 
 interface VerifiersModalProps {
@@ -22,8 +26,7 @@ export default function VerifiersModal({
 	onVerifierAdded,
 	onVerifierRemoved,
 }: VerifiersModalProps) {
-	const { isUserOnline, subscribe } = useWebSocket();
-	const [, setStatusTick] = useState(0);
+	const { subscribe } = useWebSocket();
 
 	const [verifiers, setVerifiers] = useState<Verifier[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
@@ -36,10 +39,16 @@ export default function VerifiersModal({
 	useEffect(() => {
 		if (!isOpen) return;
 
-		const handleMessage = (message: { type: string }) => {
-			if (message.type === "USER_STATUS") {
-				setStatusTick((t) => t + 1);
-			}
+		const handleMessage = (message: SocketMessage) => {
+			if (message.type !== "USER_STATUS") return;
+			const payload = message.payload as UserStatusPayload;
+			setVerifiers((prev) =>
+				prev.map((verifier) =>
+					verifier.id === payload.userId
+						? { ...verifier, isOnline: payload.isOnline }
+						: verifier,
+				),
+			);
 		};
 
 		const unsubscribe = subscribe(handleMessage);
@@ -193,7 +202,7 @@ export default function VerifiersModal({
 					) : (
 						<div className={styles.verifiersList}>
 							{verifiers.map((verifier) => {
-								const online = verifier.isOnline || isUserOnline(verifier.id);
+								const online = verifier.isOnline ?? false;
 								return (
 									<div key={verifier.id} className={styles.verifierCard}>
 										<div className={styles.verifierInfo}>

@@ -4,6 +4,10 @@ import { toast } from "react-toastify";
 import type { Task, Verifier } from "../../types";
 import { api } from "../../utils/api";
 import { useWebSocket } from "../../context/useWebSocket";
+import type {
+	SocketMessage,
+	UserStatusPayload,
+} from "../../context/websocket.types";
 import Button from "../shared/Button";
 import OnlineStatusIndicator from "../shared/OnlineStatusIndicator";
 import styles from "./ReassignVerifierModal.module.css";
@@ -34,17 +38,22 @@ export default function ReassignVerifierModal({
 	const [showDropdown, setShowDropdown] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | undefined>();
-	const { isUserOnline, subscribe } = useWebSocket();
-	const [, setStatusTick] = useState(0);
+	const { subscribe } = useWebSocket();
 
 	// Subscribe to user status changes for real-time online indicator updates
 	useEffect(() => {
 		if (!isOpen) return;
 
-		const handleMessage = (message: { type: string }) => {
-			if (message.type === "USER_STATUS") {
-				setStatusTick((t) => t + 1);
-			}
+		const handleMessage = (message: SocketMessage) => {
+			if (message.type !== "USER_STATUS") return;
+			const payload = message.payload as UserStatusPayload;
+			setSavedVerifiers((prev) =>
+				prev.map((verifier) =>
+					verifier.id === payload.userId
+						? { ...verifier, isOnline: payload.isOnline }
+						: verifier,
+				),
+			);
 		};
 
 		const unsubscribe = subscribe(handleMessage);
@@ -187,14 +196,12 @@ export default function ReassignVerifierModal({
 														.join("")
 														.toUpperCase()}
 												</div>
-												<div className={styles.statusIndicator}>
-													<OnlineStatusIndicator
-														isOnline={
-															verifier.isOnline || isUserOnline(verifier.id)
-														}
-														size="sm"
-													/>
-												</div>
+											<div className={styles.statusIndicator}>
+												<OnlineStatusIndicator
+													isOnline={verifier.isOnline ?? false}
+													size="sm"
+												/>
+											</div>
 											</div>
 											<div className={styles.verifierInfo}>
 												<span className={styles.verifierName}>
