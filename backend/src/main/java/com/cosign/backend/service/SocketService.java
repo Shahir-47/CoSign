@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -22,9 +23,11 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SocketService {
 
     private static final Logger logger = LoggerFactory.getLogger(SocketService.class);
+    private static final long STALE_SESSION_MS = 90_000;
 
     // Concurrent map to store active sessions which maps UserId to Sessions
     private final Map<Long, Set<WebSocketSession>> userSessions = new ConcurrentHashMap<>();
+    private final Map<WebSocketSession, Long> sessionLastSeen = new ConcurrentHashMap<>();
 
     private final ObjectMapper objectMapper;
     private final UserRepository userRepository;
@@ -40,6 +43,7 @@ public class SocketService {
                 userSessions.computeIfAbsent(userId, id -> ConcurrentHashMap.newKeySet());
         boolean wasOffline = sessions.isEmpty();
         sessions.add(session);
+        sessionLastSeen.put(session, System.currentTimeMillis());
         logger.info("User {} connected via Socket", userId);
         if (wasOffline) {
             broadcastUserStatus(userId, true);
@@ -54,6 +58,7 @@ public class SocketService {
         }
 
         sessions.remove(session);
+        sessionLastSeen.remove(session);
 
         // Safely close it if it exists and is currently open
         if (session != null) {
@@ -93,6 +98,7 @@ public class SocketService {
                     }
                 } else {
                     sessions.remove(session);
+                    sessionLastSeen.remove(session);
                 }
             }
         } catch (IOException e) {
@@ -115,6 +121,7 @@ public class SocketService {
                 hasOpenSession = true;
             } else {
                 sessions.remove(session);
+                sessionLastSeen.remove(session);
             }
         }
 
@@ -123,6 +130,36 @@ public class SocketService {
         }
 
         return hasOpenSession;
+    }
+
+    public void markSessionAlive(WebSocketSession session) {
+        if (session != null) {
+            sessionLastSeen.put(session, System.currentTimeMillis());
+        }
+    }
+
+    @Scheduled(fixedRate = 30000)
+    public void cleanupStaleSessions() {
+        long now = System.currentTimeMillis();
+        sessionLastSeen.forEach((session, lastSeen) -> {
+            if (session == null) {
+                sessionLastSeen.remove(session);
+                return;
+            }
+            if (!session.isOpen() || now - lastSeen > STALE_SESSION_MS) {
+                Long userId = (Long) session.getAttributes().get("userId");
+                if (userId != null) {
+                    removeSession(userId, session);
+                } else {
+                    sessionLastSeen.remove(session);
+                    try {
+                        session.close();
+                    } catch (IOException e) {
+                        logger.error("Error closing stale session", e);
+                    }
+                }
+            }
+        });
     }
 
     private void sendInitialStatusSnapshot(Long userId) {

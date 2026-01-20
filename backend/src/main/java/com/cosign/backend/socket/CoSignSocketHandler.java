@@ -86,6 +86,12 @@ public class CoSignSocketHandler extends TextWebSocketHandler {
             JsonNode json = objectMapper.readTree(message.getPayload());
             String type = json.has("type") ? json.get("type").asText() : null;
 
+            socketService.markSessionAlive(session);
+
+            if ("PING".equals(type)) {
+                return;
+            }
+
             if ("TRIGGER_DEADLINE_CHECK".equals(type)) {
                 Long taskId = json.has("taskId") ? json.get("taskId").asLong() : null;
                 if (taskId != null) {

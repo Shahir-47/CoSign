@@ -130,7 +130,12 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 	// Connect to WebSocket
 	const connect = useCallback(() => {
 		const token = getToken();
-		if (!token || wsRef.current?.readyState === WebSocket.OPEN) {
+		const currentState = wsRef.current?.readyState;
+		if (
+			!token ||
+			currentState === WebSocket.OPEN ||
+			currentState === WebSocket.CONNECTING
+		) {
 			return;
 		}
 
@@ -248,6 +253,17 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 			closeSocket("Logged out");
 		}
 	}, [token, connect, closeSocket]);
+
+	// Send heartbeat pings to keep presence fresh and avoid stale sessions
+	useEffect(() => {
+		if (!isConnected) return;
+
+		const interval = window.setInterval(() => {
+			send("PING", {});
+		}, 30000);
+
+		return () => window.clearInterval(interval);
+	}, [isConnected, send]);
 
 	const value: WebSocketContextValue = {
 		isConnected,
