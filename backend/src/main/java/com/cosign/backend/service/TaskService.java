@@ -255,6 +255,11 @@ public class TaskService {
 
         Task savedTask = taskRepository.save(task);
 
+        Hibernate.initialize(savedTask.getList());
+        Hibernate.initialize(savedTask.getCreator());
+        Hibernate.initialize(savedTask.getVerifier());
+        Hibernate.initialize(savedTask.getProofAttachments());
+
         // Notify verifier about the new task with full task data for real-time UI update
         Map<String, Object> taskPayload = buildTaskPayload(savedTask);
 
@@ -331,6 +336,11 @@ public class TaskService {
 
         Task savedTask = taskRepository.save(task);
 
+        Hibernate.initialize(savedTask.getList());
+        Hibernate.initialize(savedTask.getCreator());
+        Hibernate.initialize(savedTask.getVerifier());
+        Hibernate.initialize(savedTask.getProofAttachments());
+
         // Notify new verifier with full task data for real-time UI update
         Map<String, Object> taskPayload = buildTaskPayload(savedTask);
 
@@ -399,6 +409,11 @@ public class TaskService {
         task.setRepeatPattern(request.getRepeatPattern());
 
         Task savedTask = taskRepository.save(task);
+
+        Hibernate.initialize(savedTask.getList());
+        Hibernate.initialize(savedTask.getCreator());
+        Hibernate.initialize(savedTask.getVerifier());
+        Hibernate.initialize(savedTask.getProofAttachments());
 
         // Build update payload with full task data
         Map<String, Object> payload = new java.util.HashMap<>();
