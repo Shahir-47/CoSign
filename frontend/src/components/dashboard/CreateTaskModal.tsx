@@ -95,7 +95,7 @@ export default function CreateTaskModal({
 	isRepeatModalOpen,
 	onRepeatModalOpenChange,
 }: CreateTaskModalProps) {
-	const { subscribe } = useWebSocket();
+	const { subscribe, isUserOnline, isConnected } = useWebSocket();
 	const draftLoadedRef = useRef(false);
 	const saveDraftTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
 		null,
@@ -584,7 +584,9 @@ export default function CreateTaskModal({
 							{showVerifierDropdown && (
 								<div className={styles.verifierDropdown}>
 									{savedVerifiers.map((verifier) => {
-										const online = verifier.isOnline ?? false;
+										const online = isConnected
+											? isUserOnline(verifier.id)
+											: verifier.isOnline ?? false;
 										return (
 											<button
 												key={verifier.id}

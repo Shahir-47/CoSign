@@ -31,7 +31,7 @@ export default function SupervisingTab({
 	const [supervisees, setSupervisees] = useState<Supervisee[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-	const { subscribe } = useWebSocket();
+	const { subscribe, isUserOnline, isConnected } = useWebSocket();
 
 	const fetchSupervisees = useCallback(async () => {
 		setIsLoading(true);
@@ -146,7 +146,11 @@ export default function SupervisingTab({
 			</div>
 
 			<div className={styles.grid}>
-				{supervisees.map((supervisee) => (
+				{supervisees.map((supervisee) => {
+					const isOnline = isConnected
+						? isUserOnline(supervisee.id)
+						: supervisee.isOnline;
+					return (
 					<div
 						key={supervisee.id}
 						className={styles.card}
@@ -170,7 +174,7 @@ export default function SupervisingTab({
 								)}
 								<span
 									className={`${styles.statusDot} ${
-										supervisee.isOnline ? styles.online : styles.offline
+										isOnline ? styles.online : styles.offline
 									}`}
 								/>
 							</div>
@@ -179,10 +183,10 @@ export default function SupervisingTab({
 								<span className={styles.email}>{supervisee.email}</span>
 								<span
 									className={`${styles.statusText} ${
-										supervisee.isOnline ? styles.online : styles.offline
+										isOnline ? styles.online : styles.offline
 									}`}
 								>
-									{supervisee.isOnline ? "Online" : "Offline"}
+									{isOnline ? "Online" : "Offline"}
 								</span>
 							</div>
 						</div>
@@ -235,7 +239,8 @@ export default function SupervisingTab({
 							</span>
 						</div>
 					</div>
-				))}
+				);
+				})}
 			</div>
 		</div>
 	);

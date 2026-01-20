@@ -26,7 +26,7 @@ export default function VerifiersModal({
 	onVerifierAdded,
 	onVerifierRemoved,
 }: VerifiersModalProps) {
-	const { subscribe } = useWebSocket();
+	const { subscribe, isUserOnline, isConnected } = useWebSocket();
 
 	const [verifiers, setVerifiers] = useState<Verifier[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
@@ -202,7 +202,9 @@ export default function VerifiersModal({
 					) : (
 						<div className={styles.verifiersList}>
 							{verifiers.map((verifier) => {
-								const online = verifier.isOnline ?? false;
+								const online = isConnected
+									? isUserOnline(verifier.id)
+									: verifier.isOnline ?? false;
 								return (
 									<div key={verifier.id} className={styles.verifierCard}>
 										<div className={styles.verifierInfo}>

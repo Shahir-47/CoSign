@@ -38,7 +38,7 @@ export default function ReassignVerifierModal({
 	const [showDropdown, setShowDropdown] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | undefined>();
-	const { subscribe } = useWebSocket();
+	const { subscribe, isUserOnline, isConnected } = useWebSocket();
 
 	// Subscribe to user status changes for real-time online indicator updates
 	useEffect(() => {
@@ -198,7 +198,11 @@ export default function ReassignVerifierModal({
 												</div>
 											<div className={styles.statusIndicator}>
 												<OnlineStatusIndicator
-													isOnline={verifier.isOnline ?? false}
+													isOnline={
+														isConnected
+															? isUserOnline(verifier.id)
+															: verifier.isOnline ?? false
+													}
 													size="sm"
 												/>
 											</div>
