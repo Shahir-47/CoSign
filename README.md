@@ -107,22 +107,55 @@ Any registered user can be a verifier. You can save frequently-used verifiers fo
 
 <div align="center">
 
-<!-- Add screenshots of the application here -->
+|                                                                     Signup Page                                                                     |
+| :-------------------------------------------------------------------------------------------------------------------------------------------------: |
+|                                                        _Create a new account to get started_                                                        |
+| <img width="1589" height="859" alt="Advanced filter panel" src="https://github.com/user-attachments/assets/42d9cb75-a6f5-4ef1-9e68-77090a2ac8d3" /> |
 
-|                           Dashboard View                           |              Task Creation              |
-| :----------------------------------------------------------------: | :-------------------------------------: |
-| _Main dashboard showing My Tasks, To Verify, and Supervising tabs_ | _Create task modal with penalty editor_ |
-|                     `[Screenshot Placeholder]`                     |       `[Screenshot Placeholder]`        |
+|                                                                Dashboard View                                                                |
+| :------------------------------------------------------------------------------------------------------------------------------------------: |
+|                                      _Main dashboard showing My Tasks, To Verify, and Supervising tabs_                                      |
+| <img width="1909" height="897" alt="Dashboard view" src="https://github.com/user-attachments/assets/894cffa6-c9f1-4b9a-8631-f2a60064423a" /> |
 
-|                Proof Submission                |         Verification Review          |
-| :--------------------------------------------: | :----------------------------------: |
-| _Proof submission interface with file uploads_ | _Verifier reviewing submitted proof_ |
-|           `[Screenshot Placeholder]`           |      `[Screenshot Placeholder]`      |
+|                                                                  Task Creation                                                                   |
+| :----------------------------------------------------------------------------------------------------------------------------------------------: |
+|                                                     _Create task modal with penalty editor_                                                      |
+| <img width="625" height="851" alt="Task creation modal" src="https://github.com/user-attachments/assets/d814b4e1-ef34-47ea-bed0-73ee9a072ff9" /> |
 
-|              Penalty Exposure              |
-| :----------------------------------------: |
-| _Missed task with exposed penalty content_ |
-|         `[Screenshot Placeholder]`         |
+|                                                               Proof Submission                                                                |
+| :-------------------------------------------------------------------------------------------------------------------------------------------: |
+|                                                _Proof submission interface with file uploads_                                                 |
+| <img width="719" height="810" alt="Proof submission" src="https://github.com/user-attachments/assets/935a2e5b-4d3a-4d99-a80c-a8f88c220330" /> |
+
+|                                                               Verification Review                                                                |
+| :----------------------------------------------------------------------------------------------------------------------------------------------: |
+|                                                       _Verifier reviewing submitted proof_                                                       |
+| <img width="695" height="700" alt="Verification review" src="https://github.com/user-attachments/assets/cdbfa419-9fb8-4319-855a-2ec3b2497bd7" /> |
+
+|                                                               Penalty Exposure                                                                |
+| :-------------------------------------------------------------------------------------------------------------------------------------------: |
+|                                                  _Missed task with exposed penalty content_                                                   |
+| <img width="574" height="772" alt="Penalty exposure" src="https://github.com/user-attachments/assets/6ade297d-80af-4b33-8d7b-3d32a579ebeb" /> |
+
+|                                                                 To Verify Page                                                                 |
+| :--------------------------------------------------------------------------------------------------------------------------------------------: |
+|                                                   _Tasks awaiting your verification review_                                                    |
+| <img width="1228" height="790" alt="Supervising page" src="https://github.com/user-attachments/assets/66f7746b-1324-499a-a795-342722fd229f" /> |
+
+|                                                                Supervising                                                                 |
+| :----------------------------------------------------------------------------------------------------------------------------------------: |
+|                                                _Supervising view for users you verify for_                                                 |
+| <img width="1092" height="508" alt="Profile page" src="https://github.com/user-attachments/assets/11c463dc-8656-4784-b562-a01edd7c1796" /> |
+
+|                                                               Profile Page                                                               |
+| :--------------------------------------------------------------------------------------------------------------------------------------: |
+|                                                  _Update profile details and timezone_                                                   |
+| <img width="437" height="645" alt="Signup page" src="https://github.com/user-attachments/assets/a044883e-89f8-46d8-8594-31fec4b1f551" /> |
+
+|                                                               Advanced Filters                                                               |
+| :------------------------------------------------------------------------------------------------------------------------------------------: |
+|                                              _Filter tasks by status, priority, tags, and more_                                              |
+| <img width="1202" height="479" alt="To verify page" src="https://github.com/user-attachments/assets/f197038d-4c3a-457b-bc47-ee0f15980825" /> |
 
 </div>
 
@@ -132,13 +165,9 @@ Any registered user can be a verifier. You can save frequently-used verifiers fo
 
 <div align="center">
 
-<!-- Add video demonstration here -->
-
-[![Video Walkthrough](https://img.shields.io/badge/Video-Watch%20Demo-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](#)
-
 _Complete walkthrough demonstrating task creation, proof submission, verification, and penalty exposure_
 
-`[Video Placeholder]`
+https://github.com/user-attachments/assets/95f9590a-56a4-4a22-b261-eb803bb4ae6b
 
 </div>
 
